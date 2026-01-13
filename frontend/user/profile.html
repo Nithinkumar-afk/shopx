@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile – JD</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  font-family:Poppins,sans-serif;
+  background:black;
+  color:white;
+  min-height:100vh;
+}
+
+/* ================= HEADER ================= */
+header{
+  position:sticky;top:0;z-index:10;
+  background:rgba(0,0,0,.85);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.15);
+  padding:18px 22px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+header a{
+  color:#4fb6e8;
+  font-size:22px;
+  text-decoration:none;
+}
+header h2{
+  font-weight:600;
+}
+
+/* ================= CONTAINER ================= */
+.container{
+  max-width:920px;
+  margin:auto;
+  padding:28px 20px;
+}
+
+/* ================= CARD ================= */
+.card{
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(18px);
+  border-radius:24px;
+  padding:28px;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 30px 80px rgba(0,0,0,.85);
+  margin-bottom:24px;
+}
+
+/* ================= PROFILE TOP ================= */
+.profile-top{
+  display:flex;
+  gap:28px;
+  align-items:center;
+}
+
+.profile-pic{
+  width:130px;
+  height:130px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#4fb6e8,#2563eb);
+  padding:5px;
+  cursor:pointer;
+}
+.profile-pic img{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  object-fit:cover;
+  background:black;
+  border:3px solid rgba(255,255,255,.8);
+}
+
+/* ================= FORM ================= */
+label{
+  font-size:13px;
+  font-weight:600;
+  color:#cbd5e1;
+  margin-top:12px;
+  display:block;
+}
+input,textarea{
+  width:100%;
+  margin-top:6px;
+  padding:14px 16px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(0,0,0,.4);
+  color:white;
+  outline:none;
+  font-family:Poppins,sans-serif;
+}
+input::placeholder,textarea::placeholder{
+  color:#94a3b8;
+}
+
+/* ================= BUTTONS ================= */
+button{
+  margin-top:16px;
+  padding:14px 22px;
+  border:none;
+  border-radius:14px;
+  font-weight:600;
+  cursor:pointer;
+  font-family:Poppins,sans-serif;
+}
+.primary{
+  background:linear-gradient(135deg,#4fb6e8,#2563eb);
+  color:white;
+  box-shadow:0 12px 30px rgba(79,182,232,.4);
+}
+.primary:hover{
+  transform:translateY(-1px);
+  box-shadow:0 16px 40px rgba(79,182,232,.55);
+}
+
+/* ================= ADDRESS ================= */
+.address-card{
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:18px;
+  padding:16px;
+  margin-top:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  background:rgba(0,0,0,.35);
+}
+.address-text{
+  font-size:14px;
+  line-height:1.6;
+  color:#e2e8f0;
+}
+.delete-btn{
+  background:#ef4444;
+  color:white;
+  border:none;
+  padding:8px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:13px;
+}
+.empty{
+  color:#94a3b8;
+  font-size:14px;
+  margin-top:10px;
+}
+
+/* ================= MOBILE ================= */
+@media(max-width:720px){
+  .profile-top{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <a href="index.html">←</a>
+  <h2>My Profile</h2>
+</header>
+
+<div class="container">
+
+  <!-- PROFILE -->
+  <div class="card">
+    <div class="profile-top">
+      <div class="profile-pic" onclick="imgInput.click()">
+        <img id="profileImage" src="https://via.placeholder.com/300">
+      </div>
+
+      <div style="flex:1">
+        <label>Full Name</label>
+        <input id="name">
+
+        <label>Primary Phone</label>
+        <input id="phone">
+
+        <label>Alternative Phone</label>
+        <input id="altPhone">
+
+        <input type="file" accept="image/*" hidden id="imgInput">
+      </div>
+    </div>
+
+    <button class="primary" id="saveBtn">Save Profile</button>
+  </div>
+
+  <!-- ADD ADDRESS -->
+  <div class="card">
+    <h3 style="margin-bottom:12px">Add Address</h3>
+    <textarea id="newAddress" rows="3" placeholder="House no, Street, City, Pincode"></textarea>
+    <button class="primary" id="addAddressBtn">Save Address</button>
+  </div>
+
+  <!-- SAVED ADDRESSES -->
+  <div class="card">
+    <h3>Saved Addresses</h3>
+    <div id="addressList"></div>
+  </div>
+
+</div>
+
+<!-- 🔒 JS LOGIC — COMPLETELY UNTOUCHED -->
+<script>
+const API="http://localhost:5000";
+const token=localStorage.getItem("token");
+if(!token) location.href="login.html";
+
+const authHeader={Authorization:"Bearer "+token};
+
+const nameInput=document.getElementById("name");
+const phoneInput=document.getElementById("phone");
+const altPhoneInput=document.getElementById("altPhone");
+const profileImage=document.getElementById("profileImage");
+const imgInput=document.getElementById("imgInput");
+const addressList=document.getElementById("addressList");
+
+/* LOAD PROFILE */
+fetch(API+"/api/profile",{headers:authHeader})
+.then(r=>r.json())
+.then(d=>{
+  nameInput.value=d.name||"";
+  phoneInput.value=d.phone||"";
+  altPhoneInput.value=d.altPhone||"";
+  if(d.image) profileImage.src=API+d.image;
+  renderAddresses(d.addresses||[]);
+});
+
+/* SAVE PROFILE */
+saveBtn.onclick=()=>{
+  fetch(API+"/api/profile",{
+    method:"PUT",
+    headers:{...authHeader,"Content-Type":"application/json"},
+    body:JSON.stringify({
+      name:nameInput.value,
+      phone:phoneInput.value,
+      altPhone:altPhoneInput.value
+    })
+  }).then(()=>alert("Profile updated"));
+};
+
+/* IMAGE UPLOAD */
+imgInput.onchange=()=>{
+  const file=imgInput.files[0];
+  if(!file) return;
+  profileImage.src=URL.createObjectURL(file);
+  const fd=new FormData();
+  fd.append("image",file);
+  fetch(API+"/api/profile/image",{method:"POST",headers:authHeader,body:fd});
+};
+
+/* ADD ADDRESS */
+addAddressBtn.onclick=()=>{
+  const address=newAddress.value.trim();
+  if(!address) return;
+  fetch(API+"/api/profile/address",{
+    method:"POST",
+    headers:{...authHeader,"Content-Type":"application/json"},
+    body:JSON.stringify({address})
+  })
+  .then(()=>fetch(API+"/api/profile",{headers:authHeader}))
+  .then(r=>r.json())
+  .then(d=>{
+    newAddress.value="";
+    renderAddresses(d.addresses||[]);
+  });
+};
+
+/* DELETE ADDRESS */
+function removeAddress(id){
+  fetch(API+"/api/profile/address/"+id,{
+    method:"DELETE",
+    headers:authHeader
+  })
+  .then(()=>fetch(API+"/api/profile",{headers:authHeader}))
+  .then(r=>r.json())
+  .then(d=>renderAddresses(d.addresses||[]));
+}
+
+/* RENDER ADDRESSES */
+function renderAddresses(list){
+  addressList.innerHTML="";
+  if(!list.length){
+    addressList.innerHTML='<p class="empty">No saved addresses</p>';
+    return;
+  }
+  list.forEach(a=>{
+    const div=document.createElement("div");
+    div.className="address-card";
+    div.dataset.id=a.id;
+    div.innerHTML=`
+      <div class="address-text">${a.address}</div>
+      <button class="delete-btn">Delete</button>
+    `;
+    div.querySelector("button").onclick=()=>removeAddress(a.id);
+    addressList.appendChild(div);
+  });
+}
+</script>
+
+</body>
+</html>

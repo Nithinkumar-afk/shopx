@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Users | JD</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+
+:root{
+  --bg:#020617;
+  --glass:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.12);
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+  --primary:#3b82f6;
+  --danger:#ef4444;
+  --radius:18px;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Poppins,sans-serif;
+  background:radial-gradient(circle at top,#020617,#000);
+  color:var(--text);
+}
+
+/* HEADER */
+header{
+  background:linear-gradient(135deg,#020617,#020617cc);
+  padding:20px 28px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid var(--border);
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+header h2{
+  margin:0;
+  font-size:22px;
+}
+header button{
+  background:linear-gradient(135deg,#ef4444,#dc2626);
+  color:#fff;
+  border:none;
+  padding:10px 22px;
+  border-radius:999px;
+  cursor:pointer;
+}
+
+/* NAV */
+.nav{
+  display:flex;
+  gap:14px;
+  padding:18px 26px;
+}
+.nav a{
+  text-decoration:none;
+  padding:12px 20px;
+  border-radius:999px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  color:var(--text);
+  transition:.25s;
+}
+.nav a:hover{
+  background:var(--primary);
+}
+
+/* SECTION */
+.section{
+  padding:26px;
+}
+.section h3{
+  margin-top:0;
+  font-size:20px;
+}
+
+/* USER CARD */
+.user-card{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:18px;
+  margin-bottom:18px;
+  display:flex;
+  gap:20px;
+  backdrop-filter:blur(14px);
+}
+.user-image{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  object-fit:cover;
+  border:2px solid var(--border);
+}
+
+/* ADDRESS */
+.address-item{
+  background:rgba(255,255,255,.05);
+  padding:8px 12px;
+  border-radius:12px;
+  margin-top:6px;
+  display:flex;
+  justify-content:space-between;
+  font-size:14px;
+}
+.address-item button{
+  background:var(--danger);
+  border:none;
+  color:#fff;
+  border-radius:8px;
+  padding:4px 10px;
+  cursor:pointer;
+}
+
+/* ACTIONS */
+.actions{
+  margin-top:12px;
+  display:flex;
+  gap:10px;
+}
+.edit-btn,.delete-btn{
+  border:none;
+  padding:8px 18px;
+  border-radius:999px;
+  cursor:pointer;
+  color:#fff;
+}
+.edit-btn{
+  background:linear-gradient(135deg,#2563eb,#3b82f6);
+}
+.delete-btn{
+  background:linear-gradient(135deg,#ef4444,#dc2626);
+}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:100;
+}
+.modal-content{
+  background:linear-gradient(135deg,#020617,#020617cc);
+  border:1px solid var(--border);
+  padding:26px;
+  border-radius:24px;
+  width:90%;
+  max-width:440px;
+  backdrop-filter:blur(16px);
+}
+.modal-content h3{
+  margin-top:0;
+}
+.modal-content input,
+.modal-content textarea{
+  width:100%;
+  margin-bottom:12px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:var(--glass);
+  color:var(--text);
+}
+.preview{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  border:2px solid var(--border);
+  margin-bottom:12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>JD • Admin Users</h2>
+  <button onclick="logout()">Logout</button>
+</header>
+
+<nav class="nav">
+  <a href="admin-dashboard.html">Dashboard</a>
+  <a href="admin-products.html">Products</a>
+  <a href="admin-orders.html">Orders</a>
+  <a href="admin-users.html">Users</a>
+</nav>
+
+<section class="section">
+  <h3>All Users</h3>
+  <div id="usersList">Loading users...</div>
+</section>
+
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <h3>Edit User</h3>
+    <img id="imagePreview" class="preview">
+    <input id="editName" placeholder="Full Name" />
+    <input id="editPhone" readonly />
+    <input id="editAltPhone" readonly />
+    <input type="file" id="editImage" accept="image/*" />
+    <textarea id="editAddresses" placeholder="One address per line"></textarea>
+    <button class="edit-btn" onclick="saveEdit()">Save</button>
+    <button class="delete-btn" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const token = localStorage.getItem("adminToken");
+if(!token) location.replace("admin-login.html");
+
+const API = "http://localhost:5000/api/admin/users";
+const API_BASE = "http://localhost:5000";
+const DEFAULT_IMAGE = "https://i.imgur.com/8Km9tLL.png";
+
+const usersList = document.getElementById("usersList");
+const editModal = document.getElementById("editModal");
+const editName = document.getElementById("editName");
+const editPhone = document.getElementById("editPhone");
+const editAltPhone = document.getElementById("editAltPhone");
+const editAddresses = document.getElementById("editAddresses");
+const editImage = document.getElementById("editImage");
+const imagePreview = document.getElementById("imagePreview");
+
+let users = [];
+let editUserId = null;
+
+async function loadUsers(){
+  const res = await fetch(API,{
+    headers:{ Authorization:"Bearer " + token }
+  });
+
+  if(res.status === 401){
+    logout();
+    return;
+  }
+
+  const data = await res.json();
+  users = data.map(u=>({
+    ...u,
+    image: u.image ? API_BASE + u.image : DEFAULT_IMAGE
+  }));
+
+  renderUsers();
+}
+
+function renderUsers(){
+  usersList.innerHTML = "";
+  users.forEach(u=>{
+    usersList.insertAdjacentHTML("beforeend",`
+      <div class="user-card">
+        <img class="user-image" src="${u.image}" onerror="this.src='${DEFAULT_IMAGE}'">
+        <div>
+          <p><b>Name:</b> ${u.name}</p>
+          <p><b>Phone:</b> ${u.phone || "-"}</p>
+          <p><b>Alt Phone:</b> ${u.altPhone || "-"}</p>
+          <b>Addresses:</b>
+          ${u.addresses.map(a=>`
+            <div class="address-item">
+              <span>${a.address}</span>
+              <button onclick="deleteAddress(${a.id})">X</button>
+            </div>
+          `).join("")}
+          <div class="actions">
+            <button class="delete-btn" onclick="deleteUser(${u.id})">Delete</button>
+            <button class="edit-btn" onclick="openEdit(${u.id})">Edit</button>
+          </div>
+        </div>
+      </div>
+    `);
+  });
+}
+
+function openEdit(id){
+  const u = users.find(x=>x.id===id);
+  editUserId = id;
+  editName.value = u.name;
+  editPhone.value = u.phone || "";
+  editAltPhone.value = u.altPhone || "";
+  editAddresses.value = u.addresses.map(a=>a.address).join("\n");
+  imagePreview.src = u.image;
+  editModal.style.display = "flex";
+}
+
+editImage.onchange = ()=>{
+  if(editImage.files[0]){
+    imagePreview.src = URL.createObjectURL(editImage.files[0]);
+  }
+};
+
+function closeModal(){
+  editModal.style.display="none";
+}
+
+async function saveEdit(){
+  const formData = new FormData();
+  formData.append("name",editName.value.trim());
+  formData.append("addresses",JSON.stringify(
+    editAddresses.value.split("\n").map(a=>a.trim()).filter(Boolean)
+  ));
+  if(editImage.files[0]){
+    formData.append("image",editImage.files[0]);
+  }
+  await fetch(API+"/"+editUserId,{
+    method:"PUT",
+    headers:{ Authorization:"Bearer "+token },
+    body:formData
+  });
+  closeModal();
+  loadUsers();
+}
+
+function deleteUser(id){
+  if(confirm("Delete user?")){
+    fetch(API+"/"+id,{
+      method:"DELETE",
+      headers:{ Authorization:"Bearer "+token }
+    }).then(loadUsers);
+  }
+}
+
+function deleteAddress(id){
+  if(confirm("Delete address?")){
+    fetch(API+"/address/"+id,{
+      method:"DELETE",
+      headers:{ Authorization:"Bearer "+token }
+    }).then(loadUsers);
+  }
+}
+
+function logout(){
+  localStorage.removeItem("adminToken");
+  location.replace("admin-login.html");
+}
+
+loadUsers();
+</script>
+
+</body>
+</html>

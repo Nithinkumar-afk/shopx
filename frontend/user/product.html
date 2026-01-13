@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Details | JD</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:Poppins,sans-serif;
+  background:black;
+  color:white;
+  padding:20px;
+}
+
+/* ================= PRODUCT CARD ================= */
+.product-card{
+  max-width:1200px;
+  margin:auto;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(18px);
+  border-radius:26px;
+  padding:40px;
+  display:grid;
+  grid-template-columns:1.2fr 1fr;
+  gap:50px;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 40px 90px rgba(0,0,0,.85);
+}
+
+/* ================= IMAGES ================= */
+.image-section{
+  display:flex;
+  gap:20px;
+}
+
+.thumbnails{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.thumbnails img{
+  width:80px;
+  height:110px;
+  object-fit:cover;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.2);
+  cursor:pointer;
+  background:#000;
+  transition:.2s;
+}
+.thumbnails img:hover{
+  transform:scale(1.05);
+}
+
+.main-image img{
+  width:100%;
+  max-height:520px;
+  object-fit:contain;
+  border-radius:22px;
+  background:rgba(0,0,0,.5);
+  padding:20px;
+}
+
+/* ================= INFO ================= */
+.info h2{
+  font-size:30px;
+  margin-bottom:12px;
+  font-weight:600;
+}
+.price{
+  font-size:28px;
+  color:#22c55e;
+  margin-bottom:8px;
+}
+.category{
+  font-size:14px;
+  color:#cbd5e1;
+  margin-bottom:20px;
+}
+.description{
+  font-size:15px;
+  color:#e2e8f0;
+  line-height:1.7;
+  margin-bottom:28px;
+}
+
+/* ================= BUTTONS ================= */
+button{
+  width:100%;
+  padding:15px;
+  font-size:16px;
+  background:linear-gradient(135deg,#4fb6e8,#2563eb);
+  color:white;
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+  font-weight:600;
+  transition:.2s;
+}
+button:hover{
+  transform:translateY(-1px);
+  box-shadow:0 12px 30px rgba(79,182,232,.45);
+}
+
+.wishlist-btn{
+  margin-top:14px;
+  background:transparent;
+  color:#ef4444;
+  border:1px solid #ef4444;
+}
+.wishlist-btn.active{
+  background:#ef4444;
+  color:white;
+}
+
+/* ================= TOAST ================= */
+.toast{
+  position:fixed;
+  bottom:30px;
+  right:30px;
+  background:#111827;
+  color:white;
+  padding:12px 18px;
+  border-radius:10px;
+  font-size:14px;
+  opacity:0;
+  transform:translateY(20px);
+  transition:.3s;
+  z-index:9999;
+}
+.toast.show{
+  opacity:1;
+  transform:translateY(0);
+}
+
+/* ================= MOBILE ================= */
+@media(max-width:900px){
+  .product-card{
+    grid-template-columns:1fr;
+    padding:24px;
+  }
+  .image-section{
+    flex-direction:column-reverse;
+  }
+  .thumbnails{
+    flex-direction:row;
+    overflow-x:auto;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="product-card">
+
+  <div class="image-section">
+    <div class="thumbnails" id="thumbnails"></div>
+    <div class="main-image">
+      <img id="mainImage" alt="Product image">
+    </div>
+  </div>
+
+  <div class="info">
+    <h2 id="name">Loading...</h2>
+    <div class="price" id="price"></div>
+    <div class="category" id="category"></div>
+    <div class="description" id="description"></div>
+
+    <button id="cartBtn">🛒 Add to Cart</button>
+    <button id="wishBtn" class="wishlist-btn">❤️ Add to Wishlist</button>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- 🔒 JS LOGIC — COMPLETELY UNTOUCHED -->
+<script>
+/* CONFIG */
+const API = "http://localhost:5000/api/products";
+const IMAGE_BASE = "http://localhost:5000/";
+const FALLBACK = "https://via.placeholder.com/300x200?text=No+Image";
+
+/* AUTH */
+const token = localStorage.getItem("token");
+if(!token) location.href="login.html";
+
+/* PARAMS */
+const params = new URLSearchParams(location.search);
+const productId = Number(params.get("id"));
+
+/* ELEMENTS */
+const nameEl = document.getElementById("name");
+const priceEl = document.getElementById("price");
+const categoryEl = document.getElementById("category");
+const descriptionEl = document.getElementById("description");
+const mainImage = document.getElementById("mainImage");
+const thumbnails = document.getElementById("thumbnails");
+const cartBtn = document.getElementById("cartBtn");
+const wishBtn = document.getElementById("wishBtn");
+const toast = document.getElementById("toast");
+
+/* STATE */
+let currentProduct = null;
+let wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+
+/* TOAST */
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(()=>toast.classList.remove("show"),2000);
+}
+
+/* FETCH PRODUCT */
+fetch(API,{ headers:{ Authorization:"Bearer "+token }})
+.then(r=>r.ok?r.json():[])
+.then(products=>{
+  currentProduct = products.find(p=>Number(p.id)===productId);
+  if(!currentProduct) return showToast("Product not found");
+
+  nameEl.textContent = currentProduct.name;
+  priceEl.textContent = "₹" + currentProduct.price;
+  categoryEl.textContent = "Category: " + (currentProduct.category || "N/A");
+  descriptionEl.textContent = currentProduct.description || "";
+
+  const images = Array.isArray(currentProduct.images) && currentProduct.images.length
+    ? currentProduct.images
+    : [FALLBACK];
+
+  mainImage.src = images[0].startsWith("http")
+    ? images[0]
+    : IMAGE_BASE + images[0];
+
+  thumbnails.innerHTML="";
+  images.forEach(img=>{
+    const t = document.createElement("img");
+    t.src = img.startsWith("http") ? img : IMAGE_BASE + img;
+    t.onerror = ()=> t.src = FALLBACK;
+    t.onclick = ()=> mainImage.src = t.src;
+    thumbnails.appendChild(t);
+  });
+
+  if(wishlist.some(w=>w.id===currentProduct.id)){
+    wishBtn.classList.add("active");
+    wishBtn.textContent="❤️ In Wishlist";
+  }
+});
+
+/* ADD TO CART */
+cartBtn.onclick = ()=>{
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const existing = cart.find(p=>p.id===currentProduct.id);
+
+  if(existing){
+    existing.qty += 1;
+    showToast("Cart updated 🛒");
+  }else{
+    cart.push({...currentProduct, qty:1});
+    showToast("Added to cart 🛒");
+  }
+
+  localStorage.setItem("cart", JSON.stringify(cart));
+};
+
+/* WISHLIST */
+wishBtn.onclick = ()=>{
+  const index = wishlist.findIndex(w=>w.id===currentProduct.id);
+
+  if(index === -1){
+    wishlist.push(currentProduct);
+    wishBtn.classList.add("active");
+    wishBtn.textContent="❤️ In Wishlist";
+    showToast("Added to wishlist ❤️");
+  }else{
+    wishlist.splice(index,1);
+    wishBtn.classList.remove("active");
+    wishBtn.textContent="❤️ Add to Wishlist";
+    showToast("Removed from wishlist");
+  }
+
+  localStorage.setItem("wishlist", JSON.stringify(wishlist));
+};
+</script>
+
+</body>
+</html>

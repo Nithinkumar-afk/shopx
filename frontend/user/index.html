@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JD</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:Poppins,sans-serif;
+  background:black;
+  color:white;
+}
+
+/* ================= HEADER ================= */
+header{
+  position:sticky;top:0;z-index:10;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid rgba(255,255,255,.15);
+  padding:14px 16px;
+  display:flex;
+  gap:14px;
+  align-items:center;
+}
+
+/* JD LOGO */
+.logo{
+  font-size:26px;
+  font-weight:700;
+  letter-spacing:1px;
+  cursor:pointer;
+}
+.logo span:first-child{color:#4fb6e8}
+.logo span:last-child{color:white}
+
+/* SEARCH */
+header input{
+  flex:1;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(0,0,0,.4);
+  color:white;
+  outline:none;
+}
+header input::placeholder{color:#cbd5e1}
+
+.header-right{
+  display:flex;
+  gap:12px;
+  position:relative;
+}
+
+/* PROFILE BUTTON */
+.profile-btn{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:linear-gradient(135deg,#4fb6e8,#2563eb);
+  color:white;
+  border:none;
+  border-radius:999px;
+  padding:6px 18px 6px 6px;
+  cursor:pointer;
+  font-weight:500;
+  box-shadow:0 10px 30px rgba(79,182,232,.4);
+}
+
+.avatar{
+  width:38px;height:38px;
+  border-radius:50%;
+  background:white;
+  color:#2563eb;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.profile-text{
+  display:flex;
+  flex-direction:column;
+  line-height:1.1;
+}
+.profile-text small{
+  font-size:11px;
+  opacity:.85;
+}
+
+/* CART */
+button.cart{
+  padding:10px 16px;
+  border-radius:12px;
+  border:none;
+  background:linear-gradient(135deg,#2563eb,#1e40af);
+  color:white;
+  cursor:pointer;
+}
+
+/* ================= DROPDOWN ================= */
+.dropdown{
+  position:absolute;
+  top:60px;
+  right:0;
+  background:rgba(0,0,0,.85);
+  backdrop-filter:blur(16px);
+  border-radius:16px;
+  box-shadow:0 30px 60px rgba(0,0,0,.8);
+  overflow:hidden;
+  display:none;
+  min-width:220px;
+  border:1px solid rgba(255,255,255,.15);
+}
+
+.dropdown-header{
+  padding:14px;
+  background:rgba(255,255,255,.06);
+}
+.dropdown-header small{
+  display:block;
+  font-size:12px;
+  color:#cbd5e1;
+}
+
+.dropdown a{
+  display:block;
+  padding:12px 14px;
+  text-decoration:none;
+  color:white;
+  font-size:14px;
+}
+.dropdown a:hover{
+  background:rgba(255,255,255,.08);
+}
+.dropdown hr{
+  margin:6px 0;
+  border:none;
+  border-top:1px solid rgba(255,255,255,.15);
+}
+.dropdown a.logout{color:#ef4444}
+
+/* ================= CONTAINER ================= */
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:18px;
+}
+
+/* ================= CATEGORIES ================= */
+.categories{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  margin-bottom:20px;
+}
+.categories button{
+  padding:8px 18px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(0,0,0,.4);
+  color:white;
+  cursor:pointer;
+  font-size:13px;
+}
+.categories button.active{
+  background:linear-gradient(135deg,#4fb6e8,#2563eb);
+  border:none;
+}
+
+/* ================= PRODUCTS ================= */
+.products{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:18px;
+}
+
+.product{
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(16px);
+  border-radius:18px;
+  padding:12px;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 30px 60px rgba(0,0,0,.8);
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+
+.product img{
+  width:100%;
+  height:160px;
+  object-fit:cover;
+  border-radius:12px;
+  background:#111;
+}
+
+.product h3{
+  margin:10px 0 4px;
+  font-size:15px;
+}
+
+.price{
+  font-size:16px;
+  font-weight:600;
+  color:#22c55e;
+}
+
+.cart-btn{
+  margin-top:auto;
+  padding:10px;
+  border-radius:12px;
+  border:none;
+  background:linear-gradient(135deg,#4fb6e8,#2563eb);
+  color:white;
+  cursor:pointer;
+}
+
+/* WISHLIST */
+.wishlist-btn{
+  position:absolute;
+  top:12px;
+  right:12px;
+  background:white;
+  border:none;
+  font-size:18px;
+  border-radius:50%;
+  width:36px;
+  height:36px;
+  cursor:pointer;
+}
+.wishlist-btn.active{color:#ef4444}
+
+/* TOAST */
+.toast{
+  position:fixed;
+  bottom:30px;
+  right:30px;
+  background:#111827;
+  color:white;
+  padding:12px 18px;
+  border-radius:10px;
+  font-size:14px;
+  opacity:0;
+  transform:translateY(20px);
+  transition:.3s;
+  z-index:9999;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  header{flex-direction:column;align-items:flex-start}
+  .categories{flex-wrap:wrap}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo" onclick="location.href='index.html'">
+    <span>J</span><span>D</span>
+  </div>
+
+  <input id="search" placeholder="Search products">
+
+  <div class="header-right">
+    <button class="profile-btn" id="profileBtn">
+      <div class="avatar" id="avatar">U</div>
+      <span class="profile-text">
+        <strong id="userName">Account</strong>
+        <small>My profile</small>
+      </span>
+    </button>
+
+    <div class="dropdown" id="menu">
+      <div class="dropdown-header">
+        <strong id="dropName">User</strong>
+        <small id="dropEmail">user@email.com</small>
+      </div>
+      <a href="profile.html">👤 Profile</a>
+      <a href="orders.html">📦 Orders</a>
+      <a href="wishlist.html">❤️ Wishlist</a>
+      <hr>
+      <a href="#" class="logout" onclick="logout()">🚪 Logout</a>
+    </div>
+
+    <button class="cart" onclick="location.href='cart.html'">
+      Cart (<span id="cartCount">0</span>)
+    </button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="categories" id="categories"></div>
+  <div class="products" id="products"></div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- 🔒 JS LOGIC COMPLETELY UNTOUCHED -->
+<script>
+/* CONFIG */
+const API = "http://localhost:5000/api/products";
+const IMAGE_BASE = "http://localhost:5000/";
+const FALLBACK = "https://via.placeholder.com/300x200?text=No+Image";
+
+/* AUTH */
+const user = JSON.parse(localStorage.getItem("loggedInUser"));
+const token = localStorage.getItem("token");
+if(!user || !token) location.href="login.html";
+
+/* USER INFO */
+const name = user.name || "User";
+const email = user.email || "Account";
+
+document.getElementById("userName").textContent = name;
+document.getElementById("dropName").textContent = name;
+document.getElementById("dropEmail").textContent = email;
+document.getElementById("avatar").textContent = name.charAt(0).toUpperCase();
+
+/* STATE */
+let products = [];
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+let selectedCategory = "all";
+
+/* DOM */
+const categoriesDiv = document.getElementById("categories");
+const productsDiv = document.getElementById("products");
+const search = document.getElementById("search");
+const cartCount = document.getElementById("cartCount");
+const menu = document.getElementById("menu");
+const toast = document.getElementById("toast");
+const profileBtn = document.getElementById("profileBtn");
+
+cartCount.textContent = cart.length;
+
+/* UTIL */
+const normalize = v => (v||"").toString().trim().toLowerCase();
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(()=>toast.classList.remove("show"),2000);
+}
+
+/* MENU */
+profileBtn.onclick = e=>{
+  e.stopPropagation();
+  menu.style.display = menu.style.display==="block"?"none":"block";
+};
+menu.onclick = e=>e.stopPropagation();
+document.addEventListener("click",()=>menu.style.display="none");
+
+function logout(){
+  localStorage.clear();
+  location.href="login.html";
+}
+
+/* FETCH PRODUCTS */
+fetch(API,{ headers:{ Authorization:"Bearer "+token }})
+.then(r=>r.ok?r.json():[])
+.then(data=>{
+  products=(Array.isArray(data)?data:[]).map((p,idx)=>({
+    id:p.id??idx,
+    name:p.name||"Unnamed product",
+    price:p.price||0,
+    category:normalize(p.category),
+    images:Array.isArray(p.images)
+      ?p.images.map(i=>i.startsWith("http")?i:IMAGE_BASE+i)
+      :[]
+  }));
+  renderCategories();
+  renderProducts();
+})
+.catch(()=>showToast("Failed to load products"));
+
+/* CATEGORIES */
+function renderCategories(){
+  const cats=["all",...new Set(products.map(p=>p.category).filter(Boolean))];
+  categoriesDiv.innerHTML="";
+  cats.forEach(c=>{
+    const b=document.createElement("button");
+    b.textContent=c==="all"?"All":c;
+    if(c===selectedCategory) b.classList.add("active");
+    b.onclick=()=>{
+      selectedCategory=c;
+      renderCategories();
+      renderProducts();
+    };
+    categoriesDiv.appendChild(b);
+  });
+}
+
+/* PRODUCTS */
+function renderProducts(){
+  const q=normalize(search.value);
+  productsDiv.innerHTML="";
+  products.forEach(p=>{
+    if(selectedCategory!=="all" && p.category!==selectedCategory) return;
+    if(!normalize(p.name).includes(q)) return;
+    const img=p.images[0]||FALLBACK;
+    const inWish=wishlist.some(w=>w.id===p.id);
+    productsDiv.insertAdjacentHTML("beforeend",`
+      <div class="product" onclick="location.href='product.html?id=${p.id}'">
+        <button class="wishlist-btn ${inWish?'active':''}" onclick="event.stopPropagation();toggleWish(${p.id})">❤️</button>
+        <img src="${img}" onerror="this.src='${FALLBACK}'">
+        <h3>${p.name}</h3>
+        <div class="price">₹${p.price}</div>
+        <button class="cart-btn" onclick="event.stopPropagation();addToCart(${p.id})">Add to Cart</button>
+      </div>
+    `);
+  });
+}
+
+/* CART & WISHLIST */
+function addToCart(id){
+  if(cart.some(i=>i.id===id)) return showToast("Already in cart");
+  const p=products.find(p=>p.id===id);
+  if(!p) return;
+  cart.push({...p,qty:1});
+  localStorage.setItem("cart",JSON.stringify(cart));
+  cartCount.textContent=cart.length;
+  showToast("Added to cart 🛒");
+}
+
+function toggleWish(id){
+  const i=wishlist.findIndex(w=>w.id===id);
+  const p=products.find(p=>p.id===id);
+  if(!p) return;
+  i===-1 ? wishlist.push(p) : wishlist.splice(i,1);
+  localStorage.setItem("wishlist",JSON.stringify(wishlist));
+  renderProducts();
+}
+
+search.oninput=renderProducts;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="JD secure login using email OTP">
+<title>JD Login</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ================= RESET ================= */
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ================= BODY ================= */
+body{
+  font-family:Poppins,sans-serif;
+  min-height:100vh;
+  background:black;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ================= SPLASH ================= */
+#splash{
+  position:fixed;
+  inset:0;
+  background:black;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  transition:opacity .8s ease,visibility .8s ease;
+}
+#splash.hide{opacity:0;visibility:hidden}
+
+#splash svg{
+  width:90vw;
+  max-width:420px;
+  height:auto;
+}
+
+.ring{
+  transform-origin:50% 50%;
+  animation:saturnOrbit 40s linear infinite;
+}
+@keyframes saturnOrbit{
+  from{transform:rotate(-16deg)}
+  to{transform:rotate(344deg)}
+}
+
+/* ================= LOGIN ================= */
+.login-page{
+  width:100%;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.card{
+  width:100%;
+  max-width:380px;
+  padding:26px;
+  border-radius:18px;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 30px 70px rgba(0,0,0,.8);
+}
+
+/* ================= BRAND ================= */
+.brand{
+  text-align:center;
+  font-size:28px;
+  font-weight:700;
+  margin-bottom:14px;
+  letter-spacing:1px;
+}
+.brand span:first-child{color:#4fb6e8}
+.brand span:last-child{color:white}
+
+.card h2{
+  text-align:center;
+  margin-bottom:20px;
+  font-weight:500;
+  font-size:18px;
+}
+
+/* ================= INPUTS ================= */
+.card input{
+  width:100%;
+  padding:13px 14px;
+  margin-bottom:12px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(0,0,0,.45);
+  color:white;
+  font-size:14px;
+  outline:none;
+}
+.card input::placeholder{color:#cbd5e1}
+
+/* ================= BUTTON ================= */
+.card button{
+  width:100%;
+  padding:13px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(135deg,#4fb6e8,#2563eb);
+  color:white;
+  font-size:15px;
+  cursor:pointer;
+  font-weight:600;
+}
+.card button:active{transform:scale(.98)}
+
+.hidden{display:none}
+
+/* ================= TEXT ================= */
+.note{
+  text-align:center;
+  font-size:13px;
+  color:#cbd5e1;
+  margin-top:12px;
+}
+.alert-msg{
+  text-align:center;
+  margin-top:10px;
+  font-size:14px;
+}
+.alert-success{color:#22c55e}
+.alert-error{color:#ef4444}
+
+/* ================= DESKTOP ================= */
+@media(min-width:768px){
+  .card{padding:30px}
+  .brand{font-size:30px}
+  .card h2{font-size:20px}
+}
+</style>
+</head>
+
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+<svg viewBox="0 0 600 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="jdGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4fb6e8"/>
+      <stop offset="100%" stop-color="#0b2d55"/>
+    </linearGradient>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8ccfe8"/>
+      <stop offset="100%" stop-color="#244a7a"/>
+    </linearGradient>
+  </defs>
+
+  <ellipse class="ring" cx="320" cy="235" rx="265" ry="82"
+    fill="none" stroke="url(#ringGrad)" stroke-width="28"
+    opacity="0.55" transform="rotate(-16 320 235)" />
+
+  <path d="
+    M180 90 V350
+    C180 410 135 445 90 445
+    C45 445 40 410 40 410
+    V380
+    C40 380 75 395 100 380
+    C120 368 120 345 120 325
+    V90
+    H305
+    C445 90 520 180 520 260
+    C520 340 445 430 305 430
+    H180 Z
+    M285 160 V360 H310
+    C385 360 430 315 430 260
+    C430 205 385 160 310 160 Z"
+    fill="url(#jdGrad)" stroke="white"
+    stroke-width="16" stroke-linejoin="round"/>
+
+  <ellipse class="ring" cx="320" cy="235" rx="265" ry="82"
+    fill="none" stroke="white" stroke-width="10"
+    opacity="0.9" transform="rotate(-16 320 235)" />
+</svg>
+</div>
+
+<!-- LOGIN -->
+<div class="login-page">
+  <div class="card">
+    <div class="brand"><span>J</span><span>D</span></div>
+    <h2>Login to JD</h2>
+
+    <input id="name" type="text" placeholder="Full Name" autocomplete="off">
+    <input id="email" type="email" placeholder="Email Address" autocomplete="off">
+
+    <button type="button" onclick="sendOTP()">Send OTP</button>
+
+    <div id="otpBox" class="hidden">
+      <input id="otp" type="number" placeholder="Enter OTP" autocomplete="off">
+      <button type="button" onclick="verifyOTP()">Verify & Continue</button>
+    </div>
+
+    <div class="note">OTP will be sent to your email</div>
+    <div id="alertMsg" class="alert-msg hidden"></div>
+  </div>
+</div>
+
+<script>
+/* SPLASH AUTO HIDE */
+window.addEventListener("load",()=>{
+  setTimeout(()=>document.getElementById("splash").classList.add("hide"),2500)
+});
+
+/* 🔒 WORKING LOGIC — UNTOUCHED */
+const API =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "http://localhost:5000"
+    : "";
+
+if (localStorage.getItem("token")) location.replace("index.html");
+
+const nameInput=document.getElementById("name");
+const emailInput=document.getElementById("email");
+const otpInput=document.getElementById("otp");
+const otpBox=document.getElementById("otpBox");
+const alertMsg=document.getElementById("alertMsg");
+
+function showAlert(msg,type="success"){
+  alertMsg.textContent=msg;
+  alertMsg.className=`alert-msg alert-${type}`;
+  alertMsg.classList.remove("hidden");
+}
+function validEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)}
+
+async function sendOTP(){
+  const name=nameInput.value.trim();
+  const email=emailInput.value.trim();
+  if(!name||!email)return showAlert("Enter name and email","error");
+  if(!validEmail(email))return showAlert("Invalid email","error");
+
+  try{
+    const res=await fetch(`${API}/api/auth/send-otp`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,email})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.message);
+    otpBox.classList.remove("hidden");
+    showAlert("OTP sent successfully");
+  }catch(e){showAlert(e.message,"error")}
+}
+
+async function verifyOTP(){
+  const email=emailInput.value.trim();
+  const otp=otpInput.value.trim();
+  if(!otp)return showAlert("Enter OTP","error");
+
+  try{
+    const res=await fetch(`${API}/api/auth/verify-otp`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email,otp})
+    });
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.message);
+    localStorage.setItem("token",data.token);
+    localStorage.setItem("loggedInUser",JSON.stringify(data.user));
+    location.replace("index.html");
+  }catch(e){showAlert(e.message,"error")}
+}
+</script>
+
+</body>
+</html>

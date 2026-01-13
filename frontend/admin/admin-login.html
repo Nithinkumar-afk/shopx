@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login | JD</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Poppins,sans-serif;
+  background:black;
+  color:white;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.card{
+  width:90%;
+  max-width:380px;
+  padding:30px 26px;
+  border-radius:20px;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 30px 70px rgba(0,0,0,.8);
+}
+.brand{text-align:center;font-size:30px;font-weight:700;margin-bottom:12px}
+.brand span:first-child{color:#4fb6e8}
+.brand span:last-child{color:white}
+.card h2{text-align:center;font-size:20px;font-weight:500;margin-bottom:6px}
+.card p{text-align:center;color:#cbd5e1;font-size:14px;margin-bottom:22px}
+input{
+  width:100%;
+  padding:14px;
+  margin-bottom:14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(0,0,0,.4);
+  color:white;
+  font-size:14px;
+}
+input:focus{border-color:#4fb6e8;outline:none}
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:14px;
+  background:linear-gradient(135deg,#4fb6e8,#2563eb);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+button:disabled{opacity:.7}
+.error{color:#ef4444;font-size:13px;margin-bottom:10px;display:none;text-align:center}
+.footer{text-align:center;margin-top:18px;font-size:13px;color:#cbd5e1}
+</style>
+</head>
+
+<body>
+<div class="card">
+  <div class="brand"><span>J</span><span>D</span></div>
+  <h2>Admin Login</h2>
+  <p>Secure access to JD dashboard</p>
+
+  <div class="error" id="error"></div>
+
+  <input id="username" placeholder="Admin Username">
+  <input id="password" type="password" placeholder="Admin Password">
+
+  <button id="loginBtn">Login</button>
+  <div class="footer">© JD Admin Panel</div>
+</div>
+
+<script>
+"use strict";
+
+const API_URL = "http://localhost:5000/api/admin/login";
+const errorBox = document.getElementById("error");
+const loginBtn = document.getElementById("loginBtn");
+
+/* AUTO REDIRECT IF LOGGED IN */
+if (localStorage.getItem("adminToken")) {
+  location.replace("admin-dashboard.html");
+}
+
+loginBtn.addEventListener("click", login);
+
+async function login() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  hideError();
+
+  if (!username || !password) {
+    return showError("Username and password required");
+  }
+
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Logging in...";
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Login failed");
+    }
+
+    if (!data.token) {
+      throw new Error("Invalid server response");
+    }
+
+    localStorage.setItem("adminToken", data.token);
+    location.replace("admin-dashboard.html");
+
+  } catch (err) {
+    showError(err.message);
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Login";
+  }
+}
+
+function showError(msg){
+  errorBox.textContent = msg;
+  errorBox.style.display = "block";
+}
+function hideError(){
+  errorBox.style.display = "none";
+}
+</script>
+</body>
+</html>
