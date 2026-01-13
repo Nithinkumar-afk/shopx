@@ -1,7 +1,11 @@
+require("./config/db");
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+
+// 🔥 INITIALIZE MYSQL ON START
+require("./config/db");
 
 const app = express();
 
@@ -10,7 +14,7 @@ app.set("trust proxy", 1);
 
 app.use(
   cors({
-    origin: "*", // lock frontend URL later
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
@@ -53,10 +57,9 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: "Internal server error" });
 });
 
-/* ================= START SERVER (IMPORTANT FIX) ================= */
-const PORT = process.env.PORT || 3000;
+/* ================= START SERVER ================= */
+const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ ShopX backend running on port ${PORT}`);
+  console.log(`🚀 ShopX backend running on port ${PORT}`);
 });
-
