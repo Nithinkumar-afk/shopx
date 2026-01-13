@@ -1,28 +1,24 @@
-const mysql = require("mysql2/promise");
+const mysql = require("mysql2");
 
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-
+const pool = mysql.createPool({
+  host: process.env.MYSQLHOST,
+  port: Number(process.env.MYSQLPORT),
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 });
 
-/* 🔥 SAFE CONNECTION TEST (NO CRASH) */
-(async () => {
-  try {
-    const conn = await db.getConnection();
-    console.log("✅ MySQL connected successfully");
-    conn.release();
-  } catch (err) {
-    console.error("⚠️ MySQL not ready yet, retrying...");
-    console.error(err.message);
-    // ❌ DO NOT EXIT THE APP
+// Test connection (safe for Railway)
+pool.getConnection((err, conn) => {
+  if (err) {
+    console.error("⚠️ MySQL connection failed:", err.message);
+    return;
   }
-})();
+  console.log("✅ MySQL connected");
+  conn.release();
+});
 
-module.exports = db;
+module.exports = pool.promise();
