@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config(); // MUST be first
 
 const express = require("express");
 const cors = require("cors");
@@ -25,46 +25,59 @@ app.use(express.urlencoded({ extended: true }));
 /* ================= STATIC FILES ================= */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/* ================= DATABASE INIT (ONCE) ================= */
-require("./config/db");
+/* ================= DATABASE INIT (SAFE) ================= */
+try {
+  require("./config/db");
+} catch (err) {
+  console.error("❌ DB init error:", err.message);
+}
 
-/* ================= ROUTES ================= */
-app.use("/api/auth", require("./routes/auth.routes"));
-app.use("/api/profile", require("./routes/profile.routes"));
+/* ================= ROUTES (SAFE LOAD) ================= */
+const safeRoute = (path, routeFile) => {
+  try {
+    app.use(path, require(routeFile));
+  } catch (err) {
+    console.error(`❌ Route failed: ${routeFile}`, err.message);
+  }
+};
 
-/* ✅ ADMIN ROUTES */
-app.use("/api/admin", require("./routes/admin.routes"));
-app.use("/api/admin/users", require("./routes/admin.users.routes"));
-app.use("/api/admin/products", require("./routes/admin.product.routes"));
-app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
+/* AUTH & PROFILE */
+safeRoute("/api/auth", "./routes/auth.routes");
+safeRoute("/api/profile", "./routes/profile.routes");
 
-/* USER ROUTES */
-app.use("/api/products", require("./routes/product.routes"));
-app.use("/api/cart", require("./routes/cart.routes"));
-app.use("/api/orders", require("./routes/orders.routes"));
+/* ADMIN */
+safeRoute("/api/admin", "./routes/admin.routes");
+safeRoute("/api/admin/users", "./routes/admin.users.routes");
+safeRoute("/api/admin/products", "./routes/admin.product.routes");
+safeRoute("/api/admin/orders", "./routes/admin.orders.routes");
+
+/* USER */
+safeRoute("/api/products", "./routes/product.routes");
+safeRoute("/api/cart", "./routes/cart.routes");
+safeRoute("/api/orders", "./routes/orders.routes");
 
 /* ================= HEALTH CHECK ================= */
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     status: "ShopX backend running ✅",
-    port: PORT,
+    uptime: process.uptime(),
     env: process.env.NODE_ENV || "development",
     time: new Date().toISOString()
   });
 });
 
-/* ================= 404 HANDLER ================= */
+/* ================= 404 ================= */
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-/* ================= GLOBAL ERROR HANDLER ================= */
+/* ================= GLOBAL ERROR ================= */
 app.use((err, req, res, next) => {
-  console.error("GLOBAL ERROR:", err);
+  console.error("🔥 GLOBAL ERROR:", err.stack || err.message);
   res.status(500).json({ message: "Internal server error" });
 });
 
 /* ================= START SERVER ================= */
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 ShopX backend running on port ${PORT}`);
 });
