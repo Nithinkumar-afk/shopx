@@ -6,6 +6,7 @@ const path = require("path");
 
 /* ================= APP INIT ================= */
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 /* ================= BASIC CONFIG ================= */
 app.set("trust proxy", 1);
@@ -64,8 +65,6 @@ app.use((err, req, res, next) => {
 });
 
 /* ================= START SERVER ================= */
-const PORT = 5000;
-
 app.listen(PORT, () => {
   console.log(`🚀 ShopX backend running on port ${PORT}`);
 });
