@@ -1,46 +1,81 @@
-require("dotenv").config(); // MUST be first
+/*************************************************
+ * LOAD ENV FIRST — NO CODE ABOVE THIS
+ *************************************************/
+require("dotenv").config();
 
+/*************************************************
+ * DEBUG: CONFIRM ENV IS LOADED
+ *************************************************/
+console.log("🔎 ENV CHECK:", {
+  PORT: process.env.PORT,
+  DB_HOST: process.env.DB_HOST,
+  DB_USER: process.env.DB_USER,
+  DB_NAME: process.env.DB_NAME,
+});
+
+/*************************************************
+ * IMPORTS
+ *************************************************/
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-/* ================= APP INIT ================= */
+/*************************************************
+ * APP INIT
+ *************************************************/
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
-/* ================= BASIC CONFIG ================= */
+/*************************************************
+ * BASIC CONFIG
+ *************************************************/
 app.set("trust proxy", 1);
 
 app.use(
   cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-/* ================= STATIC FILES ================= */
+/*************************************************
+ * STATIC FILES
+ *************************************************/
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/* ================= DATABASE INIT (SAFE) ================= */
-try {
+/*************************************************
+ * DATABASE INIT (STRICT CHECK)
+ *************************************************/
+if (
+  !process.env.DB_HOST ||
+  !process.env.DB_USER ||
+  !process.env.DB_NAME
+) {
+  console.warn("⚠️ MySQL env vars missing. App running without DB.");
+} else {
   require("./config/db");
-} catch (err) {
-  console.error("❌ DB init error:", err.message);
 }
 
-/* ================= ROUTES (SAFE LOAD) ================= */
-const safeRoute = (path, routeFile) => {
+/*************************************************
+ * SAFE ROUTE LOADER
+ *************************************************/
+const safeRoute = (routePath, routeFile) => {
   try {
-    app.use(path, require(routeFile));
+    app.use(routePath, require(routeFile));
+    console.log(`✅ Loaded route: ${routePath}`);
   } catch (err) {
-    console.error(`❌ Route failed: ${routeFile}`, err.message);
+    console.error(`❌ Route failed: ${routeFile}`);
+    console.error(err.message);
   }
 };
 
+/*************************************************
+ * ROUTES
+ *************************************************/
 /* AUTH & PROFILE */
 safeRoute("/api/auth", "./routes/auth.routes");
 safeRoute("/api/profile", "./routes/profile.routes");
@@ -56,28 +91,37 @@ safeRoute("/api/products", "./routes/product.routes");
 safeRoute("/api/cart", "./routes/cart.routes");
 safeRoute("/api/orders", "./routes/orders.routes");
 
-/* ================= HEALTH CHECK ================= */
+/*************************************************
+ * HEALTH CHECK
+ *************************************************/
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "ShopX backend running ✅",
     uptime: process.uptime(),
     env: process.env.NODE_ENV || "development",
-    time: new Date().toISOString()
+    db: process.env.DB_HOST ? "CONNECTED CONFIG" : "NO DB CONFIG",
+    time: new Date().toISOString(),
   });
 });
 
-/* ================= 404 ================= */
+/*************************************************
+ * 404 HANDLER
+ *************************************************/
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-/* ================= GLOBAL ERROR ================= */
+/*************************************************
+ * GLOBAL ERROR HANDLER
+ *************************************************/
 app.use((err, req, res, next) => {
   console.error("🔥 GLOBAL ERROR:", err.stack || err.message);
   res.status(500).json({ message: "Internal server error" });
 });
 
-/* ================= START SERVER ================= */
+/*************************************************
+ * START SERVER
+ *************************************************/
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 ShopX backend running on port ${PORT}`);
 });
