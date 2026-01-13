@@ -1,44 +1,57 @@
 const mysql = require("mysql2/promise");
 
-// Validate required env variables
-const requiredEnv = [
-  "MYSQLHOST",
-  "MYSQLPORT",
-  "MYSQLUSER",
-  "MYSQLPASSWORD",
-  "MYSQLDATABASE",
-];
+// Helper to safely read env vars
+const env = (keyList) => {
+  for (const key of keyList) {
+    if (process.env[key]) return process.env[key];
+  }
+  return null;
+};
 
-for (const env of requiredEnv) {
-  if (!process.env[env]) {
-    console.error(`❌ Missing environment variable: ${env}`);
+// Detect Railway / MySQL variables automatically
+const DB_CONFIG = {
+  host: env(["MYSQLHOST", "MYSQL_HOST", "RAILWAY_MYSQL_HOST", "DB_HOST"]),
+  port: env(["MYSQLPORT", "MYSQL_PORT", "RAILWAY_MYSQL_PORT", "DB_PORT"]),
+  user: env(["MYSQLUSER", "MYSQL_USER", "RAILWAY_MYSQL_USER", "DB_USER"]),
+  password: env([
+    "MYSQLPASSWORD",
+    "MYSQL_PASSWORD",
+    "RAILWAY_MYSQL_PASSWORD",
+    "DB_PASSWORD",
+  ]),
+  database: env([
+    "MYSQLDATABASE",
+    "MYSQL_DATABASE",
+    "RAILWAY_MYSQL_DATABASE",
+    "DB_NAME",
+  ]),
+};
+
+// Validate
+for (const [key, value] of Object.entries(DB_CONFIG)) {
+  if (!value) {
+    console.error(`❌ Missing database config: ${key}`);
     process.exit(1);
   }
 }
 
-// Create MySQL connection pool
+// Create pool
 const pool = mysql.createPool({
-  host: process.env.MYSQLHOST,
-  port: process.env.MYSQLPORT,
-  user: process.env.MYSQLUSER,
-  password: process.env.MYSQLPASSWORD,
-  database: process.env.MYSQLDATABASE,
-
+  ...DB_CONFIG,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-
   ssl: {
     rejectUnauthorized: false, // REQUIRED for Railway
   },
 });
 
-// Test connection immediately
+// Test connection
 (async () => {
   try {
-    const connection = await pool.getConnection();
+    const conn = await pool.getConnection();
     console.log("✅ Railway MySQL connected successfully");
-    connection.release();
+    conn.release();
   } catch (err) {
     console.error("❌ MySQL connection failed:", err.message);
     process.exit(1);
