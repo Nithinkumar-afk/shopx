@@ -1,6 +1,8 @@
 const router = require("express").Router();
 const auth = require("../controllers/auth.controller");
-const userAuth = require("../middleware/auth");
+
+// ✅ Correct middleware path
+const userAuth = require("../middleware/auth.middleware");
 
 /* ===============================
    USER AUTH ROUTES
