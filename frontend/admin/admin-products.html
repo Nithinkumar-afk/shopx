@@ -12,11 +12,10 @@
 body{
   margin:0;
   font-family:'Poppins',sans-serif;
-  background:radial-gradient(circle at top,#0b0b0b,#000000);
+  background:radial-gradient(circle at top,#0b0b0b,#000);
   color:#e5e7eb;
 }
 
-/* ================= HEADER ================= */
 header{
   padding:18px 22px;
   display:flex;
@@ -26,23 +25,17 @@ header{
   backdrop-filter:blur(14px);
   border-bottom:1px solid rgba(255,255,255,.08);
 }
-header h2{
-  margin:0;
-  font-size:18px;
-  letter-spacing:.3px;
-}
+header h2{margin:0;font-size:18px}
 header button{
   padding:10px 18px;
   border-radius:14px;
   border:none;
-  background:linear-gradient(135deg,#2563eb,#3b82f6);
+  background:#2563eb;
   color:#fff;
   font-weight:600;
   cursor:pointer;
-  box-shadow:0 0 16px rgba(59,130,246,.35);
 }
 
-/* ================= FORM ================= */
 .form{
   margin:18px;
   padding:18px;
@@ -50,42 +43,27 @@ header button{
   grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
   gap:14px;
   background:rgba(255,255,255,.05);
-  backdrop-filter:blur(18px);
   border-radius:22px;
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 30px 70px rgba(0,0,0,.9);
 }
 input,textarea{
   padding:13px;
   border-radius:14px;
   border:1px solid rgba(255,255,255,.12);
-  outline:none;
-  font-size:14px;
-  background:rgba(0,0,0,.6);
-  color:#e5e7eb;
+  background:#000;
+  color:#fff;
 }
-input::placeholder,
-textarea::placeholder{
-  color:#9ca3af;
-}
-textarea{
-  grid-column:1/-1;
-  resize:none;
-}
+textarea{grid-column:1/-1}
 .form button{
   grid-column:1/-1;
   padding:15px;
   border-radius:16px;
   border:none;
-  background:linear-gradient(135deg,#22c55e,#16a34a);
+  background:#22c55e;
   color:#fff;
   font-weight:600;
-  font-size:15px;
   cursor:pointer;
-  box-shadow:0 0 18px rgba(34,197,94,.35);
 }
 
-/* ================= PRODUCTS ================= */
 .products{
   padding:18px;
   display:grid;
@@ -94,61 +72,24 @@ textarea{
 }
 .card{
   background:rgba(255,255,255,.06);
-  backdrop-filter:blur(18px);
   border-radius:22px;
   padding:14px;
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:
-    inset 0 0 0 1px rgba(255,255,255,.02),
-    0 25px 60px rgba(0,0,0,.9);
-  transition:.25s ease;
-}
-.card:hover{
-  transform:translateY(-3px);
 }
 .card img{
   width:100%;
   height:150px;
   object-fit:cover;
   border-radius:16px;
-  background:#000;
-}
-.thumb-row{
-  display:flex;
-  gap:8px;
-  margin-top:8px;
-}
-.thumb-row img{
-  width:42px;
-  height:42px;
-  border-radius:10px;
-  object-fit:cover;
-  border:1px solid rgba(255,255,255,.12);
-}
-.card h4{
-  margin:10px 0 4px;
-  font-size:15px;
-}
-.card p{
-  margin:0;
-  font-weight:600;
-  color:#ffffff;
-}
-.card small{
-  color:#9ca3af;
-  font-size:12px;
 }
 .card button{
-  margin-top:12px;
+  margin-top:10px;
   width:100%;
   padding:10px;
   border:none;
   border-radius:14px;
-  background:linear-gradient(135deg,#ef4444,#dc2626);
+  background:#ef4444;
   color:#fff;
-  font-weight:600;
   cursor:pointer;
-  box-shadow:0 0 14px rgba(239,68,68,.4);
 }
 </style>
 </head>
@@ -160,33 +101,28 @@ textarea{
   <button onclick="goBack()">Dashboard</button>
 </header>
 
-<!-- ADD PRODUCT -->
 <div class="form">
   <input id="name" placeholder="Product name">
   <input id="price" type="number" placeholder="Price">
   <input id="category" placeholder="Category">
-  <input id="img1" placeholder="Image URL 1 (Main)">
+  <input id="img1" placeholder="Image URL 1">
   <input id="img2" placeholder="Image URL 2">
   <input id="img3" placeholder="Image URL 3">
-  <textarea id="desc" rows="3" placeholder="Product description"></textarea>
+  <textarea id="desc" rows="3" placeholder="Description"></textarea>
   <button id="addBtn">Add Product</button>
 </div>
 
-<!-- PRODUCT LIST -->
 <div class="products" id="list"></div>
 
-<!-- ================= SCRIPT (UNTOUCHED) ================= -->
 <script>
+/* ================= CONFIG ================= */
 const API_BASE = "http://localhost:5000/api";
-const USER_API = API_BASE + "/products";
-const ADMIN_API = API_BASE + "/admin/products";
+const PRODUCTS_API = API_BASE + "/products";
 const token = localStorage.getItem("adminToken");
 
 if (!token) location.href = "admin-login.html";
 
-const PLACEHOLDER =
-"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNlNWU3ZWIiLz48dGV4dCB4PSIxNTAiIHk9IjEwMCIgZmlsbD0iIzY0NzQ4YiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+SW1hZ2U8L3RleHQ+PC9zdmc+";
-
+/* ================= ELEMENTS ================= */
 const list = document.getElementById("list");
 const addBtn = document.getElementById("addBtn");
 
@@ -198,102 +134,79 @@ const img2Input = document.getElementById("img2");
 const img3Input = document.getElementById("img3");
 const descInput = document.getElementById("desc");
 
-/* LOAD PRODUCTS */
+/* ================= LOAD PRODUCTS ================= */
 async function loadProducts() {
-  try {
-    const res = await fetch(USER_API);
-    const products = await res.json();
+  const res = await fetch(PRODUCTS_API);
+  const products = await res.json();
 
-    if (!res.ok) {
-      alert(products.message || "Failed to load products");
-      return;
-    }
+  list.innerHTML = "";
 
-    list.innerHTML = "";
-
-    products.forEach(p => {
-      const imgs = Array.isArray(p.images) ? p.images : [];
-
-      list.innerHTML += `
-        <div class="card">
-          <img src="${imgs[0] || PLACEHOLDER}" onerror="this.src='${PLACEHOLDER}'">
-          <div class="thumb-row">
-            ${imgs.map(i => `<img src="${i}" onerror="this.src='${PLACEHOLDER}'">`).join("")}
-          </div>
-          <h4>${p.name}</h4>
-          <p>₹${p.price}</p>
-          <small>${p.category}</small>
-          <button onclick="deleteProduct(${p.id})">Delete</button>
-        </div>
-      `;
-    });
-  } catch {
-    alert("Server not reachable");
-  }
+  products.forEach(p => {
+    const imgs = Array.isArray(p.images) ? p.images : [];
+    list.innerHTML += `
+      <div class="card">
+        <img src="${imgs[0] || ''}">
+        <h4>${p.name}</h4>
+        <p>₹${p.price}</p>
+        <small>${p.category}</small>
+        <button onclick="deleteProduct(${p.id})">Delete</button>
+      </div>
+    `;
+  });
 }
 
-/* ADD PRODUCT */
+/* ================= ADD PRODUCT ================= */
 addBtn.onclick = async () => {
-  const name = nameInput.value.trim();
-  const price = Number(priceInput.value);
-  const category = categoryInput.value.trim();
-  const description = descInput.value.trim();
-  const images = [img1Input.value, img2Input.value, img3Input.value].filter(Boolean);
+  const payload = {
+    name: nameInput.value.trim(),
+    price: Number(priceInput.value),
+    category: categoryInput.value.trim(),
+    description: descInput.value.trim(),
+    images: [img1Input.value, img2Input.value, img3Input.value].filter(Boolean)
+  };
 
-  if (!name || !price || !category || !images.length) {
+  if (!payload.name || !payload.price || !payload.category || !payload.images.length) {
     alert("Fill all required fields");
     return;
   }
 
-  addBtn.disabled = true;
+  console.log("➡️ ADD PRODUCT:", payload);
 
-  try {
-    const res = await fetch(ADMIN_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
-      },
-      body: JSON.stringify({ name, price, category, description, images })
-    });
+  const res = await fetch(PRODUCTS_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token
+    },
+    body: JSON.stringify(payload)
+  });
 
-    const data = await res.json();
+  const data = await res.json();
+  console.log("⬅️ RESPONSE:", res.status, data);
 
-    if (res.status === 401) return logout();
-    if (!res.ok) return alert(data.message || "Failed to add product");
-
-    alert("Product added successfully ✅");
-    clearForm();
-    loadProducts();
-  } catch {
-    alert("Server not reachable");
-  } finally {
-    addBtn.disabled = false;
+  if (!res.ok) {
+    alert(data.message || "Add failed");
+    return;
   }
+
+  alert("✅ Product added");
+  clearForm();
+  loadProducts();
 };
 
-/* DELETE PRODUCT */
+/* ================= DELETE ================= */
 async function deleteProduct(id) {
-  if (!confirm("Delete this product?")) return;
+  if (!confirm("Delete product?")) return;
 
-  try {
-    const res = await fetch(`${ADMIN_API}/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: "Bearer " + token }
-    });
+  const res = await fetch(`${PRODUCTS_API}/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer " + token }
+  });
 
-    const data = await res.json();
-
-    if (res.status === 401) return logout();
-    if (!res.ok) return alert(data.message || "Delete failed");
-
-    loadProducts();
-  } catch {
-    alert("Server not reachable");
-  }
+  if (res.ok) loadProducts();
 }
 
-/* HELPERS */
+/* ================= HELPERS ================= */
 function clearForm() {
   [nameInput, priceInput, categoryInput, img1Input, img2Input, img3Input, descInput]
     .forEach(i => i.value = "");
@@ -303,12 +216,7 @@ function goBack() {
   location.href = "admin-dashboard.html";
 }
 
-function logout() {
-  localStorage.removeItem("adminToken");
-  location.href = "admin-login.html";
-}
-
-/* INIT */
+/* ================= INIT ================= */
 loadProducts();
 </script>
 

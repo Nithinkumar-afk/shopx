@@ -1,7 +1,7 @@
 const db = require("../config/db");
 
 /* ================= GET CART ================= */
-async function getCart(req, res) {
+exports.getCart = async (req, res) => {
   try {
     const [rows] = await db.query(
       `
@@ -10,7 +10,7 @@ async function getCart(req, res) {
         c.qty,
         p.name,
         p.price,
-        p.image
+        p.images
       FROM cart c
       JOIN products p ON p.id = c.product_id
       WHERE c.user_id = ?
@@ -18,20 +18,29 @@ async function getCart(req, res) {
       [req.user.id]
     );
 
-    res.json(rows);
+    const cart = rows.map(item => ({
+      productId: item.product_id,
+      qty: item.qty,
+      name: item.name,
+      price: Number(item.price),
+      images: safeParseImages(item.images)
+    }));
+
+    res.json(cart);
   } catch (err) {
     console.error("GET CART ERROR:", err);
     res.status(500).json({ message: "Failed to load cart" });
   }
-}
+};
 
 /* ================= ADD TO CART ================= */
-async function addToCart(req, res) {
+exports.addToCart = async (req, res) => {
   try {
-    const { productId, qty = 1 } = req.body;
+    const productId = Number(req.body.productId);
+    const qty = Number(req.body.qty || 1);
 
-    if (!productId) {
-      return res.status(400).json({ message: "Product ID required" });
+    if (!productId || qty < 1) {
+      return res.status(400).json({ message: "Invalid product or quantity" });
     }
 
     await db.query(
@@ -46,51 +55,63 @@ async function addToCart(req, res) {
     res.json({ message: "Added to cart" });
   } catch (err) {
     console.error("ADD CART ERROR:", err);
-    res.status(500).json({ message: "Failed to add cart" });
+    res.status(500).json({ message: "Failed to add to cart" });
   }
-}
+};
 
 /* ================= UPDATE QTY ================= */
-async function updateQty(req, res) {
+exports.updateQty = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const { qty } = req.body;
+    const productId = Number(req.params.productId);
+    const qty = Number(req.body.qty);
 
-    if (!qty || qty < 1) {
+    if (!productId || qty < 1) {
       return res.status(400).json({ message: "Invalid quantity" });
     }
 
-    await db.query(
+    const [result] = await db.query(
       `UPDATE cart SET qty=? WHERE user_id=? AND product_id=?`,
       [qty, req.user.id, productId]
     );
+
+    if (!result.affectedRows) {
+      return res.status(404).json({ message: "Cart item not found" });
+    }
 
     res.json({ message: "Quantity updated" });
   } catch (err) {
     console.error("UPDATE CART ERROR:", err);
     res.status(500).json({ message: "Update failed" });
   }
-}
+};
 
 /* ================= REMOVE ITEM ================= */
-async function removeItem(req, res) {
+exports.removeItem = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const productId = Number(req.params.productId);
 
-    await db.query(
+    if (!productId) {
+      return res.status(400).json({ message: "Invalid product ID" });
+    }
+
+    const [result] = await db.query(
       `DELETE FROM cart WHERE user_id=? AND product_id=?`,
       [req.user.id, productId]
     );
+
+    if (!result.affectedRows) {
+      return res.status(404).json({ message: "Item not found in cart" });
+    }
 
     res.json({ message: "Item removed" });
   } catch (err) {
     console.error("REMOVE CART ERROR:", err);
     res.status(500).json({ message: "Remove failed" });
   }
-}
+};
 
 /* ================= CLEAR CART ================= */
-async function clearCart(req, res) {
+exports.clearCart = async (req, res) => {
   try {
     await db.query(`DELETE FROM cart WHERE user_id=?`, [req.user.id]);
     res.json({ message: "Cart cleared" });
@@ -98,13 +119,13 @@ async function clearCart(req, res) {
     console.error("CLEAR CART ERROR:", err);
     res.status(500).json({ message: "Clear failed" });
   }
-}
-
-/* 🔒 LOCKED EXPORTS */
-module.exports = {
-  getCart,
-  addToCart,
-  updateQty,
-  removeItem,
-  clearCart
 };
+
+/* ================= HELPER ================= */
+function safeParseImages(images) {
+  try {
+    return JSON.parse(images || "[]");
+  } catch {
+    return [];
+  }
+}

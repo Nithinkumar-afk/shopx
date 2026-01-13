@@ -1,15 +1,18 @@
-const express = require("express");
-const router = express.Router();
+const router = require("express").Router();
+const auth = require("../controllers/auth.controller");
+const userAuth = require("../middleware/auth");
 
-const authController = require("../controllers/auth.controller");
-const auth = require("../middleware/userAuth");
+/* ===============================
+   USER AUTH ROUTES
+================================ */
 
-// AUTH ROUTES
-router.post("/send-otp", authController.sendOtp);   // ✅ FIX ADDED
-router.post("/verify-otp", authController.verifyOtp);
+// Send OTP to email
+router.post("/send-otp", auth.sendOtp);
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
-router.post("/logout", auth, authController.logout);
+// Verify OTP & login
+router.post("/verify-otp", auth.verifyOtp);
+
+// Get logged-in user profile
+router.get("/me", userAuth, auth.getMe);
 
 module.exports = router;

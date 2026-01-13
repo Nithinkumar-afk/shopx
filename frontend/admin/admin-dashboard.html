@@ -49,7 +49,6 @@ header button:hover{background:#dc2626}
   border:1px solid rgba(255,255,255,.15);
   border-radius:20px;
   padding:22px;
-  box-shadow:0 20px 50px rgba(0,0,0,.7);
 }
 .card h3{font-size:14px;font-weight:500;color:#cbd5e1}
 .card p{margin-top:12px;font-size:28px;font-weight:600}
@@ -79,7 +78,11 @@ header button:hover{background:#dc2626}
   padding:16px;
   margin-bottom:14px;
 }
-.order small{display:block;margin-top:4px;color:#cbd5e1}
+.order small{
+  display:block;
+  margin-top:6px;
+  color:#cbd5e1;
+}
 </style>
 </head>
 
@@ -110,7 +113,7 @@ header button:hover{background:#dc2626}
 
   <div class="section">
     <h3>Recent Orders</h3>
-    <div id="recentOrders"></div>
+    <div id="recentOrders">Loading...</div>
   </div>
 
 </div>
@@ -119,15 +122,18 @@ header button:hover{background:#dc2626}
 "use strict";
 
 /* ======================
-   AUTH GUARD (HARD)
+   CONFIG
 ====================== */
-const token = localStorage.getItem("adminToken");
-if (!token) {
-  location.replace("admin-login.html");
-}
+const API = "http://localhost:5000";
 
 /* ======================
-   FETCH WRAPPER
+   AUTH GUARD
+====================== */
+const token = localStorage.getItem("adminToken");
+if (!token) location.replace("admin-login.html");
+
+/* ======================
+   AUTH FETCH
 ====================== */
 async function authFetch(url) {
   const res = await fetch(url, {
@@ -138,7 +144,24 @@ async function authFetch(url) {
     forceLogout();
     throw new Error("Unauthorized");
   }
+
   return res.json();
+}
+
+/* ======================
+   TIME AGO
+====================== */
+function timeAgo(dateString) {
+  const now = new Date();
+  const date = new Date(dateString);
+  const seconds = Math.floor((now - date) / 1000);
+
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hrs ago`;
+  if (seconds < 172800) return "Yesterday";
+
+  return date.toLocaleDateString();
 }
 
 /* ======================
@@ -146,25 +169,39 @@ async function authFetch(url) {
 ====================== */
 (async () => {
   try {
-    const stats = await authFetch("http://localhost:5000/api/admin/stats");
-    document.getElementById("totalProducts").innerText = stats.products;
-    document.getElementById("totalOrders").innerText = stats.orders;
-    document.getElementById("totalUsers").innerText = stats.users;
-    document.getElementById("totalRevenue").innerText = "₹" + stats.revenue;
+    /* DASHBOARD STATS */
+    const stats = await authFetch(`${API}/api/admin/stats`);
+    totalProducts.innerText = stats.products;
+    totalOrders.innerText = stats.orders;
+    totalUsers.innerText = stats.users;
+    totalRevenue.innerText = "₹" + stats.revenue;
 
+    /* ✅ RECENT ORDERS (REQUEST YOU ASKED TO ADD) */
     const orders = await authFetch("http://localhost:5000/api/admin/recent-orders");
-    const recent = document.getElementById("recentOrders");
-    recent.innerHTML = orders.length
-      ? orders.map(o => `
-        <div class="order">
-          <strong>${o.name}</strong> (${o.phone})
-          <small>₹${o.total} • ${new Date(o.created_at).toLocaleDateString()}</small>
-        </div>
-      `).join("")
-      : "<p>No recent orders</p>";
+    const recentOrders = document.getElementById("recentOrders");
+
+    if (!orders || orders.length === 0) {
+      recentOrders.innerHTML = "<p>No recent orders</p>";
+      return;
+    }
+
+    recentOrders.innerHTML = orders.map(o => `
+      <div class="order">
+        <strong>${o.name ?? "Guest"}</strong> (${o.phone ?? "—"})
+        <small>
+          ₹${o.total} • ${timeAgo(o.created_at)} • 
+          ${new Date(o.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit"
+          })}
+        </small>
+      </div>
+    `).join("");
 
   } catch (err) {
     console.error(err);
+    document.getElementById("recentOrders").innerHTML =
+      "<p style='color:#f87171'>Failed to load orders</p>";
   }
 })();
 
@@ -174,7 +211,6 @@ async function authFetch(url) {
 function logout() {
   forceLogout();
 }
-
 function forceLogout() {
   localStorage.removeItem("adminToken");
   location.replace("admin-login.html");

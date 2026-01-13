@@ -1,9 +1,7 @@
 const db = require("../config/db");
 const jwt = require("jsonwebtoken");
 
-/* =====================
-   ADMIN LOGIN
-===================== */
+/* ================= ADMIN LOGIN ================= */
 exports.login = (req, res) => {
   const { username, password } = req.body;
 
@@ -12,7 +10,7 @@ exports.login = (req, res) => {
   }
 
   const token = jwt.sign(
-    { id: 1, username: "admin", role: "admin" },
+    { id: 1, role: "admin" },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
@@ -20,60 +18,46 @@ exports.login = (req, res) => {
   res.json({ token });
 };
 
-/* =====================
-   DASHBOARD STATS
-===================== */
+/* ================= DASHBOARD STATS ================= */
 exports.getStats = async (req, res) => {
   try {
-    const [[products]] = await db.query(
-      "SELECT COUNT(*) AS count FROM products"
-    );
-
-    const [[orders]] = await db.query(
-      "SELECT COUNT(*) AS count FROM orders"
-    );
-
-    const [[users]] = await db.query(
-      "SELECT COUNT(*) AS count FROM users"
-    );
-
-    const [[revenue]] = await db.query(
-      "SELECT IFNULL(SUM(total_amount),0) AS total FROM orders WHERE status != 'cancelled'"
+    const [[p]] = await db.query("SELECT COUNT(*) count FROM products");
+    const [[o]] = await db.query("SELECT COUNT(*) count FROM orders");
+    const [[u]] = await db.query("SELECT COUNT(*) count FROM users");
+    const [[r]] = await db.query(
+      "SELECT IFNULL(SUM(total_amount),0) total FROM orders WHERE status!='cancelled'"
     );
 
     res.json({
-      products: products.count,
-      orders: orders.count,
-      users: users.count,
-      revenue: revenue.total
+      products: p.count,
+      orders: o.count,
+      users: u.count,
+      revenue: r.total
     });
   } catch (err) {
-    console.error("ADMIN STATS ERROR:", err);
-    res.status(500).json({ message: "Failed to load stats" });
+    console.error("STATS ERROR:", err);
+    res.status(500).json({ message: "Stats failed" });
   }
 };
 
-/* =====================
-   RECENT ORDERS
-===================== */
+/* ================= RECENT ORDERS (FIXED) ================= */
 exports.getRecentOrders = async (req, res) => {
   try {
-    const [orders] = await db.query(`
+    const [rows] = await db.query(`
       SELECT 
-        o.id,
+        u.name AS name,
+        u.phone AS phone,
         o.total_amount AS total,
-        o.created_at,
-        u.name,
-        u.phone
+        o.created_at AS created_at
       FROM orders o
-      JOIN users u ON o.user_id = u.id
+      LEFT JOIN users u ON u.id = o.user_id
       ORDER BY o.created_at DESC
       LIMIT 5
     `);
 
-    res.json(orders);
+    res.json(rows);
   } catch (err) {
     console.error("RECENT ORDERS ERROR:", err);
-    res.status(500).json({ message: "Failed to load recent orders" });
+    res.status(500).json({ message: "Failed to load orders" });
   }
 };

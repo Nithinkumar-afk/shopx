@@ -1,5 +1,6 @@
-const db = require("../config/db"); // ✅ ONLY ONE db import
+const db = require("../config/db");
 const fs = require("fs");
+const path = require("path");
 
 /* ================================
    GET USER PROFILE
@@ -81,10 +82,8 @@ exports.updateProfileImage = async (req, res) => {
     );
 
     if (old?.image) {
-      const oldPath = "." + old.image;
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
+      const oldPath = path.join(__dirname, "..", old.image);
+      fs.unlink(oldPath, () => {}); // 🔥 safe async delete
     }
 
     const imagePath = "/uploads/users/" + req.file.filename;
@@ -132,16 +131,20 @@ exports.addAddress = async (req, res) => {
 };
 
 /* ================================
-   DELETE ADDRESS
+   DELETE ADDRESS (SAFE)
 ================================ */
 exports.deleteAddress = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { id } = req.params;
+    const addressId = Number(req.params.id);
+
+    if (!addressId) {
+      return res.status(400).json({ message: "Invalid address ID" });
+    }
 
     const [result] = await db.query(
       "DELETE FROM addresses WHERE id=? AND user_id=?",
-      [id, userId]
+      [addressId, userId]
     );
 
     if (!result.affectedRows) {

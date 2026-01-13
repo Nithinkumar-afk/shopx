@@ -2,7 +2,8 @@ const db = require("../config/db");
 
 /* ===============================
    GET USER ORDERS (WITH ITEMS)
-================================ */exports.getUserOrders = async (req, res) => {
+================================ */
+exports.getUserOrders = async (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -40,13 +41,16 @@ const db = require("../config/db");
       }
 
       if (r.name) {
-        const images = r.images ? JSON.parse(r.images) : [];
+        let images = [];
+        try {
+          images = JSON.parse(r.images || "[]");
+        } catch {}
 
         ordersMap[r.order_id].items.push({
           name: r.name,
           price: r.price,
           quantity: r.quantity,
-          image: images[0] || ""   // ✅ FIRST IMAGE
+          image: images[0] || ""
         });
       }
     }
@@ -58,14 +62,13 @@ const db = require("../config/db");
   }
 };
 
-
 /* ===============================
-   GET SINGLE ORDER WITH ITEMS
+   GET SINGLE ORDER
 ================================ */
 exports.getOrderById = async (req, res) => {
   try {
     const userId = req.user.id;
-    const orderId = req.params.id;
+    const orderId = Number(req.params.id);
 
     const [[order]] = await db.query(
       `
@@ -82,10 +85,7 @@ exports.getOrderById = async (req, res) => {
 
     const [items] = await db.query(
       `
-      SELECT 
-        oi.quantity,
-        oi.price,
-        p.name
+      SELECT oi.quantity, oi.price, p.name
       FROM order_items oi
       JOIN products p ON oi.product_id = p.id
       WHERE oi.order_id = ?
@@ -108,15 +108,14 @@ exports.placeOrder = async (req, res) => {
   let connection;
 
   try {
-    connection = await db.getConnection();
-
-    const userId = req.user.id;
     const { total_amount, address, items } = req.body;
+    const userId = req.user.id;
 
-    if (!total_amount || !address || !items?.length) {
+    if (!total_amount || !address || !Array.isArray(items) || !items.length) {
       return res.status(400).json({ message: "Invalid order data" });
     }
 
+    connection = await db.getConnection();
     await connection.beginTransaction();
 
     const [orderResult] = await connection.query(
@@ -168,7 +167,7 @@ exports.placeOrder = async (req, res) => {
 exports.cancelOrder = async (req, res) => {
   try {
     const userId = req.user.id;
-    const orderId = req.params.id;
+    const orderId = Number(req.params.id);
 
     const [result] = await db.query(
       `
@@ -180,9 +179,7 @@ exports.cancelOrder = async (req, res) => {
     );
 
     if (!result.affectedRows) {
-      return res.status(400).json({
-        message: "Order cannot be cancelled"
-      });
+      return res.status(400).json({ message: "Order cannot be cancelled" });
     }
 
     res.json({ message: "Order cancelled successfully" });
@@ -191,14 +188,14 @@ exports.cancelOrder = async (req, res) => {
     res.status(500).json({ message: "Failed to cancel order" });
   }
 };
+
 /* ===============================
-   GET LATEST ORDER (FOR SUCCESS PAGE)
+   GET LATEST ORDER
 ================================ */
 exports.getLatestOrder = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // 1️⃣ Get latest order
     const [[order]] = await db.query(
       `
       SELECT id, total_amount, status, created_at
@@ -214,13 +211,9 @@ exports.getLatestOrder = async (req, res) => {
       return res.status(404).json({ message: "No orders found" });
     }
 
-    // 2️⃣ Get items
     const [items] = await db.query(
       `
-      SELECT 
-        oi.quantity,
-        oi.price,
-        p.name
+      SELECT oi.quantity, oi.price, p.name
       FROM order_items oi
       JOIN products p ON oi.product_id = p.id
       WHERE oi.order_id = ?
@@ -229,7 +222,6 @@ exports.getLatestOrder = async (req, res) => {
     );
 
     order.items = items;
-
     res.json(order);
   } catch (err) {
     console.error("GET LATEST ORDER ERROR:", err);

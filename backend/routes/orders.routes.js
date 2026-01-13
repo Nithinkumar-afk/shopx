@@ -1,19 +1,19 @@
 const express = require("express");
 const router = express.Router();
 
-const auth = require("../middleware/userAuth");
+const auth = require("../middleware/userAuth"); // ✅ CORRECT
 const ordersController = require("../controllers/orders.controller");
 
-// ✅ PLACE ORDER
+// PLACE ORDER
 router.post("/", auth, ordersController.placeOrder);
-// Get last order of logged-in user
-router.get("/latest", auth, ordersController.getLatestOrder);
 
-// ✅ GET USER ORDERS
+// GET USER ORDERS
 router.get("/", auth, ordersController.getUserOrders);
 
-// ✅ CANCEL ORDER
+// GET LATEST ORDER
+router.get("/latest", auth, ordersController.getLatestOrder);
+
+// CANCEL ORDER
 router.put("/:id/cancel", auth, ordersController.cancelOrder);
-// Get last order of logged-in user
 
 module.exports = router;
