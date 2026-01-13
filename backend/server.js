@@ -1,10 +1,13 @@
-require("dotenv").config(); // ✅ FIRST, always
+// Load dotenv ONLY in local development
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-// 🔥 Initialize DB ONCE
+// 🔥 Initialize DB ONCE (fails fast if broken)
 require("./config/db");
 
 const app = express();
@@ -16,7 +19,7 @@ app.use(
   cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -41,8 +44,8 @@ app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
 app.get("/", (req, res) => {
   res.json({
     status: "ShopX backend running ✅",
-    env: process.env.NODE_ENV || "production",
-    time: new Date().toISOString()
+    environment: process.env.NODE_ENV || "production",
+    time: new Date().toISOString(),
   });
 });
 
