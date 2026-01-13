@@ -1,23 +1,21 @@
 const mysql = require("mysql2");
 
-// Create pool ONLY if env vars exist
 let pool = null;
 
 if (
   process.env.MYSQLHOST &&
   process.env.MYSQLUSER &&
   process.env.MYSQLPASSWORD &&
-  process.env.MYSQL_DATABASE
+  process.env.MYSQLDATABASE
 ) {
   pool = mysql.createPool({
     host: process.env.MYSQLHOST,
     port: Number(process.env.MYSQLPORT || 3306),
     user: process.env.MYSQLUSER,
     password: process.env.MYSQLPASSWORD,
-    database: process.env.MYSQL_DATABASE,
+    database: process.env.MYSQLDATABASE,
     waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+    connectionLimit: 10
   });
 
   pool.getConnection((err, conn) => {
