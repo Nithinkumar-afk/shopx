@@ -1,11 +1,18 @@
 const mysql = require("mysql2/promise");
 
+/**
+ * ================= MYSQL CONNECTION POOL =================
+ * Works for:
+ * ✅ Local XAMPP
+ * ✅ Railway Production
+ */
+
 const db = mysql.createPool({
-  host: process.env.DB_HOST || "127.0.0.1",
-  port: process.env.DB_PORT || 3307,   // 🔴 REQUIRED FIX
-  user: process.env.DB_USER || "nithin",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME || "shopx",
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 
   waitForConnections: true,
   connectionLimit: 10,
@@ -15,16 +22,18 @@ const db = mysql.createPool({
   keepAliveInitialDelay: 0
 });
 
-/* 🔥 PRODUCTION-SAFE CONNECTION TEST */
+/* ================= SAFE CONNECTION TEST ================= */
 (async () => {
   try {
     const conn = await db.getConnection();
-    console.log("✅ MySQL connected on port", process.env.DB_PORT || 3307);
+    console.log("✅ MySQL connected successfully");
     conn.release();
   } catch (err) {
-    console.error("❌ MySQL CONNECTION FAILED");
-    console.error(err.code, err.message);
-    process.exit(1);
+    console.error("❌ MySQL connection error:");
+    console.error(err.message);
+
+    // ❗ DO NOT EXIT IN PRODUCTION (Railway)
+    // process.exit(1);
   }
 })();
 

@@ -5,102 +5,56 @@ const path = require("path");
 
 const app = express();
 
-/* ================= ROUTES ================= */
-const authRoutes = require("./routes/auth.routes");
-const adminRoutes = require("./routes/admin.routes");
-const adminUserRoutes = require("./routes/admin.users.routes");
-const productRoutes = require("./routes/product.routes");
-const adminProductRoutes = require("./routes/admin.product.routes");
-const profileRoutes = require("./routes/profile.routes");
-const cartRoutes = require("./routes/cart.routes");
-const ordersRoutes = require("./routes/orders.routes");
-const adminOrdersRoutes = require("./routes/admin.orders.routes");
-
-/* ================= CORE CONFIG ================= */
-
-// Trust proxy (Render / Railway / Nginx)
+/* ================= BASIC CONFIG ================= */
 app.set("trust proxy", 1);
 
-// CORS
 app.use(
   cors({
-    origin: "*", // ⚠️ lock frontend URL in production
-    credentials: true,
+    origin: "*", // lock frontend URL later
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
-// Body parsers
 app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
 
 /* ================= STATIC FILES ================= */
-
-// Uploaded images
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-/* ================= API ROUTES ================= */
-
-// Auth
-app.use("/api/auth", authRoutes);
-
-// User profile
-app.use("/api/profile", profileRoutes);
-
-// Admin auth
-app.use("/api/admin", adminRoutes);
-
-// Admin users
-app.use("/api/admin/users", adminUserRoutes);
-
-// Public products
-app.use("/api/products", productRoutes);
-
-// Admin products
-app.use("/api/admin/products", adminProductRoutes);
-
-// Cart
-app.use("/api/cart", cartRoutes);
-
-// User orders
-app.use("/api/orders", ordersRoutes);
-
-// Admin orders
-app.use("/api/admin/orders", adminOrdersRoutes);
+/* ================= ROUTES ================= */
+app.use("/api/auth", require("./routes/auth.routes"));
+app.use("/api/profile", require("./routes/profile.routes"));
+app.use("/api/admin", require("./routes/admin.routes"));
+app.use("/api/admin/users", require("./routes/admin.users.routes"));
+app.use("/api/products", require("./routes/product.routes"));
+app.use("/api/admin/products", require("./routes/admin.product.routes"));
+app.use("/api/cart", require("./routes/cart.routes"));
+app.use("/api/orders", require("./routes/orders.routes"));
+app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
 
 /* ================= HEALTH CHECK ================= */
 app.get("/", (req, res) => {
   res.json({
     status: "ShopX backend running ✅",
-    timestamp: new Date().toISOString()
+    env: process.env.NODE_ENV || "production",
+    time: new Date().toISOString()
   });
 });
 
-/* ================= 404 HANDLER ================= */
+/* ================= 404 ================= */
 app.use((req, res) => {
-  res.status(404).json({
-    message: "Route not found"
-  });
+  res.status(404).json({ message: "Route not found" });
 });
 
-/* ================= GLOBAL ERROR HANDLER ================= */
+/* ================= ERROR HANDLER ================= */
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
-
-  if (err.code === "LIMIT_FILE_SIZE") {
-    return res.status(400).json({
-      message: "Image too large (Max 2MB)"
-    });
-  }
-
-  res.status(500).json({
-    message: "Internal server error"
-  });
+  res.status(500).json({ message: "Internal server error" });
 });
 
-/* ================= SERVER ================= */
-const PORT = process.env.PORT || 5000;
+/* ================= START SERVER ================= */
+const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
   console.log(`✅ ShopX backend running on port ${PORT}`);
