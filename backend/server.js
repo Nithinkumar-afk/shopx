@@ -1,11 +1,10 @@
-const db = require("./config/db");
-require("./config/db");
-require("dotenv").config();
+require("dotenv").config(); // ✅ FIRST, always
+
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-// 🔥 INITIALIZE MYSQL ON START
+// 🔥 Initialize DB ONCE
 require("./config/db");
 
 const app = express();
