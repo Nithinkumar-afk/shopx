@@ -1,19 +1,33 @@
 const mysql = require("mysql2");
 
-// Ensure MYSQL_URL exists
-if (!process.env.MYSQL_URL) {
-  console.error("❌ MYSQL_URL is not defined");
-  process.exit(1);
+// Validate required env vars
+const required = [
+  "MYSQLHOST",
+  "MYSQLPORT",
+  "MYSQLUSER",
+  "MYSQLPASSWORD",
+  "MYSQLDATABASE"
+];
+
+for (const key of required) {
+  if (!process.env[key]) {
+    console.error(`❌ Missing environment variable: ${key}`);
+    process.exit(1);
+  }
 }
 
 const pool = mysql.createPool({
-  uri: process.env.MYSQL_URL,
+  host: process.env.MYSQLHOST,
+  port: Number(process.env.MYSQLPORT),
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
 });
 
-// Test connection (Railway safe)
+// Test connection
 pool.getConnection((err, conn) => {
   if (err) {
     console.error("❌ MySQL connection failed:", err.message);
