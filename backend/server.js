@@ -54,7 +54,7 @@ app.use((err, req, res, next) => {
 });
 
 /* ================= START SERVER ================= */
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
   console.log(`✅ ShopX backend running on port ${PORT}`);
