@@ -42,20 +42,20 @@ app.get("/", (req, res) => {
   });
 });
 
-/* ================= 404 ================= */
+/* ================= 404 HANDLER ================= */
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-/* ================= ERROR HANDLER ================= */
+/* ================= GLOBAL ERROR HANDLER ================= */
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
   res.status(500).json({ message: "Internal server error" });
 });
 
-/* ================= START SERVER ================= */
-const PORT = process.env.PORT;
+/* ================= START SERVER (IMPORTANT FIX) ================= */
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ ShopX backend running on port ${PORT}`);
 });
