@@ -1,15 +1,17 @@
 /*************************************************
- * LOAD ENV FIRST — NO CODE ABOVE THIS
+ * LOAD ENV FIRST — NOTHING ABOVE THIS
  *************************************************/
+require("dotenv").config();
 
 /*************************************************
  * DEBUG: CONFIRM ENV IS LOADED
  *************************************************/
 console.log("🔎 ENV CHECK:", {
   PORT: process.env.PORT,
-  DB_HOST: process.env.DB_HOST,
-  DB_USER: process.env.DB_USER,
-  DB_NAME: process.env.DB_NAME,
+  MYSQL_HOST: process.env.MYSQL_HOST,
+  MYSQL_USER: process.env.MYSQL_USER,
+  MYSQL_DATABASE: process.env.MYSQL_DATABASE,
+  MYSQL_PORT: process.env.MYSQL_PORT,
 });
 
 /*************************************************
@@ -23,7 +25,7 @@ const path = require("path");
  * APP INIT
  *************************************************/
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = Number(process.env.PORT) || 8080;
 
 /*************************************************
  * BASIC CONFIG
@@ -47,12 +49,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (STRICT CHECK)
+ * DATABASE INIT (CORRECT VARS)
  *************************************************/
 if (
-  !process.env.DB_HOST ||
-  !process.env.DB_USER ||
-  !process.env.DB_NAME
+  !process.env.MYSQL_HOST ||
+  !process.env.MYSQL_USER ||
+  !process.env.MYSQL_DATABASE
 ) {
   console.warn("⚠️ MySQL env vars missing. App running without DB.");
 } else {
@@ -75,17 +77,14 @@ const safeRoute = (routePath, routeFile) => {
 /*************************************************
  * ROUTES
  *************************************************/
-/* AUTH & PROFILE */
 safeRoute("/api/auth", "./routes/auth.routes");
 safeRoute("/api/profile", "./routes/profile.routes");
 
-/* ADMIN */
 safeRoute("/api/admin", "./routes/admin.routes");
 safeRoute("/api/admin/users", "./routes/admin.users.routes");
 safeRoute("/api/admin/products", "./routes/admin.product.routes");
 safeRoute("/api/admin/orders", "./routes/admin.orders.routes");
 
-/* USER */
 safeRoute("/api/products", "./routes/product.routes");
 safeRoute("/api/cart", "./routes/cart.routes");
 safeRoute("/api/orders", "./routes/orders.routes");
@@ -98,7 +97,7 @@ app.get("/", (req, res) => {
     status: "ShopX backend running ✅",
     uptime: process.uptime(),
     env: process.env.NODE_ENV || "development",
-    db: process.env.DB_HOST ? "CONNECTED CONFIG" : "NO DB CONFIG",
+    db: process.env.MYSQL_HOST ? "DB CONFIG PRESENT" : "NO DB CONFIG",
     time: new Date().toISOString(),
   });
 });
