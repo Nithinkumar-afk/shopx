@@ -1,20 +1,14 @@
 const express = require("express");
 const router = express.Router();
 
-/**
- * Product Controller
- * Controller itself is DB-safe
- */
-const productController = require("../controllers/product.controller");
+let productController;
 
-/**
- * HARD FAIL SAFE
- * If controller fails to load (deploy / build issue)
- */
-if (!productController) {
-  console.error("❌ Product controller failed to load");
+try {
+  productController = require("../controllers/product.controller");
+} catch (err) {
+  console.error("❌ Failed to load Product Controller:", err.message);
 
-  router.use((req, res) => {
+  router.all("*", (req, res) => {
     return res.status(503).json({
       message: "Product service temporarily unavailable",
     });
@@ -40,7 +34,6 @@ router.get("/", getProducts);
 /**
  * =========================
  * ADMIN ROUTES
- * (Auth middleware can be added later)
  * =========================
  */
 router.post("/", addProduct);
