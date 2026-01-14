@@ -1,44 +1,33 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-  console.error("❌ MAIL_USER or MAIL_PASS missing");
+if (!process.env.RESEND_API_KEY) {
+  console.error("❌ RESEND_API_KEY missing");
 }
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
-
-// Verify once
-transporter.verify((err) => {
-  if (err) {
-    console.error("❌ Mailer init failed:", err);
-  } else {
-    console.log("📧 Mailer initialized");
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 exports.sendOTP = async (to, otp, name = "User") => {
-  await transporter.sendMail({
-    from: `"JD Infotech" <${process.env.MAIL_USER}>`,
-    to,
-    subject: "Your JD Infotech Login OTP",
-    text: `Your OTP is ${otp}. It is valid for 5 minutes.`,
-    html: `
-      <div style="font-family: Arial">
-        <h2>Hello ${name},</h2>
-        <p>Your OTP is:</p>
-        <h1>${otp}</h1>
-        <p>Valid for 5 minutes</p>
-      </div>
-    `
-  });
+  try {
+    const result = await resend.emails.send({
+      from: process.env.MAIL_FROM || "ShopX <onboarding@resend.dev>",
+      to,
+      subject: "Your ShopX Login OTP",
+      html: `
+        <div style="font-family: Arial, sans-serif">
+          <h2>Hello ${name},</h2>
+          <p>Your login OTP is:</p>
+          <h1 style="letter-spacing:4px">${otp}</h1>
+          <p>This OTP is valid for <b>5 minutes</b>.</p>
+          <p>If you didn’t request this, ignore this email.</p>
+        </div>
+      `
+    });
+
+    console.log("📨 OTP email delivered:", result.id);
+    return true;
+
+  } catch (err) {
+    console.error("❌ RESEND MAIL ERROR:", err.message);
+    throw err; // 🚨 IMPORTANT: FAIL LOUD
+  }
 };
