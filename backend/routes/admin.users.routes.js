@@ -4,12 +4,12 @@ const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
 
-const auth = require("../middleware/adminAuth");
+const adminAuth = require("../middleware/adminAuth");
 const controller = require("../controllers/admin.users.controller");
 
 /* ================= MULTER CONFIG ================= */
 
-// Ensure upload directory exists
+// Ensure upload directory exists (Railway safe)
 const uploadDir = path.join(process.cwd(), "uploads", "users");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -17,26 +17,19 @@ if (!fs.existsSync(uploadDir)) {
 
 // Storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
+  destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const uniqueName =
-      "user_" +
-      Date.now() +
-      "_" +
-      Math.round(Math.random() * 1e9) +
-      ext;
-
-    cb(null, uniqueName);
+    const unique =
+      "user_" + Date.now() + "_" + Math.round(Math.random() * 1e9) + ext;
+    cb(null, unique);
   }
 });
 
 // File filter
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {
-    return cb(new Error("Only image files are allowed"));
+    return cb(new Error("Only image files allowed"));
   }
   cb(null, true);
 };
@@ -48,12 +41,9 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
 
-/* ================= SAFE MULTER WRAPPER ================= */
+// Safe upload wrapper
 const uploadImage = (req, res, next) => {
   upload.single("image")(req, res, err => {
-    if (err instanceof multer.MulterError) {
-      return res.status(400).json({ message: err.message });
-    }
     if (err) {
       return res.status(400).json({ message: err.message });
     }
@@ -70,21 +60,16 @@ const uploadImage = (req, res, next) => {
   DELETE  /api/admin/users/address/:id
 */
 
-// Get all users
-router.get("/", auth, controller.getUsers);
+// ✅ GET USERS
+router.get("/", adminAuth, controller.getUsers);
 
-// Delete address (must be above :id)
-router.delete("/address/:id", auth, controller.deleteAddress);
+// ✅ DELETE ADDRESS (keep above :id)
+router.delete("/address/:id", adminAuth, controller.deleteAddress);
 
-// Update user (image optional)
-router.put(
-  "/:id",
-  auth,
-  uploadImage,
-  controller.updateUser
-);
+// ✅ UPDATE USER
+router.put("/:id", adminAuth, uploadImage, controller.updateUser);
 
-// Delete user
-router.delete("/:id", auth, controller.deleteUser);
+// ✅ DELETE USER
+router.delete("/:id", adminAuth, controller.deleteUser);
 
 module.exports = router;
