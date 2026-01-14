@@ -4,32 +4,32 @@
 require("dotenv").config();
 
 /*************************************************
- * NORMALIZE MYSQL ENV (RAILWAY + STANDARD)
+ * NORMALIZE MYSQL ENV (RAILWAY + LOCAL)
  *************************************************/
-process.env.MYSQL_HOST =
-  process.env.MYSQL_HOST || process.env.MYSQLHOST;
+const MYSQL_HOST =
+  process.env.MYSQL_HOST || process.env.MYSQLHOST || null;
 
-process.env.MYSQL_USER =
-  process.env.MYSQL_USER || process.env.MYSQLUSER;
+const MYSQL_USER =
+  process.env.MYSQL_USER || process.env.MYSQLUSER || null;
 
-process.env.MYSQL_PASSWORD =
-  process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD;
+const MYSQL_PASSWORD =
+  process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || "";
 
-process.env.MYSQL_DATABASE =
-  process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE;
+const MYSQL_DATABASE =
+  process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || null;
 
-process.env.MYSQL_PORT =
+const MYSQL_PORT =
   process.env.MYSQL_PORT || process.env.MYSQLPORT || "3306";
 
 /*************************************************
- * DEBUG: CONFIRM ENV IS LOADED
+ * DEBUG — CONFIRM ENV (ONCE)
  *************************************************/
 console.log("🔎 ENV CHECK:", {
   PORT: process.env.PORT,
-  MYSQL_HOST: process.env.MYSQL_HOST,
-  MYSQL_USER: process.env.MYSQL_USER,
-  MYSQL_DATABASE: process.env.MYSQL_DATABASE,
-  MYSQL_PORT: process.env.MYSQL_PORT,
+  MYSQL_HOST,
+  MYSQL_USER,
+  MYSQL_DATABASE,
+  MYSQL_PORT,
 });
 
 /*************************************************
@@ -67,15 +67,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (STRICT & CORRECT)
+ * DATABASE INIT (STRICT + SAFE)
  *************************************************/
-if (
-  !process.env.MYSQL_HOST ||
-  !process.env.MYSQL_USER ||
-  !process.env.MYSQL_DATABASE
-) {
-  console.error("❌ MySQL env vars missing. DB will NOT be used.");
+if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) {
+  console.warn("⚠️ MySQL config incomplete — DB disabled");
 } else {
+  process.env.MYSQL_HOST = MYSQL_HOST;
+  process.env.MYSQL_USER = MYSQL_USER;
+  process.env.MYSQL_PASSWORD = MYSQL_PASSWORD;
+  process.env.MYSQL_DATABASE = MYSQL_DATABASE;
+  process.env.MYSQL_PORT = MYSQL_PORT;
+
   require("./config/db");
 }
 
@@ -87,7 +89,7 @@ const safeRoute = (routePath, routeFile) => {
     app.use(routePath, require(routeFile));
     console.log(`✅ Loaded route: ${routePath}`);
   } catch (err) {
-    console.error(`❌ Route failed: ${routeFile}`);
+    console.error(`❌ Failed route: ${routeFile}`);
     console.error(err.message);
   }
 };
@@ -111,11 +113,11 @@ safeRoute("/api/orders", "./routes/orders.routes");
  * HEALTH CHECK
  *************************************************/
 app.get("/", (req, res) => {
-  res.status(200).json({
+  res.json({
     status: "ShopX backend running ✅",
     uptime: process.uptime(),
     env: process.env.NODE_ENV || "development",
-    db: process.env.MYSQL_HOST ? "MYSQL CONFIG OK" : "NO DB",
+    database: MYSQL_HOST ? "CONNECTED / CONFIGURED" : "DISABLED",
     time: new Date().toISOString(),
   });
 });
