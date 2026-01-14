@@ -9,7 +9,9 @@ const MYSQL_PASSWORD =
   process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || "";
 const MYSQL_DATABASE =
   process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE;
-const MYSQL_PORT = Number(process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306);
+const MYSQL_PORT = Number(
+  process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306
+);
 
 /*************************************************
  * SAFE ENV DEBUG (NO SECRETS)
@@ -22,15 +24,16 @@ console.log("🔎 DB ENV CHECK:", {
 });
 
 /*************************************************
- * FAIL FAST ONLY IF CORE VARS MISSING
+ * DO NOT KILL CONTAINER (Railway rule)
  *************************************************/
 if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) {
-  console.error("❌ FATAL: Missing MySQL environment variables");
-  process.exit(1);
+  console.error("❌ MySQL env vars missing — DB disabled");
+  module.exports = null;
+  return;
 }
 
 /*************************************************
- * CREATE POOL (NON-BLOCKING)
+ * CREATE MYSQL POOL (SSL REQUIRED)
  *************************************************/
 const pool = mysql.createPool({
   host: MYSQL_HOST,
@@ -38,9 +41,15 @@ const pool = mysql.createPool({
   password: MYSQL_PASSWORD,
   database: MYSQL_DATABASE,
   port: MYSQL_PORT,
+
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+
+  // 🔐 REQUIRED FOR RAILWAY / AIVEN
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 /*************************************************
@@ -49,11 +58,10 @@ const pool = mysql.createPool({
 (async () => {
   try {
     const conn = await pool.getConnection();
-    console.log("✅ MySQL connected successfully");
+    console.log("✅ MySQL connected successfully (SSL)");
     conn.release();
   } catch (err) {
     console.error("❌ MySQL connection failed:", err.message);
-    // ❗ DO NOT EXIT — Railway will kill container if you do
   }
 })();
 
