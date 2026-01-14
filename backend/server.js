@@ -4,35 +4,6 @@
 require("dotenv").config();
 
 /*************************************************
- * NORMALIZE MYSQL ENV (RAILWAY + LOCAL)
- *************************************************/
-const MYSQL_HOST =
-  process.env.MYSQL_HOST || process.env.MYSQLHOST || null;
-
-const MYSQL_USER =
-  process.env.MYSQL_USER || process.env.MYSQLUSER || null;
-
-const MYSQL_PASSWORD =
-  process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || "";
-
-const MYSQL_DATABASE =
-  process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || null;
-
-const MYSQL_PORT =
-  process.env.MYSQL_PORT || process.env.MYSQLPORT || "3306";
-
-/*************************************************
- * DEBUG — CONFIRM ENV (ONCE)
- *************************************************/
-console.log("🔎 ENV CHECK:", {
-  PORT: process.env.PORT,
-  MYSQL_HOST,
-  MYSQL_USER,
-  MYSQL_DATABASE,
-  MYSQL_PORT,
-});
-
-/*************************************************
  * IMPORTS
  *************************************************/
 const express = require("express");
@@ -67,19 +38,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (STRICT + SAFE)
+ * DATABASE INIT (MANDATORY)
+ * ❗ DO NOT WRAP IN IF CONDITIONS
  *************************************************/
-if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) {
-  console.warn("⚠️ MySQL config incomplete — DB disabled");
-} else {
-  process.env.MYSQL_HOST = MYSQL_HOST;
-  process.env.MYSQL_USER = MYSQL_USER;
-  process.env.MYSQL_PASSWORD = MYSQL_PASSWORD;
-  process.env.MYSQL_DATABASE = MYSQL_DATABASE;
-  process.env.MYSQL_PORT = MYSQL_PORT;
-
-  require("./config/db");
-}
+require("./config/db");
 
 /*************************************************
  * SAFE ROUTE LOADER
@@ -110,14 +72,13 @@ safeRoute("/api/cart", "./routes/cart.routes");
 safeRoute("/api/orders", "./routes/orders.routes");
 
 /*************************************************
- * HEALTH CHECK
+ * HEALTH CHECK (RAILWAY USES THIS)
  *************************************************/
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     status: "ShopX backend running ✅",
     uptime: process.uptime(),
     env: process.env.NODE_ENV || "development",
-    database: MYSQL_HOST ? "CONNECTED / CONFIGURED" : "DISABLED",
     time: new Date().toISOString(),
   });
 });
