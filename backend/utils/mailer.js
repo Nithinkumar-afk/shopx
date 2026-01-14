@@ -1,38 +1,49 @@
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error("❌ RESEND_API_KEY missing");
+if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+  console.error("❌ MAIL_USER or MAIL_PASS missing");
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/* ================= TRANSPORT ================= */
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
+  },
+});
 
+/* ================= VERIFY ================= */
+transporter.verify((err) => {
+  if (err) {
+    console.error("❌ Mailer init failed:", err.message);
+  } else {
+    console.log("📧 Gmail SMTP mailer ready");
+  }
+});
+
+/* ================= SEND OTP ================= */
 exports.sendOTP = async (to, otp, name = "User") => {
   try {
-    await resend.emails.send({
-      // ✅ SAFE DEFAULT (works for any email during launch)
-      from: "ShopX <no-reply@resend.dev>",
+    await transporter.sendMail({
+      from: `"JD Infotech" <${process.env.MAIL_USER}>`,
       to,
-      subject: "Your ShopX Login OTP",
+      subject: "Your Login OTP",
+      text: `Your OTP is ${otp}. It is valid for 5 minutes.`,
       html: `
-        <div style="font-family:Arial, sans-serif; max-width:500px">
+        <div style="font-family:Arial">
           <h2>Hello ${name},</h2>
-          <p>Your one-time password (OTP) is:</p>
-          <div style="font-size:32px; font-weight:bold; margin:16px 0">
-            ${otp}
-          </div>
-          <p>This OTP is valid for <strong>5 minutes</strong>.</p>
-          <p style="color:#888; font-size:12px">
-            If you didn’t request this, you can ignore this email.
-          </p>
+          <p>Your OTP is:</p>
+          <h1>${otp}</h1>
+          <p>Valid for 5 minutes</p>
         </div>
       `,
     });
 
-    // ✅ SUCCESS → just return
-    return;
-
+    console.log("📨 OTP email sent to:", to);
+    return true;
   } catch (err) {
-    console.error("🔥 RESEND MAIL ERROR:", err);
-    throw new Error("OTP_EMAIL_FAILED");
+    console.error("❌ OTP mail failed:", err.message);
+    return false;
   }
 };
