@@ -71,10 +71,15 @@ const safeRoute = (routePath, routeFile) => {
 /*************************************************
  * ROUTES
  *************************************************/
+
+/* AUTH */
 safeRoute("/api/auth", "./routes/auth.routes");
 
-/* PROFILE (your product.routes.js is actually profile) */
-safeRoute("/api/profile", "./routes/product.routes");
+/* PROFILE */
+safeRoute("/api/profile", "./routes/profile.routes");
+
+/* PUBLIC PRODUCTS */
+safeRoute("/api/products", "./routes/product.routes");
 
 /* ADMIN */
 safeRoute("/api/admin", "./routes/admin.routes");
