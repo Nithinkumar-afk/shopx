@@ -4,14 +4,14 @@
 require("dotenv").config();
 
 /*************************************************
- * DEBUG: CONFIRM ENV IS LOADED
+ * DEBUG: CONFIRM ENV IS LOADED (RAILWAY FORMAT)
  *************************************************/
 console.log("🔎 ENV CHECK:", {
   PORT: process.env.PORT,
-  MYSQL_HOST: process.env.MYSQL_HOST,
-  MYSQL_USER: process.env.MYSQL_USER,
-  MYSQL_DATABASE: process.env.MYSQL_DATABASE,
-  MYSQL_PORT: process.env.MYSQL_PORT,
+  MYSQLHOST: process.env.MYSQLHOST,
+  MYSQLUSER: process.env.MYSQLUSER,
+  MYSQLDATABASE: process.env.MYSQLDATABASE,
+  MYSQLPORT: process.env.MYSQLPORT,
 });
 
 /*************************************************
@@ -49,12 +49,12 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (CORRECT VARS)
+ * DATABASE INIT (RAILWAY CORRECT VARS)
  *************************************************/
 if (
-  !process.env.MYSQL_HOST ||
-  !process.env.MYSQL_USER ||
-  !process.env.MYSQL_DATABASE
+  !process.env.MYSQLHOST ||
+  !process.env.MYSQLUSER ||
+  !process.env.MYSQLDATABASE
 ) {
   console.warn("⚠️ MySQL env vars missing. App running without DB.");
 } else {
@@ -97,7 +97,7 @@ app.get("/", (req, res) => {
     status: "ShopX backend running ✅",
     uptime: process.uptime(),
     env: process.env.NODE_ENV || "development",
-    db: process.env.MYSQL_HOST ? "DB CONFIG PRESENT" : "NO DB CONFIG",
+    db: process.env.MYSQLHOST ? "MYSQL CONNECTED" : "NO DB CONFIG",
     time: new Date().toISOString(),
   });
 });
