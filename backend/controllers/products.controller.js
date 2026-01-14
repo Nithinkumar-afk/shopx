@@ -50,17 +50,27 @@ exports.addProduct = async (req, res) => {
     image1,
     image2,
     image3,
+    images, // ✅ support array too (important)
   } = req.body;
 
   if (!name || price === undefined || !category) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  // ✅ Build image array safely
-  let images = [image1, image2, image3]
-    .filter((img) => typeof img === "string" && img.trim() !== "");
+  // ✅ SAFELY BUILD IMAGE ARRAY (NO BUGS)
+  let finalImages = [];
 
-  if (images.length === 0) images = [DEFAULT_IMAGE];
+  if (Array.isArray(images)) {
+    finalImages = images
+      .filter((img) => typeof img === "string" && img.trim() !== "");
+  } else {
+    finalImages = [image1, image2, image3]
+      .filter((img) => typeof img === "string" && img.trim() !== "");
+  }
+
+  if (finalImages.length === 0) {
+    finalImages = [DEFAULT_IMAGE];
+  }
 
   try {
     await db.query(
@@ -74,7 +84,7 @@ exports.addProduct = async (req, res) => {
         Number(price),
         category.trim(),
         description?.trim() || "",
-        JSON.stringify(images),
+        JSON.stringify(finalImages),
       ]
     );
 
@@ -117,7 +127,9 @@ exports.deleteProduct = async (req, res) => {
 function parseImages(images) {
   try {
     const arr = JSON.parse(images);
-    return Array.isArray(arr) && arr.length ? arr : [DEFAULT_IMAGE];
+    return Array.isArray(arr) && arr.length
+      ? arr
+      : [DEFAULT_IMAGE];
   } catch {
     return [DEFAULT_IMAGE];
   }
