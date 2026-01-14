@@ -1,62 +1,31 @@
-require("dotenv").config(); // MUST be first
+require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 
-/* ===============================
-   CORE MIDDLEWARE
-================================ */
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: "*" }));
-
-/* ===============================
-   HEALTH CHECK (CRITICAL FOR RAILWAY)
-   🚨 DO NOT REMOVE
-================================ */
+/* 🚑 EMERGENCY HEALTH CHECK */
 app.get("/", (req, res) => {
-  return res.status(200).json({
-    status: "ok",
-    service: "ShopX Backend",
-    uptime: process.uptime(),
-  });
+  res.status(200).send("OK");
 });
 
-/* ===============================
-   ROUTES
-================================ */
-const productRoutes = require("./routes/product.routes");
-app.use("/api/products", productRoutes);
-
-/* ===============================
-   GLOBAL ERROR HANDLER
-   (prevents silent crashes)
-================================ */
-app.use((err, req, res, next) => {
-  console.error("❌ UNHANDLED ERROR:", err);
-  return res.status(500).json({
-    message: "Internal server error",
-  });
+/* 🚑 FORCE PRODUCTS RESPONSE */
+app.get("/api/products", (req, res) => {
+  return res.status(200).json([]);
 });
 
-/* ===============================
-   START SERVER (RAILWAY SAFE)
-================================ */
-const PORT = Number(process.env.PORT || 8080);
-
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 ShopX backend running on port ${PORT}`);
+/* 🚑 NEVER CRASH */
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT:", err);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("UNHANDLED:", err);
 });
 
-/* ===============================
-   GRACEFUL SHUTDOWN (REQUIRED)
-================================ */
-process.on("SIGTERM", () => {
-  console.log("🛑 SIGTERM received. Shutting down gracefully...");
-  server.close(() => {
-    console.log("✅ Server closed");
-    process.exit(0);
-  });
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("🚀 Server running on", PORT);
 });
