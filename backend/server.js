@@ -26,7 +26,7 @@ app.set("trust proxy", 1);
  *************************************************/
 app.use(
   cors({
-    origin: "*",
+    origin: "*", // Netlify safe
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -36,19 +36,29 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
+ * 🔥 FORCE MAILER INIT AT STARTUP
+ *************************************************/
+try {
+  require("./utils/mailer");
+  console.log("📧 Mailer initialized");
+} catch (err) {
+  console.error("❌ Mailer init failed:", err.message);
+}
+
+/*************************************************
  * STATIC FILES
  *************************************************/
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * START SERVER FIRST (CRITICAL FOR RAILWAY)
+ * START SERVER
  *************************************************/
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 ShopX backend running on port ${PORT}`);
 });
 
 /*************************************************
- * INIT DATABASE AFTER SERVER IS LIVE
+ * INIT DATABASE
  *************************************************/
 require("./config/db");
 
@@ -81,7 +91,7 @@ safeRoute("/api/cart", "./routes/cart.routes");
 safeRoute("/api/orders", "./routes/orders.routes");
 
 /*************************************************
- * HEALTH CHECK (REQUIRED BY RAILWAY)
+ * HEALTH CHECK
  *************************************************/
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -108,12 +118,12 @@ app.use((err, req, res, next) => {
 });
 
 /*************************************************
- * GRACEFUL SHUTDOWN (FIXES SIGTERM LOOP)
+ * GRACEFUL SHUTDOWN
  *************************************************/
 process.on("SIGTERM", () => {
-  console.log("🛑 SIGTERM received. Shutting down gracefully...");
+  console.log("🛑 SIGTERM received. Shutting down...");
   server.close(() => {
-    console.log("✅ HTTP server closed");
+    console.log("✅ Server closed");
     process.exit(0);
   });
 });
