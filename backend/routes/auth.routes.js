@@ -8,13 +8,13 @@ const userAuth = require("../middleware/auth.middleware");
    USER AUTH ROUTES
 ================================ */
 
-// Send OTP to email
+// Send OTP
 router.post("/send-otp", auth.sendOtp);
 
 // Verify OTP & login
 router.post("/verify-otp", auth.verifyOtp);
 
-// Get logged-in user profile
+// Get logged-in user
 router.get("/me", userAuth, auth.getMe);
 
 module.exports = router;

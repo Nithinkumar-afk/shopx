@@ -4,29 +4,28 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 exports.sendOTP = async (to, otp, name = "User") => {
   try {
-    const { data, error } = await resend.emails.send({
-      from: process.env.FROM_EMAIL || "JD Infotech <onboarding@resend.dev>",
+    const { error } = await resend.emails.send({
+      from: "JD Infotech <onboarding@resend.dev>",
       to,
-      subject: "Your JD Infotech OTP",
+      subject: "Your Login OTP",
       html: `
-        <div style="font-family: Arial, sans-serif">
+        <div style="font-family:Arial">
           <h2>Hello ${name},</h2>
-          <p>Your login OTP is:</p>
-          <h1 style="letter-spacing:4px">${otp}</h1>
-          <p>This OTP is valid for <b>5 minutes</b>.</p>
+          <p>Your OTP is:</p>
+          <h1>${otp}</h1>
+          <p>Valid for 5 minutes</p>
         </div>
       `,
     });
 
     if (error) {
-      console.error("❌ Resend error:", error);
+      console.error("Resend error:", error);
       return false;
     }
 
-    console.log("📨 OTP email delivered:", data?.id);
     return true;
   } catch (err) {
-    console.error("❌ Mailer crash:", err.message);
+    console.error("Mailer crash:", err);
     return false;
   }
 };
