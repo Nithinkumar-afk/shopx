@@ -45,6 +45,30 @@ exports.getProducts = async (req, res) => {
     return res.status(500).json({ message: "Failed to fetch products" });
   }
 };
+/**
+ * GET PRODUCT BY ID
+ */
+exports.getProductById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [rows] = await pool.query(
+      "SELECT * FROM products WHERE id = ?",
+      [id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    return res.status(200).json(rows[0]);
+  } catch (err) {
+    console.error("❌ DB ERROR (getProductById):", err.message);
+    return res.status(500).json({
+      message: "Database error while fetching product",
+    });
+  }
+};
 
 /* =====================================================
    ADD PRODUCT (ADMIN)
