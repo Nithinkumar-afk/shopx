@@ -9,28 +9,31 @@ const MYSQL_PASSWORD =
   process.env.MYSQLPASSWORD || process.env.MYSQL_PASSWORD || "";
 const MYSQL_DATABASE =
   process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE;
-const MYSQL_PORT = Number(process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306);
+const MYSQL_PORT = Number(
+  process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306
+);
 
 /*************************************************
  * SAFE ENV DEBUG (NO SECRETS)
  *************************************************/
 console.log("🔎 DB ENV CHECK:", {
-  MYSQL_HOST,
-  MYSQL_USER,
-  MYSQL_DATABASE,
+  MYSQL_HOST: Boolean(MYSQL_HOST),
+  MYSQL_USER: Boolean(MYSQL_USER),
+  MYSQL_DATABASE: Boolean(MYSQL_DATABASE),
   MYSQL_PORT,
 });
 
 /*************************************************
- * FAIL FAST ONLY IF CORE VARS MISSING
+ * RETURN NULL POOL IF ENV MISSING (SAFE)
  *************************************************/
 if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) {
-  console.error("❌ FATAL: Missing MySQL environment variables");
-  process.exit(1);
+  console.error("❌ MySQL env missing — DB disabled");
+  module.exports = null;
+  return;
 }
 
 /*************************************************
- * CREATE POOL (NON-BLOCKING)
+ * CREATE POOL
  *************************************************/
 const pool = mysql.createPool({
   host: MYSQL_HOST,
@@ -53,7 +56,7 @@ const pool = mysql.createPool({
     conn.release();
   } catch (err) {
     console.error("❌ MySQL connection failed:", err.message);
-    // ❗ DO NOT EXIT — Railway will kill container if you do
+    // App continues — routes still work
   }
 })();
 
