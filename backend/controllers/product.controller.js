@@ -41,20 +41,26 @@ exports.getProducts = async (req, res) => {
 
     return res.status(200).json(formattedProducts);
   } catch (err) {
-    console.error("❌ GET PRODUCTS ERROR:", err);
+    console.error("❌ GET PRODUCTS ERROR:", err.message);
     return res.status(500).json({ message: "Failed to fetch products" });
   }
 };
-/**
- * GET PRODUCT BY ID
- */
-exports.getProductById = async (req, res) => {
-  try {
-    const { id } = req.params;
 
-    const [rows] = await pool.query(
-      "SELECT * FROM products WHERE id = ?",
-      [id]
+/* =====================================================
+   GET PRODUCT BY ID (PUBLIC)
+===================================================== */
+exports.getProductById = async (req, res) => {
+  if (!db) return dbDown(res);
+
+  const productId = Number(req.params.id);
+  if (!productId) {
+    return res.status(400).json({ message: "Invalid product ID" });
+  }
+
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM products WHERE id = ? AND is_active = 1",
+      [productId]
     );
 
     if (rows.length === 0) {
@@ -106,7 +112,7 @@ exports.addProduct = async (req, res) => {
 
     return res.status(201).json({ message: "Product added successfully" });
   } catch (err) {
-    console.error("❌ ADD PRODUCT ERROR:", err);
+    console.error("❌ ADD PRODUCT ERROR:", err.message);
     return res.status(500).json({ message: "Failed to add product" });
   }
 };
@@ -118,7 +124,6 @@ exports.deleteProduct = async (req, res) => {
   if (!db) return dbDown(res);
 
   const productId = Number(req.params.id);
-
   if (!productId) {
     return res.status(400).json({ message: "Invalid product ID" });
   }
@@ -135,7 +140,7 @@ exports.deleteProduct = async (req, res) => {
 
     return res.status(200).json({ message: "Product deleted successfully" });
   } catch (err) {
-    console.error("❌ DELETE PRODUCT ERROR:", err);
+    console.error("❌ DELETE PRODUCT ERROR:", err.message);
     return res.status(500).json({ message: "Failed to delete product" });
   }
 };
