@@ -220,12 +220,18 @@ header button{
 <script>
 "use strict";
 
+
+"use strict";
+
+const API_BASE = "https://shopx-production-b1ad.up.railway.app";
+const API = API_BASE + "/api/admin/users";
 const token = localStorage.getItem("adminToken");
+
 if(!token) location.replace("admin-login.html");
 
-const API = "http://localhost:5000/api/admin/users";
-const API_BASE = "http://localhost:5000";
 const DEFAULT_IMAGE = "https://i.imgur.com/8Km9tLL.png";
+
+
 
 const usersList = document.getElementById("usersList");
 const editModal = document.getElementById("editModal");
@@ -244,10 +250,7 @@ async function loadUsers(){
     headers:{ Authorization:"Bearer " + token }
   });
 
-  if(res.status === 401){
-    logout();
-    return;
-  }
+  if(res.status === 401) return logout();
 
   const data = await res.json();
   users = data.map(u=>({
@@ -259,67 +262,46 @@ async function loadUsers(){
 }
 
 function renderUsers(){
-  usersList.innerHTML = "";
+  usersList.innerHTML="";
   users.forEach(u=>{
-    usersList.insertAdjacentHTML("beforeend",`
+    usersList.innerHTML+=`
       <div class="user-card">
-        <img class="user-image" src="${u.image}" onerror="this.src='${DEFAULT_IMAGE}'">
-        <div>
-          <p><b>Name:</b> ${u.name}</p>
-          <p><b>Phone:</b> ${u.phone || "-"}</p>
-          <p><b>Alt Phone:</b> ${u.altPhone || "-"}</p>
-          <b>Addresses:</b>
-          ${u.addresses.map(a=>`
-            <div class="address-item">
-              <span>${a.address}</span>
-              <button onclick="deleteAddress(${a.id})">X</button>
-            </div>
-          `).join("")}
-          <div class="actions">
-            <button class="delete-btn" onclick="deleteUser(${u.id})">Delete</button>
-            <button class="edit-btn" onclick="openEdit(${u.id})">Edit</button>
-          </div>
-        </div>
+        <img src="${u.image}">
+        <p>${u.name}</p>
+        <button onclick="deleteUser(${u.id})">Delete</button>
+        <button onclick="openEdit(${u.id})">Edit</button>
       </div>
-    `);
+    `;
   });
 }
 
 function openEdit(id){
-  const u = users.find(x=>x.id===id);
-  editUserId = id;
-  editName.value = u.name;
-  editPhone.value = u.phone || "";
-  editAltPhone.value = u.altPhone || "";
-  editAddresses.value = u.addresses.map(a=>a.address).join("\n");
-  imagePreview.src = u.image;
-  editModal.style.display = "flex";
+  const u=users.find(x=>x.id===id);
+  editUserId=id;
+  editName.value=u.name;
+  editPhone.value=u.phone||"";
+  editAltPhone.value=u.altPhone||"";
+  editAddresses.value=u.addresses.map(a=>a.address).join("\n");
+  imagePreview.src=u.image;
+  editModal.style.display="flex";
 }
 
-editImage.onchange = ()=>{
-  if(editImage.files[0]){
-    imagePreview.src = URL.createObjectURL(editImage.files[0]);
-  }
-};
-
-function closeModal(){
-  editModal.style.display="none";
-}
+function closeModal(){ editModal.style.display="none"; }
 
 async function saveEdit(){
-  const formData = new FormData();
-  formData.append("name",editName.value.trim());
-  formData.append("addresses",JSON.stringify(
-    editAddresses.value.split("\n").map(a=>a.trim()).filter(Boolean)
+  const fd=new FormData();
+  fd.append("name",editName.value.trim());
+  fd.append("addresses",JSON.stringify(
+    editAddresses.value.split("\n").filter(Boolean)
   ));
-  if(editImage.files[0]){
-    formData.append("image",editImage.files[0]);
-  }
+  if(editImage.files[0]) fd.append("image",editImage.files[0]);
+
   await fetch(API+"/"+editUserId,{
     method:"PUT",
     headers:{ Authorization:"Bearer "+token },
-    body:formData
+    body:fd
   });
+
   closeModal();
   loadUsers();
 }
@@ -333,15 +315,6 @@ function deleteUser(id){
   }
 }
 
-function deleteAddress(id){
-  if(confirm("Delete address?")){
-    fetch(API+"/address/"+id,{
-      method:"DELETE",
-      headers:{ Authorization:"Bearer "+token }
-    }).then(loadUsers);
-  }
-}
-
 function logout(){
   localStorage.removeItem("adminToken");
   location.replace("admin-login.html");
@@ -349,6 +322,7 @@ function logout(){
 
 loadUsers();
 </script>
+
 
 </body>
 </html>

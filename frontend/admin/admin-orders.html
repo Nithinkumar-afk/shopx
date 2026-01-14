@@ -212,20 +212,27 @@ header button:hover{background:#dc2626}
   <div id="ordersList"></div>
 </div>
 
-<!-- ⚠️ JS COMPLETELY UNTOUCHED -->
 <script>
-const API = "http://localhost:5000/api";
-const token = localStorage.getItem("adminToken");
-if (!token) location.href = "admin-login.html";
+"use strict";
 
+/* ================= CONFIG ================= */
+const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
+const API = BASE_URL + "/api";
+const token = localStorage.getItem("adminToken");
+
+if (!token) {
+  location.href = "admin-login.html";
+}
+
+/* ================= STATE ================= */
 let orders = [];
 let filter = "ALL";
 const ordersList = document.getElementById("ordersList");
 
-const STATUSES = ["placed","shipped","delivered","cancelled"];
+const STATUSES = ["placed", "shipped", "delivered", "cancelled"];
 
-/* NORMALIZE STATUS */
-function normalizeStatus(status="") {
+/* ================= HELPERS ================= */
+function normalizeStatus(status = "") {
   status = status.toLowerCase();
   if (status.includes("place") || status === "pending") return "placed";
   if (status.includes("ship")) return "shipped";
@@ -234,40 +241,52 @@ function normalizeStatus(status="") {
   return status;
 }
 
-/* LOAD ORDERS */
+/* ================= LOAD ORDERS ================= */
 async function loadOrders() {
-  const res = await fetch(API + "/admin/orders", {
-    headers: { Authorization: "Bearer " + token }
-  });
+  try {
+    const res = await fetch(API + "/admin/orders", {
+      headers: {
+        Authorization: "Bearer " + token
+      }
+    });
 
-  const data = await res.json();
-  const rawOrders = Array.isArray(data) ? data : data.orders;
+    if (res.status === 401) return logout();
 
-  orders = rawOrders.map(o => ({
-    ...o,
-    status: normalizeStatus(o.status),
-    items: Array.isArray(o.items) ? o.items : []
-  }));
+    const data = await res.json();
+    const rawOrders = Array.isArray(data) ? data : data.orders || [];
 
-  render();
+    orders = rawOrders.map(o => ({
+      ...o,
+      status: normalizeStatus(o.status),
+      items: Array.isArray(o.items) ? o.items : []
+    }));
+
+    render();
+  } catch (err) {
+    console.error("Load orders error:", err);
+  }
 }
 
-/* FILTER */
-function setFilter(s, btn) {
-  filter = s;
-  document.querySelectorAll(".filters button")
+/* ================= FILTER ================= */
+function setFilter(status, btn) {
+  filter = status;
+
+  document
+    .querySelectorAll(".filters button")
     .forEach(b => b.classList.remove("active"));
+
   btn.classList.add("active");
   render();
 }
 
-/* RENDER */
+/* ================= RENDER ================= */
 function render() {
   ordersList.innerHTML = "";
 
-  const list = filter === "ALL"
-    ? orders
-    : orders.filter(o => o.status === filter);
+  const list =
+    filter === "ALL"
+      ? orders
+      : orders.filter(o => o.status === filter);
 
   if (!list.length) {
     ordersList.innerHTML = "<p>No orders found</p>";
@@ -275,10 +294,9 @@ function render() {
   }
 
   list.forEach(o => {
-
     const options = STATUSES.map(s => `
-      <option value="${s}" ${o.status===s?"selected":""}>
-        ${s.charAt(0).toUpperCase()+s.slice(1)}
+      <option value="${s}" ${o.status === s ? "selected" : ""}>
+        ${s}
       </option>
     `).join("");
 
@@ -291,72 +309,68 @@ function render() {
 
     ordersList.innerHTML += `
       <div class="order-card">
-        <div class="order-header">
-          <div>
-            <b>Order #${o.id}</b>
-            <div style="font-size:13px;color:#cbd5e1">
-              ${new Date(o.created_at).toLocaleString()}
-            </div>
-          </div>
+        <b>Order #${o.id}</b>
 
-          <div class="order-actions">
-            <select class="status-select"
-              onchange="updateStatus(${o.id},this.value)">
-              ${options}
-            </select>
-            <button class="delete-btn"
-              onclick="deleteOrder(${o.id})">Delete</button>
-          </div>
+        <select onchange="updateStatus(${o.id}, this.value)">
+          ${options}
+        </select>
+
+        <div class="items">${itemsHTML}</div>
+
+        <div class="total">
+          <strong>Total:</strong> ₹${o.total_amount}
         </div>
 
-        <div class="toggle" onclick="toggleItems(this)">View Items ⬇</div>
-        <div class="items">${itemsHTML}</div>
-        <div class="total">Total: ₹${o.total_amount}</div>
+        <button class="delete-btn" onclick="deleteOrder(${o.id})">
+          Delete
+        </button>
       </div>
     `;
   });
 }
 
-/* TOGGLE ITEMS */
-function toggleItems(el) {
-  const box = el.nextElementSibling;
-  box.style.display = box.style.display === "block" ? "none" : "block";
-  el.textContent = box.style.display === "block"
-    ? "Hide Items ⬆" : "View Items ⬇";
-}
-
-/* UPDATE STATUS */
+/* ================= UPDATE STATUS ================= */
 async function updateStatus(id, status) {
-  await fetch(`${API}/admin/orders/${id}/status`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token
-    },
-    body: JSON.stringify({ status })
-  });
-  loadOrders();
+  try {
+    await fetch(`${API}/admin/orders/${id}/status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ status })
+    });
+
+    loadOrders();
+  } catch (err) {
+    console.error("Update status error:", err);
+  }
 }
 
-/* DELETE ORDER */
+/* ================= DELETE ORDER ================= */
 async function deleteOrder(id) {
   if (!confirm("Delete this order?")) return;
-  await fetch(`${API}/admin/orders/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: "Bearer " + token }
-  });
-  orders = orders.filter(o => o.id !== id);
-  render();
+
+  try {
+    await fetch(`${API}/admin/orders/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: "Bearer " + token
+      }
+    });
+
+    loadOrders();
+  } catch (err) {
+    console.error("Delete order error:", err);
+  }
 }
 
-/* LOGOUT */
+/* ================= LOGOUT ================= */
 function logout() {
   localStorage.removeItem("adminToken");
-  location.href = "admin-login.html";
+  location.replace("admin-login.html");
 }
 
+/* ================= INIT ================= */
 loadOrders();
 </script>
-
-</body>
-</html>

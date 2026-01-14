@@ -183,8 +183,9 @@ button:hover{
 <!-- 🔒 JS LOGIC — COMPLETELY UNTOUCHED -->
 <script>
 /* CONFIG */
-const API = "http://localhost:5000/api/products";
-const IMAGE_BASE = "http://localhost:5000/";
+const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
+const API = BASE_URL + "/api/products";
+const IMAGE_BASE = BASE_URL + "/";
 const FALLBACK = "https://via.placeholder.com/300x200?text=No+Image";
 
 /* AUTH */
@@ -218,8 +219,10 @@ function showToast(msg){
 }
 
 /* FETCH PRODUCT */
-fetch(API,{ headers:{ Authorization:"Bearer "+token }})
-.then(r=>r.ok?r.json():[])
+fetch(API,{
+  headers:{ Authorization:"Bearer "+token }
+})
+.then(r=>r.json())
 .then(products=>{
   currentProduct = products.find(p=>Number(p.id)===productId);
   if(!currentProduct) return showToast("Product not found");
@@ -287,6 +290,7 @@ wishBtn.onclick = ()=>{
   localStorage.setItem("wishlist", JSON.stringify(wishlist));
 };
 </script>
+
 
 </body>
 </html>

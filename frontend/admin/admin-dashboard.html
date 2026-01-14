@@ -117,27 +117,40 @@ header button:hover{background:#dc2626}
   </div>
 
 </div>
-
 <script>
 "use strict";
 
 /* ======================
    CONFIG
 ====================== */
-const API = "http://localhost:5000";
+const API_BASE = "https://shopx-production-b1ad.up.railway.app";
+
+/* ======================
+   DOM ELEMENTS (FIX)
+====================== */
+const totalProducts = document.getElementById("totalProducts");
+const totalOrders   = document.getElementById("totalOrders");
+const totalUsers    = document.getElementById("totalUsers");
+const totalRevenue  = document.getElementById("totalRevenue");
+const recentOrders  = document.getElementById("recentOrders");
 
 /* ======================
    AUTH GUARD
 ====================== */
 const token = localStorage.getItem("adminToken");
-if (!token) location.replace("admin-login.html");
+if (!token) {
+  location.replace("/admin/admin-login.html");
+}
 
 /* ======================
    AUTH FETCH
 ====================== */
-async function authFetch(url) {
-  const res = await fetch(url, {
-    headers: { Authorization: "Bearer " + token }
+async function authFetch(endpoint) {
+  const res = await fetch(API_BASE + endpoint, {
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json"
+    }
   });
 
   if (res.status === 401 || res.status === 403) {
@@ -167,18 +180,18 @@ function timeAgo(dateString) {
 /* ======================
    LOAD DASHBOARD
 ====================== */
-(async () => {
+(async function loadDashboard() {
   try {
-    /* DASHBOARD STATS */
-    const stats = await authFetch(`${API}/api/admin/stats`);
-    totalProducts.innerText = stats.products;
-    totalOrders.innerText = stats.orders;
-    totalUsers.innerText = stats.users;
-    totalRevenue.innerText = "₹" + stats.revenue;
+    /* ---- STATS ---- */
+    const stats = await authFetch("/api/admin/stats");
 
-    /* ✅ RECENT ORDERS (REQUEST YOU ASKED TO ADD) */
-    const orders = await authFetch("http://localhost:5000/api/admin/recent-orders");
-    const recentOrders = document.getElementById("recentOrders");
+    totalProducts.textContent = stats.products;
+    totalOrders.textContent   = stats.orders;
+    totalUsers.textContent    = stats.users;
+    totalRevenue.textContent  = "₹" + stats.revenue;
+
+    /* ---- RECENT ORDERS ---- */
+    const orders = await authFetch("/api/admin/recent-orders");
 
     if (!orders || orders.length === 0) {
       recentOrders.innerHTML = "<p>No recent orders</p>";
@@ -187,20 +200,16 @@ function timeAgo(dateString) {
 
     recentOrders.innerHTML = orders.map(o => `
       <div class="order">
-        <strong>${o.name ?? "Guest"}</strong> (${o.phone ?? "—"})
+        <strong>${o.name || "Guest"}</strong>
         <small>
-          ₹${o.total} • ${timeAgo(o.created_at)} • 
-          ${new Date(o.created_at).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit"
-          })}
+          ₹${o.total} • ${timeAgo(o.created_at)}
         </small>
       </div>
     `).join("");
 
   } catch (err) {
     console.error(err);
-    document.getElementById("recentOrders").innerHTML =
+    recentOrders.innerHTML =
       "<p style='color:#f87171'>Failed to load orders</p>";
   }
 })();
@@ -211,9 +220,10 @@ function timeAgo(dateString) {
 function logout() {
   forceLogout();
 }
+
 function forceLogout() {
   localStorage.removeItem("adminToken");
-  location.replace("admin-login.html");
+  location.replace("/admin/admin-login.html");
 }
 </script>
 

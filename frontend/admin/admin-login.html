@@ -78,17 +78,24 @@ button:disabled{opacity:.7}
 <script>
 "use strict";
 
-const API_URL = "http://localhost:5000/api/admin/login";
+/* ================= CONFIG ================= */
+const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
+const API_BASE = BASE_URL + "/api";
+const LOGIN_API = API_BASE + "/admin/login";
+
+/* ================= ELEMENTS ================= */
 const errorBox = document.getElementById("error");
 const loginBtn = document.getElementById("loginBtn");
 
-/* AUTO REDIRECT IF LOGGED IN */
+/* ================= AUTO REDIRECT ================= */
 if (localStorage.getItem("adminToken")) {
   location.replace("admin-dashboard.html");
 }
 
+/* ================= EVENTS ================= */
 loginBtn.addEventListener("click", login);
 
+/* ================= LOGIN ================= */
 async function login() {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
@@ -103,40 +110,54 @@ async function login() {
   loginBtn.textContent = "Logging in...";
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch(LOGIN_API, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
       body: JSON.stringify({ username, password })
     });
 
-    const data = await res.json();
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {}
 
     if (!res.ok) {
-      throw new Error(data.message || "Login failed");
+      throw new Error(data.message || "Invalid admin credentials");
     }
 
     if (!data.token) {
-      throw new Error("Invalid server response");
+      throw new Error("Login failed: token missing");
     }
 
     localStorage.setItem("adminToken", data.token);
+
+    /* HARD REDIRECT (prevents back button issues) */
     location.replace("admin-dashboard.html");
 
   } catch (err) {
-    showError(err.message);
+    showError(
+      err.message.includes("fetch")
+        ? "Server not reachable. Try again."
+        : err.message
+    );
   } finally {
     loginBtn.disabled = false;
     loginBtn.textContent = "Login";
   }
 }
 
-function showError(msg){
+/* ================= UI ================= */
+function showError(msg) {
   errorBox.textContent = msg;
   errorBox.style.display = "block";
 }
-function hideError(){
+function hideError() {
   errorBox.style.display = "none";
 }
 </script>
+
 </body>
 </html>

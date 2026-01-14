@@ -158,13 +158,16 @@ header button{
 <div id="orders"></div>
 
 <script>
-const API = "http://localhost:5000/api";
+/* ================= CONFIG ================= */
+const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
+const API = BASE_URL + "/api";
 const token = localStorage.getItem("token");
 
 if (!token) {
   location.href = "login.html";
 }
 
+/* ================= ELEMENTS ================= */
 const ordersDiv = document.getElementById("orders");
 const money = n => "₹" + Number(n || 0).toLocaleString("en-IN");
 

@@ -98,31 +98,35 @@ textarea{grid-column:1/-1}
 
 <header>
   <h2>JD Product Management</h2>
-  <button onclick="goBack()">Dashboard</button>
+  <button onclick="location.href='admin-dashboard.html'">Dashboard</button>
 </header>
 
 <div class="form">
   <input id="name" placeholder="Product name">
   <input id="price" type="number" placeholder="Price">
   <input id="category" placeholder="Category">
-  <input id="img1" placeholder="Image URL 1">
-  <input id="img2" placeholder="Image URL 2">
-  <input id="img3" placeholder="Image URL 3">
-  <textarea id="desc" rows="3" placeholder="Description"></textarea>
+  <input id="img1" placeholder="Image URL 1 (optional)">
+  <input id="img2" placeholder="Image URL 2 (optional)">
+  <input id="img3" placeholder="Image URL 3 (optional)">
+  <textarea id="desc" rows="3" placeholder="Description (optional)"></textarea>
   <button id="addBtn">Add Product</button>
 </div>
 
 <div class="products" id="list"></div>
 
 <script>
-/* ================= CONFIG ================= */
-const API_BASE = "http://localhost:5000/api";
-const PRODUCTS_API = API_BASE + "/products";
-const token = localStorage.getItem("adminToken");
+const API_BASE = "https://shopx-production-b1ad.up.railway.app/api";
 
+const PUBLIC_PRODUCTS_API = API_BASE + "/products";
+const ADMIN_PRODUCTS_API = API_BASE + "/admin/products";
+
+const token = localStorage.getItem("adminToken");
 if (!token) location.href = "admin-login.html";
 
-/* ================= ELEMENTS ================= */
+const FALLBACK_IMAGE =
+  "https://via.placeholder.com/600x400?text=No+Image";
+
+/* ELEMENTS */
 const list = document.getElementById("list");
 const addBtn = document.getElementById("addBtn");
 
@@ -134,18 +138,20 @@ const img2Input = document.getElementById("img2");
 const img3Input = document.getElementById("img3");
 const descInput = document.getElementById("desc");
 
-/* ================= LOAD PRODUCTS ================= */
+/* LOAD PRODUCTS (PUBLIC) */
 async function loadProducts() {
-  const res = await fetch(PRODUCTS_API);
+  const res = await fetch(PUBLIC_PRODUCTS_API);
   const products = await res.json();
 
   list.innerHTML = "";
-
   products.forEach(p => {
-    const imgs = Array.isArray(p.images) ? p.images : [];
+    const imgs = Array.isArray(p.images) && p.images.length
+      ? p.images
+      : [FALLBACK_IMAGE];
+
     list.innerHTML += `
       <div class="card">
-        <img src="${imgs[0] || ''}">
+        <img src="${imgs[0]}" onerror="this.src='${FALLBACK_IMAGE}'">
         <h4>${p.name}</h4>
         <p>₹${p.price}</p>
         <small>${p.category}</small>
@@ -155,7 +161,7 @@ async function loadProducts() {
   });
 }
 
-/* ================= ADD PRODUCT ================= */
+/* ADD PRODUCT (ADMIN) */
 addBtn.onclick = async () => {
   const payload = {
     name: nameInput.value.trim(),
@@ -165,14 +171,12 @@ addBtn.onclick = async () => {
     images: [img1Input.value, img2Input.value, img3Input.value].filter(Boolean)
   };
 
-  if (!payload.name || !payload.price || !payload.category || !payload.images.length) {
-    alert("Fill all required fields");
+  if (!payload.name || !payload.price || !payload.category) {
+    alert("Name, price and category are required");
     return;
   }
 
-  console.log("➡️ ADD PRODUCT:", payload);
-
-  const res = await fetch(PRODUCTS_API, {
+  const res = await fetch(ADMIN_PRODUCTS_API, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -182,43 +186,36 @@ addBtn.onclick = async () => {
   });
 
   const data = await res.json();
-  console.log("⬅️ RESPONSE:", res.status, data);
-
-  if (!res.ok) {
-    alert(data.message || "Add failed");
-    return;
-  }
+  if (!res.ok) return alert(data.message || "Add failed");
 
   alert("✅ Product added");
   clearForm();
   loadProducts();
 };
 
-/* ================= DELETE ================= */
+/* DELETE PRODUCT (ADMIN) */
 async function deleteProduct(id) {
   if (!confirm("Delete product?")) return;
 
-  const res = await fetch(`${PRODUCTS_API}/${id}`, {
+  await fetch(`${ADMIN_PRODUCTS_API}/${id}`, {
     method: "DELETE",
-    headers: { Authorization: "Bearer " + token }
+    headers: {
+      Authorization: "Bearer " + token
+    }
   });
 
-  if (res.ok) loadProducts();
+  loadProducts();
 }
 
-/* ================= HELPERS ================= */
+/* HELPERS */
 function clearForm() {
   [nameInput, priceInput, categoryInput, img1Input, img2Input, img3Input, descInput]
     .forEach(i => i.value = "");
 }
 
-function goBack() {
-  location.href = "admin-dashboard.html";
-}
-
-/* ================= INIT ================= */
 loadProducts();
 </script>
+
 
 </body>
 </html>
