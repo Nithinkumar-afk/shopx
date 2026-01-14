@@ -4,7 +4,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 exports.sendOTP = async (to, otp, name = "User") => {
   try {
-    const { error } = await resend.emails.send({
+    const result = await resend.emails.send({
       from: "JD Infotech <noreply@resend.dev>",
       to,
       subject: "Your Login OTP",
@@ -18,14 +18,16 @@ exports.sendOTP = async (to, otp, name = "User") => {
       `,
     });
 
-    if (error) {
-      console.error("Resend error:", error);
+    if (result.error) {
+      console.error("❌ Resend error:", result.error);
       return false;
     }
 
+    console.log("✅ OTP email sent to", to);
     return true;
+
   } catch (err) {
-    console.error("Mailer crash:", err);
+    console.error("❌ OTP mail failed:", err.message);
     return false;
   }
 };
