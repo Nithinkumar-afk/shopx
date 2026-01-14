@@ -10,7 +10,7 @@ const controller = require("../controllers/admin.users.controller");
 /* ================= MULTER CONFIG ================= */
 
 // Ensure upload directory exists
-const uploadDir = path.join(__dirname, "..", "uploads", "users");
+const uploadDir = path.join(process.cwd(), "uploads", "users");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -22,24 +22,44 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `user_${Date.now()}${ext}`);
+    const uniqueName =
+      "user_" +
+      Date.now() +
+      "_" +
+      Math.round(Math.random() * 1e9) +
+      ext;
+
+    cb(null, uniqueName);
   }
 });
 
 // File filter
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {
-    return cb(new Error("Only image files allowed"), false);
+    return cb(new Error("Only image files are allowed"));
   }
   cb(null, true);
 };
 
-// Upload middleware
+// Multer instance
 const upload = multer({
   storage,
   fileFilter,
   limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
+
+/* ================= SAFE MULTER WRAPPER ================= */
+const uploadImage = (req, res, next) => {
+  upload.single("image")(req, res, err => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ message: err.message });
+    }
+    if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+    next();
+  });
+};
 
 /*
   ADMIN USER ROUTES
@@ -60,7 +80,7 @@ router.delete("/address/:id", auth, controller.deleteAddress);
 router.put(
   "/:id",
   auth,
-  upload.single("image"),
+  uploadImage,
   controller.updateUser
 );
 
