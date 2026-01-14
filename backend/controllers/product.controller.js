@@ -4,9 +4,10 @@ const db = require("../config/db");
    DB SAFETY HANDLER
 ===================================================== */
 const dbDown = (res) =>
-  res.status(503).json({
-    message: "Database unavailable",
-  });
+  res.status(503).json({ message: "Database unavailable" });
+
+const DEFAULT_IMAGE =
+  "https://via.placeholder.com/600x400?text=No+Image";
 
 /* =====================================================
    GET ALL PRODUCTS (PUBLIC)
@@ -16,20 +17,14 @@ exports.getProducts = async (req, res) => {
 
   try {
     const [products] = await db.query(`
-      SELECT 
-        id,
-        name,
-        price,
-        category,
-        description,
-        images,
-        IFNULL(is_active, 1) AS is_active
+      SELECT id, name, price, category, description, images,
+      IFNULL(is_active,1) AS is_active
       FROM products
       WHERE is_active = 1
       ORDER BY id DESC
     `);
 
-    const formattedProducts = products.map((p) => ({
+    const formatted = products.map((p) => ({
       id: p.id,
       name: p.name,
       price: Number(p.price),
@@ -39,40 +34,10 @@ exports.getProducts = async (req, res) => {
       is_active: Boolean(p.is_active),
     }));
 
-    return res.status(200).json(formattedProducts);
+    res.json(formatted);
   } catch (err) {
-    console.error("❌ GET PRODUCTS ERROR:", err.message);
-    return res.status(500).json({ message: "Failed to fetch products" });
-  }
-};
-
-/* =====================================================
-   GET PRODUCT BY ID (PUBLIC)
-===================================================== */
-exports.getProductById = async (req, res) => {
-  if (!db) return dbDown(res);
-
-  const productId = Number(req.params.id);
-  if (!productId) {
-    return res.status(400).json({ message: "Invalid product ID" });
-  }
-
-  try {
-    const [rows] = await db.query(
-      "SELECT * FROM products WHERE id = ? AND is_active = 1",
-      [productId]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    return res.status(200).json(rows[0]);
-  } catch (err) {
-    console.error("❌ DB ERROR (getProductById):", err.message);
-    return res.status(500).json({
-      message: "Database error while fetching product",
-    });
+    console.error("❌ GET PRODUCTS:", err.message);
+    res.status(500).json({ message: "Failed to fetch products" });
   }
 };
 
@@ -82,22 +47,26 @@ exports.getProductById = async (req, res) => {
 exports.addProduct = async (req, res) => {
   if (!db) return dbDown(res);
 
-  const { name, price, category, description, images } = req.body;
+  let { name, price, category, description, images } = req.body;
 
-  if (
-    !name ||
-    typeof price !== "number" ||
-    !category ||
-    !Array.isArray(images) ||
-    images.length === 0
-  ) {
-    return res.status(400).json({ message: "Invalid or missing fields" });
+  // BASIC REQUIRED FIELDS
+  if (!name || typeof price !== "number" || !category) {
+    return res.status(400).json({
+      message: "Name, price and category are required",
+    });
+  }
+
+  // IMAGES OPTIONAL
+  if (!Array.isArray(images)) images = [];
+
+  if (images.length === 0) {
+    images = [DEFAULT_IMAGE];
   }
 
   try {
     await db.query(
       `
-      INSERT INTO products 
+      INSERT INTO products
       (name, price, category, description, images, is_active)
       VALUES (?, ?, ?, ?, ?, 1)
       `,
@@ -110,38 +79,36 @@ exports.addProduct = async (req, res) => {
       ]
     );
 
-    return res.status(201).json({ message: "Product added successfully" });
+    res.status(201).json({ message: "Product added successfully" });
   } catch (err) {
-    console.error("❌ ADD PRODUCT ERROR:", err.message);
-    return res.status(500).json({ message: "Failed to add product" });
+    console.error("❌ ADD PRODUCT:", err.message);
+    res.status(500).json({ message: "Failed to add product" });
   }
 };
 
 /* =====================================================
-   DELETE PRODUCT (ADMIN) — SOFT DELETE
+   DELETE PRODUCT (ADMIN)
 ===================================================== */
 exports.deleteProduct = async (req, res) => {
   if (!db) return dbDown(res);
 
-  const productId = Number(req.params.id);
-  if (!productId) {
-    return res.status(400).json({ message: "Invalid product ID" });
-  }
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ message: "Invalid ID" });
 
   try {
-    const [result] = await db.query(
+    const [r] = await db.query(
       "UPDATE products SET is_active = 0 WHERE id = ?",
-      [productId]
+      [id]
     );
 
-    if (result.affectedRows === 0) {
+    if (!r.affectedRows) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    return res.status(200).json({ message: "Product deleted successfully" });
+    res.json({ message: "Product deleted successfully" });
   } catch (err) {
-    console.error("❌ DELETE PRODUCT ERROR:", err.message);
-    return res.status(500).json({ message: "Failed to delete product" });
+    console.error("❌ DELETE PRODUCT:", err.message);
+    res.status(500).json({ message: "Failed to delete product" });
   }
 };
 
@@ -150,8 +117,9 @@ exports.deleteProduct = async (req, res) => {
 ===================================================== */
 function safeParseImages(images) {
   try {
-    return images ? JSON.parse(images) : [];
+    const arr = images ? JSON.parse(images) : [];
+    return Array.isArray(arr) && arr.length ? arr : [DEFAULT_IMAGE];
   } catch {
-    return [];
+    return [DEFAULT_IMAGE];
   }
 }
