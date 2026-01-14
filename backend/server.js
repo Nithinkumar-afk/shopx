@@ -36,7 +36,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * 🔥 FORCE MAILER INIT
+ * MAILER INIT
  *************************************************/
 try {
   require("./utils/mailer");
@@ -75,21 +75,18 @@ const safeRoute = (routePath, routeFile) => {
 /* AUTH */
 safeRoute("/api/auth", "./routes/auth.routes");
 
-/* PROFILE */
-safeRoute("/api/profile", "./routes/profile.routes");
-
-/* PUBLIC PRODUCTS */
+/* ✅ PUBLIC PRODUCTS */
 safeRoute("/api/products", "./routes/product.routes");
+
+/* USER */
+safeRoute("/api/cart", "./routes/cart.routes");
+safeRoute("/api/orders", "./routes/orders.routes");
 
 /* ADMIN */
 safeRoute("/api/admin", "./routes/admin.routes");
 safeRoute("/api/admin/users", "./routes/admin.users.routes");
 safeRoute("/api/admin/products", "./routes/admin.products.routes");
 safeRoute("/api/admin/orders", "./routes/admin.orders.routes");
-
-/* USER */
-safeRoute("/api/cart", "./routes/cart.routes");
-safeRoute("/api/orders", "./routes/orders.routes");
 
 /*************************************************
  * HEALTH CHECK
