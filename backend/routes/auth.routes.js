@@ -9,30 +9,12 @@ const userAuth = require("../middleware/auth.middleware");
 ================================ */
 
 // Send OTP to email
-router.post("/send-otp", async (req, res, next) => {
-  try {
-    await auth.sendOtp(req, res);
-  } catch (err) {
-    next(err);
-  }
-});
+router.post("/send-otp", auth.sendOtp);
 
 // Verify OTP & login
-router.post("/verify-otp", async (req, res, next) => {
-  try {
-    await auth.verifyOtp(req, res);
-  } catch (err) {
-    next(err);
-  }
-});
+router.post("/verify-otp", auth.verifyOtp);
 
 // Get logged-in user profile
-router.get("/me", userAuth, async (req, res, next) => {
-  try {
-    await auth.getMe(req, res);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get("/me", userAuth, auth.getMe);
 
 module.exports = router;
