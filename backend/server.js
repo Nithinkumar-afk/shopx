@@ -4,14 +4,32 @@
 require("dotenv").config();
 
 /*************************************************
- * DEBUG: CONFIRM ENV IS LOADED (RAILWAY FORMAT)
+ * NORMALIZE MYSQL ENV (RAILWAY + STANDARD)
+ *************************************************/
+process.env.MYSQL_HOST =
+  process.env.MYSQL_HOST || process.env.MYSQLHOST;
+
+process.env.MYSQL_USER =
+  process.env.MYSQL_USER || process.env.MYSQLUSER;
+
+process.env.MYSQL_PASSWORD =
+  process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD;
+
+process.env.MYSQL_DATABASE =
+  process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE;
+
+process.env.MYSQL_PORT =
+  process.env.MYSQL_PORT || process.env.MYSQLPORT || "3306";
+
+/*************************************************
+ * DEBUG: CONFIRM ENV IS LOADED
  *************************************************/
 console.log("🔎 ENV CHECK:", {
   PORT: process.env.PORT,
-  MYSQLHOST: process.env.MYSQLHOST,
-  MYSQLUSER: process.env.MYSQLUSER,
-  MYSQLDATABASE: process.env.MYSQLDATABASE,
-  MYSQLPORT: process.env.MYSQLPORT,
+  MYSQL_HOST: process.env.MYSQL_HOST,
+  MYSQL_USER: process.env.MYSQL_USER,
+  MYSQL_DATABASE: process.env.MYSQL_DATABASE,
+  MYSQL_PORT: process.env.MYSQL_PORT,
 });
 
 /*************************************************
@@ -49,14 +67,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (RAILWAY CORRECT VARS)
+ * DATABASE INIT (STRICT & CORRECT)
  *************************************************/
 if (
-  !process.env.MYSQLHOST ||
-  !process.env.MYSQLUSER ||
-  !process.env.MYSQLDATABASE
+  !process.env.MYSQL_HOST ||
+  !process.env.MYSQL_USER ||
+  !process.env.MYSQL_DATABASE
 ) {
-  console.warn("⚠️ MySQL env vars missing. App running without DB.");
+  console.error("❌ MySQL env vars missing. DB will NOT be used.");
 } else {
   require("./config/db");
 }
@@ -97,7 +115,7 @@ app.get("/", (req, res) => {
     status: "ShopX backend running ✅",
     uptime: process.uptime(),
     env: process.env.NODE_ENV || "development",
-    db: process.env.MYSQLHOST ? "MYSQL CONNECTED" : "NO DB CONFIG",
+    db: process.env.MYSQL_HOST ? "MYSQL CONFIG OK" : "NO DB",
     time: new Date().toISOString(),
   });
 });
