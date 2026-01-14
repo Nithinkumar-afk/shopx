@@ -1,30 +1,15 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-  console.error("❌ MAIL_USER or MAIL_PASS missing in environment variables");
+if (!process.env.RESEND_API_KEY) {
+  console.error("❌ RESEND_API_KEY missing");
 }
 
-const transporter = nodemailer.createTransport({
-  service: "gmail", // ✅ safest for Railway
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS
-  }
-});
-
-// ✅ Verify transporter ONCE at startup
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Mailer verification failed:", error);
-  } else {
-    console.log("✅ Mailer ready to send emails");
-  }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 exports.sendOTP = async (to, otp, name = "User") => {
   try {
-    await transporter.sendMail({
-      from: `"JD Infotech" <${process.env.MAIL_USER}>`,
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL,
       to,
       subject: "Your JD Infotech Login OTP",
       html: `
@@ -38,8 +23,10 @@ exports.sendOTP = async (to, otp, name = "User") => {
             If you didn’t request this, you can safely ignore this email.
           </p>
         </div>
-      `
+      `,
     });
+
+    console.log("✅ OTP email sent to", to);
   } catch (err) {
     console.error("❌ SEND OTP EMAIL ERROR:", err);
     throw new Error("Email delivery failed");
