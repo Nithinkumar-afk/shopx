@@ -36,7 +36,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * 🔥 FORCE MAILER INIT AT STARTUP
+ * 🔥 FORCE MAILER INIT
  *************************************************/
 try {
   require("./utils/mailer");
@@ -49,13 +49,6 @@ try {
  * STATIC FILES
  *************************************************/
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-/*************************************************
- * START SERVER
- *************************************************/
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 ShopX backend running on port ${PORT}`);
-});
 
 /*************************************************
  * INIT DATABASE
@@ -79,14 +72,17 @@ const safeRoute = (routePath, routeFile) => {
  * ROUTES
  *************************************************/
 safeRoute("/api/auth", "./routes/auth.routes");
-safeRoute("/api/profile", "./routes/profile.routes");
 
+/* PROFILE (your product.routes.js is actually profile) */
+safeRoute("/api/profile", "./routes/product.routes");
+
+/* ADMIN */
 safeRoute("/api/admin", "./routes/admin.routes");
 safeRoute("/api/admin/users", "./routes/admin.users.routes");
-safeRoute("/api/admin/products", "./routes/admin.product.routes");
+safeRoute("/api/admin/products", "./routes/admin.products.routes");
 safeRoute("/api/admin/orders", "./routes/admin.orders.routes");
 
-safeRoute("/api/products", "./routes/product.routes");
+/* USER */
 safeRoute("/api/cart", "./routes/cart.routes");
 safeRoute("/api/orders", "./routes/orders.routes");
 
@@ -115,6 +111,13 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error("🔥 GLOBAL ERROR:", err.stack || err.message);
   res.status(500).json({ message: "Internal server error" });
+});
+
+/*************************************************
+ * START SERVER
+ *************************************************/
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 ShopX backend running on port ${PORT}`);
 });
 
 /*************************************************
