@@ -69,24 +69,25 @@ const safeRoute = (routePath, routeFile) => {
 };
 
 /*************************************************
- * ROUTES
+ * ROUTES (FINAL FIX)
  *************************************************/
 
 /* AUTH */
-safeRoute("/api/auth", "./routes/auth.routes");
+app.use("/api/auth", require("./routes/auth.routes"));
 
 /* ✅ PUBLIC PRODUCTS */
-safeRoute("/api/products", "./routes/product.routes");
+app.use("/api/products", require("./routes/product.routes"));
 
 /* USER */
-safeRoute("/api/cart", "./routes/cart.routes");
-safeRoute("/api/orders", "./routes/orders.routes");
+app.use("/api/cart", require("./routes/cart.routes"));
+app.use("/api/orders", require("./routes/orders.routes"));
 
 /* ADMIN */
-safeRoute("/api/admin", "./routes/admin.routes");
-safeRoute("/api/admin/users", "./routes/admin.users.routes");
-safeRoute("/api/admin/products", "./routes/admin.products.routes");
-safeRoute("/api/admin/orders", "./routes/admin.orders.routes");
+app.use("/api/admin", require("./routes/admin.routes"));
+app.use("/api/admin/users", require("./routes/admin.users.routes"));
+app.use("/api/admin/products", require("./routes/admin.products.routes"));
+app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
+
 
 /*************************************************
  * HEALTH CHECK
