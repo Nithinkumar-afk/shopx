@@ -1,5 +1,5 @@
 /*************************************************
- * LOAD ENV FIRST — NOTHING ABOVE THIS
+ * LOAD ENV FIRST
  *************************************************/
 require("dotenv").config();
 
@@ -17,13 +17,16 @@ const app = express();
 const PORT = Number(process.env.PORT) || 8080;
 
 /*************************************************
- * BASIC CONFIG
+ * TRUST RAILWAY PROXY
  *************************************************/
 app.set("trust proxy", 1);
 
+/*************************************************
+ * MIDDLEWARE
+ *************************************************/
 app.use(
   cors({
-    origin: "*", // 🔒 change to frontend URL in production
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -38,8 +41,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (MANDATORY)
- * ❗ DO NOT wrap in if/try/catch
+ * START SERVER FIRST (CRITICAL FOR RAILWAY)
+ *************************************************/
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 ShopX backend running on port ${PORT}`);
+});
+
+/*************************************************
+ * INIT DATABASE AFTER SERVER IS LIVE
  *************************************************/
 require("./config/db");
 
@@ -72,13 +81,13 @@ safeRoute("/api/cart", "./routes/cart.routes");
 safeRoute("/api/orders", "./routes/orders.routes");
 
 /*************************************************
- * RAILWAY HEALTH CHECK (CRITICAL)
+ * HEALTH CHECK (REQUIRED BY RAILWAY)
  *************************************************/
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "ShopX backend running ✅",
     uptime: process.uptime(),
-    env: process.env.NODE_ENV || "development",
+    env: process.env.NODE_ENV || "production",
     time: new Date().toISOString(),
   });
 });
@@ -99,21 +108,12 @@ app.use((err, req, res, next) => {
 });
 
 /*************************************************
- * START SERVER
- *************************************************/
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 ShopX backend running on port ${PORT}`);
-});
-
-/*************************************************
- * GRACEFUL SHUTDOWN (PREVENTS RESTART LOOPS)
+ * GRACEFUL SHUTDOWN (FIXES SIGTERM LOOP)
  *************************************************/
 process.on("SIGTERM", () => {
   console.log("🛑 SIGTERM received. Shutting down gracefully...");
-  server.close(() => process.exit(0));
-});
-
-process.on("SIGINT", () => {
-  console.log("🛑 SIGINT received. Shutting down...");
-  server.close(() => process.exit(0));
+  server.close(() => {
+    console.log("✅ HTTP server closed");
+    process.exit(0);
+  });
 });
