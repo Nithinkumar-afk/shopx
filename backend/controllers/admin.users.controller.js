@@ -30,10 +30,10 @@ exports.getUsers = async (req, res) => {
         }))
     }));
 
-    res.json(result);
+    return res.json(result);
   } catch (err) {
-    console.error("ADMIN GET USERS ERROR:", err.message);
-    res.status(500).json({ message: "Failed to load users" });
+    console.error("ADMIN GET USERS ERROR:", err);
+    return res.status(500).json({ message: "Failed to load users" });
   }
 };
 
@@ -50,13 +50,17 @@ exports.updateUser = async (req, res) => {
     return res.status(400).json({ message: "Name is required" });
   }
 
-  // FormData sends string
+  /* ===== PARSE ADDRESSES SAFELY ===== */
   if (typeof addresses === "string") {
     try {
       addresses = JSON.parse(addresses);
     } catch {
       addresses = [];
     }
+  }
+
+  if (!Array.isArray(addresses)) {
+    addresses = [];
   }
 
   const conn = await db.getConnection();
@@ -81,47 +85,48 @@ exports.updateUser = async (req, res) => {
     if (req.file) {
       imagePath = `/uploads/users/${req.file.filename}`;
 
-      if (
-        existingUser.image &&
-        existingUser.image.startsWith("/uploads/")
-      ) {
-        const oldPath = path.join(__dirname, "..", existingUser.image);
+      // delete old image safely
+      if (existingUser.image && existingUser.image.startsWith("/uploads/")) {
+        const oldImagePath = path.join(
+          process.cwd(),
+          existingUser.image
+        );
+
         try {
-          if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
           }
         } catch (err) {
-          console.warn("IMAGE DELETE FAILED:", err.message);
+          console.warn("OLD IMAGE DELETE FAILED:", err.message);
         }
       }
     }
 
+    /* ===== UPDATE USER ===== */
     await conn.query(
       "UPDATE users SET name=?, image=? WHERE id=?",
       [name.trim(), imagePath, id]
     );
 
-    /* ===== ADDRESSES ===== */
-    if (Array.isArray(addresses)) {
-      await conn.query("DELETE FROM addresses WHERE user_id=?", [id]);
+    /* ===== UPDATE ADDRESSES ===== */
+    await conn.query("DELETE FROM addresses WHERE user_id=?", [id]);
 
-      for (const addr of addresses) {
-        if (typeof addr === "string" && addr.trim()) {
-          await conn.query(
-            "INSERT INTO addresses (user_id, address) VALUES (?,?)",
-            [id, addr.trim()]
-          );
-        }
+    for (const addr of addresses) {
+      if (typeof addr === "string" && addr.trim()) {
+        await conn.query(
+          "INSERT INTO addresses (user_id, address) VALUES (?,?)",
+          [id, addr.trim()]
+        );
       }
     }
 
     await conn.commit();
-    res.json({ message: "User updated successfully" });
+    return res.json({ message: "User updated successfully" });
 
   } catch (err) {
     await conn.rollback();
-    console.error("ADMIN UPDATE USER ERROR:", err.message);
-    res.status(500).json({ message: "Update failed" });
+    console.error("ADMIN UPDATE USER ERROR:", err);
+    return res.status(500).json({ message: "Update failed" });
   } finally {
     conn.release();
   }
@@ -151,7 +156,7 @@ exports.deleteUser = async (req, res) => {
     }
 
     if (user.image && user.image.startsWith("/uploads/")) {
-      const imgPath = path.join(__dirname, "..", user.image);
+      const imgPath = path.join(process.cwd(), user.image);
       try {
         if (fs.existsSync(imgPath)) {
           fs.unlinkSync(imgPath);
@@ -165,12 +170,12 @@ exports.deleteUser = async (req, res) => {
     await conn.query("DELETE FROM users WHERE id=?", [id]);
 
     await conn.commit();
-    res.json({ message: "User deleted successfully" });
+    return res.json({ message: "User deleted successfully" });
 
   } catch (err) {
     await conn.rollback();
-    console.error("ADMIN DELETE USER ERROR:", err.message);
-    res.status(500).json({ message: "Delete failed" });
+    console.error("ADMIN DELETE USER ERROR:", err);
+    return res.status(500).json({ message: "Delete failed" });
   } finally {
     conn.release();
   }
@@ -194,10 +199,10 @@ exports.deleteAddress = async (req, res) => {
       return res.status(404).json({ message: "Address not found" });
     }
 
-    res.json({ message: "Address deleted successfully" });
+    return res.json({ message: "Address deleted successfully" });
 
   } catch (err) {
-    console.error("ADMIN DELETE ADDRESS ERROR:", err.message);
-    res.status(500).json({ message: "Delete failed" });
+    console.error("ADMIN DELETE ADDRESS ERROR:", err);
+    return res.status(500).json({ message: "Delete failed" });
   }
 };
