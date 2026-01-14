@@ -1,96 +1,65 @@
 const db = require("../config/db");
 
-/* =====================================================
-   DB SAFETY HANDLER
-===================================================== */
-const dbDown = (res) =>
-  res.status(503).json({ message: "Database unavailable" });
-
 const DEFAULT_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
 
-/* =====================================================
+const dbDown = (res) =>
+  res.status(503).json({ message: "Database unavailable" });
+
+/* =========================
    GET ALL PRODUCTS (PUBLIC)
-===================================================== */
+========================= */
 exports.getProducts = async (req, res) => {
   if (!db) return dbDown(res);
 
   try {
-    const [products] = await db.query(`
-      SELECT id, name, price, category, description, images,
-      IFNULL(is_active,1) AS is_active
+    const [rows] = await db.query(`
+      SELECT id, name, price, category, description, images
       FROM products
       WHERE is_active = 1
       ORDER BY id DESC
     `);
 
-    const formatted = products.map((p) => ({
+    const products = rows.map((p) => ({
       id: p.id,
       name: p.name,
       price: Number(p.price),
       category: p.category,
       description: p.description,
-      images: safeParseImages(p.images),
-      is_active: Boolean(p.is_active),
+      images: parseImages(p.images),
     }));
 
-    res.json(formatted);
+    res.json(products);
   } catch (err) {
     console.error("❌ GET PRODUCTS:", err.message);
     res.status(500).json({ message: "Failed to fetch products" });
   }
 };
 
-/* =====================================================
-   GET PRODUCT BY ID (PUBLIC) ✅ FIX
-===================================================== */
-exports.getProductById = async (req, res) => {
-  if (!db) return dbDown(res);
-
-  const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ message: "Invalid ID" });
-
-  try {
-    const [[product]] = await db.query(
-      `
-      SELECT id, name, price, category, description, images,
-      IFNULL(is_active,1) AS is_active
-      FROM products
-      WHERE id = ? AND is_active = 1
-      `,
-      [id]
-    );
-
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
-
-    product.images = safeParseImages(product.images);
-    product.price = Number(product.price);
-    product.is_active = Boolean(product.is_active);
-
-    res.json(product);
-  } catch (err) {
-    console.error("❌ GET PRODUCT BY ID:", err.message);
-    res.status(500).json({ message: "Failed to fetch product" });
-  }
-};
-
-/* =====================================================
+/* =========================
    ADD PRODUCT (ADMIN)
-===================================================== */
+========================= */
 exports.addProduct = async (req, res) => {
   if (!db) return dbDown(res);
 
-  let { name, price, category, description, images } = req.body;
+  const {
+    name,
+    price,
+    category,
+    description,
+    image1,
+    image2,
+    image3,
+  } = req.body;
 
-  if (!name || typeof price !== "number" || !category) {
-    return res.status(400).json({
-      message: "Name, price and category are required",
-    });
+  if (!name || price === undefined || !category) {
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
-  if (!Array.isArray(images)) images = [];
+  // ✅ Build image array safely
+  let images = [image1, image2, image3]
+    .filter((img) => typeof img === "string" && img.trim() !== "");
+
   if (images.length === 0) images = [DEFAULT_IMAGE];
 
   try {
@@ -102,9 +71,9 @@ exports.addProduct = async (req, res) => {
       `,
       [
         name.trim(),
-        price,
+        Number(price),
         category.trim(),
-        description ? description.trim() : "",
+        description?.trim() || "",
         JSON.stringify(images),
       ]
     );
@@ -116,9 +85,9 @@ exports.addProduct = async (req, res) => {
   }
 };
 
-/* =====================================================
-   DELETE PRODUCT (ADMIN)
-===================================================== */
+/* =========================
+   DELETE PRODUCT
+========================= */
 exports.deleteProduct = async (req, res) => {
   if (!db) return dbDown(res);
 
@@ -142,12 +111,12 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-/* =====================================================
+/* =========================
    HELPER
-===================================================== */
-function safeParseImages(images) {
+========================= */
+function parseImages(images) {
   try {
-    const arr = images ? JSON.parse(images) : [];
+    const arr = JSON.parse(images);
     return Array.isArray(arr) && arr.length ? arr : [DEFAULT_IMAGE];
   } catch {
     return [DEFAULT_IMAGE];
