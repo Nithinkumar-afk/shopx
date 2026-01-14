@@ -1,46 +1,59 @@
 const jwt = require("jsonwebtoken");
 
 /**
- * ADMIN AUTH MIDDLEWARE (PRODUCTION SAFE)
+ * ADMIN AUTH MIDDLEWARE (FIXED & PRODUCTION SAFE)
  */
 module.exports = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  // ❌ No Authorization header
-  if (!authHeader) {
-    return res.status(401).json({ message: "No authorization header" });
-  }
-
-  // ❌ Invalid format
-  if (!authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Invalid auth format" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  // ❌ Missing JWT secret (Railway misconfig)
-  if (!process.env.JWT_SECRET) {
-    console.error("❌ JWT_SECRET not set in Railway");
-    return res.status(500).json({ message: "Server configuration error" });
-  }
-
   try {
+    const authHeader = req.headers.authorization;
+
+    // ❌ No header
+    if (!authHeader) {
+      return res.status(401).json({ message: "No authorization header" });
+    }
+
+    // ❌ Wrong format
+    if (!authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Invalid auth format" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // ❌ Missing secret
+    if (!process.env.JWT_SECRET) {
+      console.error("❌ JWT_SECRET missing");
+      return res.status(500).json({ message: "Server misconfiguration" });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ❌ Not admin
-    if (decoded.role !== "admin") {
+    /**
+     * ✅ ADMIN CHECK (ROBUST)
+     * Supports:
+     * - role === "admin"
+     * - isAdmin === true
+     * - email match (fallback)
+     */
+    const isAdmin =
+      decoded.role === "admin" ||
+      decoded.isAdmin === true ||
+      decoded.email === process.env.ADMIN_EMAIL;
+
+    if (!isAdmin) {
       return res.status(403).json({ message: "Admins only" });
     }
 
-    // ✅ Attach admin to request
+    // ✅ Attach admin
     req.admin = {
-      id: decoded.id,
-      role: decoded.role
+      id: decoded.id || null,
+      email: decoded.email || null,
+      role: "admin"
     };
 
-    return next();
+    next();
+
   } catch (err) {
-    console.error("❌ Admin token error:", err.message);
-    return res.status(401).json({ message: "Token expired or invalid" });
+    console.error("❌ Admin auth error:", err.message);
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
