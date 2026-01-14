@@ -1,27 +1,19 @@
 const db = require("../config/db");
 
-/**
- * HARD SAFETY CHECK
- * If DB is not initialized, never crash routes
- */
-if (!db) {
-  console.error("❌ Database not initialized in product.controller");
-
-  const dbDown = (res) =>
-    res.status(503).json({
-      message: "Database unavailable",
-    });
-
-  exports.getProducts = async (req, res) => dbDown(res);
-  exports.addProduct = async (req, res) => dbDown(res);
-  exports.deleteProduct = async (req, res) => dbDown(res);
-  return;
-}
+/* =====================================================
+   DB SAFETY HANDLER
+===================================================== */
+const dbDown = (res) =>
+  res.status(503).json({
+    message: "Database unavailable",
+  });
 
 /* =====================================================
    GET ALL PRODUCTS (PUBLIC)
 ===================================================== */
 exports.getProducts = async (req, res) => {
+  if (!db) return dbDown(res);
+
   try {
     const [products] = await db.query(`
       SELECT 
@@ -49,7 +41,7 @@ exports.getProducts = async (req, res) => {
 
     return res.status(200).json(formattedProducts);
   } catch (err) {
-    console.error("❌ GET PRODUCTS ERROR:", err.message);
+    console.error("❌ GET PRODUCTS ERROR:", err);
     return res.status(500).json({ message: "Failed to fetch products" });
   }
 };
@@ -58,6 +50,8 @@ exports.getProducts = async (req, res) => {
    ADD PRODUCT (ADMIN)
 ===================================================== */
 exports.addProduct = async (req, res) => {
+  if (!db) return dbDown(res);
+
   const { name, price, category, description, images } = req.body;
 
   if (
@@ -81,14 +75,14 @@ exports.addProduct = async (req, res) => {
         name.trim(),
         price,
         category.trim(),
-        description?.trim() || "",
+        description ? description.trim() : "",
         JSON.stringify(images),
       ]
     );
 
     return res.status(201).json({ message: "Product added successfully" });
   } catch (err) {
-    console.error("❌ ADD PRODUCT ERROR:", err.message);
+    console.error("❌ ADD PRODUCT ERROR:", err);
     return res.status(500).json({ message: "Failed to add product" });
   }
 };
@@ -97,6 +91,8 @@ exports.addProduct = async (req, res) => {
    DELETE PRODUCT (ADMIN) — SOFT DELETE
 ===================================================== */
 exports.deleteProduct = async (req, res) => {
+  if (!db) return dbDown(res);
+
   const productId = Number(req.params.id);
 
   if (!productId) {
@@ -115,7 +111,7 @@ exports.deleteProduct = async (req, res) => {
 
     return res.status(200).json({ message: "Product deleted successfully" });
   } catch (err) {
-    console.error("❌ DELETE PRODUCT ERROR:", err.message);
+    console.error("❌ DELETE PRODUCT ERROR:", err);
     return res.status(500).json({ message: "Failed to delete product" });
   }
 };
@@ -125,7 +121,7 @@ exports.deleteProduct = async (req, res) => {
 ===================================================== */
 function safeParseImages(images) {
   try {
-    return JSON.parse(images || "[]");
+    return images ? JSON.parse(images) : [];
   } catch {
     return [];
   }
