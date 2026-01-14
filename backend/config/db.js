@@ -22,11 +22,11 @@ console.log("🔎 DB ENV CHECK:", {
 });
 
 /*************************************************
- * HARD FAIL IF ENV VARS MISSING (CORRECT)
+ * HARD FAIL IF ENV VARS MISSING
  *************************************************/
 if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) {
   console.error("❌ FATAL: MySQL env vars missing. App cannot start.");
-  process.exit(1); // ✅ Correct for Railway
+  process.exit(1);
 }
 
 /*************************************************
@@ -44,7 +44,7 @@ const pool = mysql.createPool({
 });
 
 /*************************************************
- * VERIFY DB CONNECTION (NON-FATAL)
+ * VERIFY DB CONNECTION (FAIL FAST)
  *************************************************/
 (async () => {
   try {
@@ -53,7 +53,7 @@ const pool = mysql.createPool({
     conn.release();
   } catch (err) {
     console.error("❌ MySQL connection error:", err.message);
-    // ❗ Do NOT exit here — prevents Railway restart loop
+    process.exit(1); // 🔥 REQUIRED FOR STABILITY
   }
 })();
 
