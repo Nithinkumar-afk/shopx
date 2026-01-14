@@ -4,7 +4,7 @@ const router = express.Router();
 const {
   addProduct,
   deleteProduct,
-} = require("../controllers/products.controller");
+} = require("../controllers/products.controller"); // ✅ MUST MATCH FILE NAME
 
 const adminAuth = require("../middleware/auth.middleware");
 

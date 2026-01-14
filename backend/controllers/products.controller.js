@@ -42,6 +42,41 @@ exports.getProducts = async (req, res) => {
 };
 
 /* =====================================================
+   GET PRODUCT BY ID (PUBLIC) ✅ FIX
+===================================================== */
+exports.getProductById = async (req, res) => {
+  if (!db) return dbDown(res);
+
+  const id = Number(req.params.id);
+  if (!id) return res.status(400).json({ message: "Invalid ID" });
+
+  try {
+    const [[product]] = await db.query(
+      `
+      SELECT id, name, price, category, description, images,
+      IFNULL(is_active,1) AS is_active
+      FROM products
+      WHERE id = ? AND is_active = 1
+      `,
+      [id]
+    );
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    product.images = safeParseImages(product.images);
+    product.price = Number(product.price);
+    product.is_active = Boolean(product.is_active);
+
+    res.json(product);
+  } catch (err) {
+    console.error("❌ GET PRODUCT BY ID:", err.message);
+    res.status(500).json({ message: "Failed to fetch product" });
+  }
+};
+
+/* =====================================================
    ADD PRODUCT (ADMIN)
 ===================================================== */
 exports.addProduct = async (req, res) => {
@@ -49,19 +84,14 @@ exports.addProduct = async (req, res) => {
 
   let { name, price, category, description, images } = req.body;
 
-  // BASIC REQUIRED FIELDS
   if (!name || typeof price !== "number" || !category) {
     return res.status(400).json({
       message: "Name, price and category are required",
     });
   }
 
-  // IMAGES OPTIONAL
   if (!Array.isArray(images)) images = [];
-
-  if (images.length === 0) {
-    images = [DEFAULT_IMAGE];
-  }
+  if (images.length === 0) images = [DEFAULT_IMAGE];
 
   try {
     await db.query(
