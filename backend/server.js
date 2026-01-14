@@ -4,20 +4,34 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
+const PORT = process.env.PORT || 8080;
+
 app.use(cors());
 app.use(express.json());
 
-/* 🚑 EMERGENCY HEALTH CHECK */
+/* HEALTH CHECK (Railway uses this) */
 app.get("/", (req, res) => {
   res.status(200).send("OK");
 });
 
-/* 🚑 FORCE PRODUCTS RESPONSE */
-app.get("/api/products", (req, res) => {
-  return res.status(200).json([]);
-});
+/* LOAD DB (NON-BLOCKING) */
+let db;
+try {
+  db = require("./config/db");
+  console.log("✅ DB module loaded");
+} catch (err) {
+  console.error("❌ DB load failed:", err.message);
+}
 
-/* 🚑 NEVER CRASH */
+/* LOAD PRODUCTS ROUTE SAFELY */
+try {
+  app.use("/api/products", require("./routes/product.routes"));
+  console.log("✅ /api/products loaded");
+} catch (err) {
+  console.error("❌ products route failed:", err.message);
+}
+
+/* GLOBAL SAFETY */
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT:", err);
 });
@@ -25,7 +39,6 @@ process.on("unhandledRejection", (err) => {
   console.error("UNHANDLED:", err);
 });
 
-const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("🚀 Server running on", PORT);
+  console.log(`🚀 Server running on ${PORT}`);
 });
