@@ -3,13 +3,17 @@ const router = express.Router();
 
 const {
   addProduct,
-  deleteProduct
-} = require("../controllers/product.controller");
+  deleteProduct,
+} = require("../controllers/products.controller");
 
-const auth = require("../middleware/auth.middleware");
+const adminAuth = require("../middleware/auth.middleware");
 
-/* ================= ADMIN PRODUCT ROUTES ================= */
-router.post("/", auth, addProduct);
-router.delete("/:id", auth, deleteProduct);
+/**
+ * =========================
+ * ADMIN PRODUCT ROUTES
+ * =========================
+ */
+router.post("/", adminAuth, addProduct);
+router.delete("/:id", adminAuth, deleteProduct);
 
 module.exports = router;
