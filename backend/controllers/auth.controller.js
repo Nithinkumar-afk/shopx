@@ -4,7 +4,7 @@ const { sendOTP } = require("../utils/mailer");
 
 /* ================= SEND OTP ================= */
 exports.sendOtp = async (req, res) => {
-  const { name, email } = req.body;
+  let { name, email } = req.body;
 
   if (!email) {
     return res.status(400).json({ message: "Email required" });
@@ -14,11 +14,12 @@ exports.sendOtp = async (req, res) => {
     return res.status(500).json({ message: "Database not connected" });
   }
 
-  const userName = name?.trim() || "User";
+  const userName = (name || "User").trim();
   const cleanEmail = email.trim().toLowerCase();
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   try {
+    // Save OTP
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -31,22 +32,28 @@ exports.sendOtp = async (req, res) => {
       [userName, cleanEmail, otp]
     );
 
-    // 🚨 FORCE email sending (no silent fallback)
-    await sendOTP(cleanEmail, otp, userName);
+    console.log("🔐 OTP GENERATED:", cleanEmail, otp); // TEMP DEBUG
+
+    // 🚨 MUST succeed or throw
+    const mailResult = await sendOTP(cleanEmail, otp, userName);
+
+    if (!mailResult) {
+      throw new Error("Mailer did not confirm delivery");
+    }
 
     return res.json({ message: "OTP sent successfully" });
+
   } catch (err) {
-    console.error("SEND OTP ERROR:", err);
+    console.error("❌ SEND OTP ERROR:", err.message);
     return res.status(500).json({
-      message: "Failed to send OTP",
-      error: err.message
+      message: "Failed to send OTP"
     });
   }
 };
 
 /* ================= VERIFY OTP ================= */
 exports.verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  let { email, otp } = req.body;
 
   if (!email || !otp) {
     return res.status(400).json({ message: "Email and OTP required" });
@@ -55,6 +62,9 @@ exports.verifyOtp = async (req, res) => {
   if (!db) {
     return res.status(500).json({ message: "Database not connected" });
   }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanOtp = otp.trim();
 
   try {
     const [rows] = await db.query(
@@ -65,7 +75,7 @@ exports.verifyOtp = async (req, res) => {
         AND otp = ?
         AND otp_expiry > NOW()
       `,
-      [email.trim().toLowerCase(), otp.trim()]
+      [cleanEmail, cleanOtp]
     );
 
     if (!rows.length) {
@@ -86,8 +96,9 @@ exports.verifyOtp = async (req, res) => {
     );
 
     return res.json({ token, user });
+
   } catch (err) {
-    console.error("VERIFY OTP ERROR:", err);
+    console.error("❌ VERIFY OTP ERROR:", err.message);
     return res.status(500).json({ message: "Login failed" });
   }
 };
@@ -110,7 +121,7 @@ exports.getMe = async (req, res) => {
 
     return res.json(rows[0]);
   } catch (err) {
-    console.error("GET ME ERROR:", err);
+    console.error("❌ GET ME ERROR:", err.message);
     return res.status(500).json({ message: "Failed to fetch user" });
   }
 };
