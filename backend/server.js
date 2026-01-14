@@ -23,7 +23,7 @@ app.set("trust proxy", 1);
 
 app.use(
   cors({
-    origin: "*",
+    origin: "*", // 🔒 change to frontend URL in production
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -39,7 +39,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
  * DATABASE INIT (MANDATORY)
- * ❗ DO NOT WRAP IN IF CONDITIONS
+ * ❗ DO NOT wrap in if/try/catch
  *************************************************/
 require("./config/db");
 
@@ -72,7 +72,7 @@ safeRoute("/api/cart", "./routes/cart.routes");
 safeRoute("/api/orders", "./routes/orders.routes");
 
 /*************************************************
- * HEALTH CHECK (RAILWAY USES THIS)
+ * RAILWAY HEALTH CHECK (CRITICAL)
  *************************************************/
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -101,6 +101,19 @@ app.use((err, req, res, next) => {
 /*************************************************
  * START SERVER
  *************************************************/
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 ShopX backend running on port ${PORT}`);
+});
+
+/*************************************************
+ * GRACEFUL SHUTDOWN (PREVENTS RESTART LOOPS)
+ *************************************************/
+process.on("SIGTERM", () => {
+  console.log("🛑 SIGTERM received. Shutting down gracefully...");
+  server.close(() => process.exit(0));
+});
+
+process.on("SIGINT", () => {
+  console.log("🛑 SIGINT received. Shutting down...");
+  server.close(() => process.exit(0));
 });
