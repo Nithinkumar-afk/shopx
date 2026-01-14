@@ -4,7 +4,8 @@ const { sendOTP } = require("../utils/mailer");
 
 /* ================= SEND OTP ================= */
 exports.sendOtp = async (req, res) => {
-  const { name = "User", email } = req.body;
+  const name = (req.body.name || "User").trim();
+  const email = req.body.email?.trim().toLowerCase();
 
   if (!email) {
     return res.status(400).json({ message: "Email required" });
@@ -13,6 +14,10 @@ exports.sendOtp = async (req, res) => {
   try {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+    // 1️⃣ SEND EMAIL FIRST (CRITICAL)
+    await sendOTP(email, otp, name);
+
+    // 2️⃣ SAVE OTP ONLY IF EMAIL SUCCESS
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -22,26 +27,23 @@ exports.sendOtp = async (req, res) => {
         otp = VALUES(otp),
         otp_expiry = DATE_ADD(NOW(), INTERVAL 5 MINUTE)
       `,
-      [name.trim(), email.trim().toLowerCase(), otp]
+      [name, email, otp]
     );
 
-    const sent = await sendOTP(email, otp, name);
-
-    if (!sent) {
-      return res.status(500).json({ message: "OTP email failed" });
-    }
-
-    res.json({ message: "OTP sent successfully" });
+    return res.json({ message: "OTP sent successfully" });
 
   } catch (err) {
-    console.error("SEND OTP ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("🔥 SEND OTP ERROR:", err.message);
+    return res.status(500).json({
+      message: "Failed to send OTP. Try again."
+    });
   }
 };
 
 /* ================= VERIFY OTP ================= */
 exports.verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
+  const otp = req.body.otp?.trim();
 
   if (!email || !otp) {
     return res.status(400).json({ message: "Email & OTP required" });
@@ -56,7 +58,7 @@ exports.verifyOtp = async (req, res) => {
         AND otp = ?
         AND otp_expiry > NOW()
       `,
-      [email.trim().toLowerCase(), otp.trim()]
+      [email, otp]
     );
 
     if (!rows.length) {
@@ -71,16 +73,16 @@ exports.verifyOtp = async (req, res) => {
     );
 
     const token = jwt.sign(
-      { id: user.id },
+      { id: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.json({ token, user });
+    return res.json({ token, user });
 
   } catch (err) {
-    console.error("VERIFY OTP ERROR:", err);
-    res.status(500).json({ message: "Login failed" });
+    console.error("🔥 VERIFY OTP ERROR:", err.message);
+    return res.status(500).json({ message: "Login failed" });
   }
 };
 
@@ -96,8 +98,10 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.json(rows[0]);
+    return res.json(rows[0]);
+
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch user" });
+    console.error("🔥 GET ME ERROR:", err.message);
+    return res.status(500).json({ message: "Failed to fetch user" });
   }
 };
