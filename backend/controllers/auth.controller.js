@@ -1,17 +1,6 @@
 const db = require("../config/db");
 const jwt = require("jsonwebtoken");
-
-/* ================= OPTIONAL MAILER ================= */
-let sendOTP = async (email, otp) => {
-  console.log(`📩 OTP for ${email}: ${otp}`);
-};
-
-try {
-  const mailer = require("../utils/mailer");
-  if (mailer.sendOTP) sendOTP = mailer.sendOTP;
-} catch {
-  console.warn("⚠️ Mailer not configured – OTP logged to console");
-}
+const { sendOTP } = require("../utils/mailer");
 
 /* ================= SEND OTP ================= */
 exports.sendOtp = async (req, res) => {
@@ -42,12 +31,16 @@ exports.sendOtp = async (req, res) => {
       [userName, cleanEmail, otp]
     );
 
-    await sendOTP(cleanEmail, otp);
+    // 🚨 FORCE email sending (no silent fallback)
+    await sendOTP(cleanEmail, otp, userName);
 
-    res.json({ message: "OTP sent successfully" });
+    return res.json({ message: "OTP sent successfully" });
   } catch (err) {
     console.error("SEND OTP ERROR:", err);
-    res.status(500).json({ message: "Failed to send OTP" });
+    return res.status(500).json({
+      message: "Failed to send OTP",
+      error: err.message
+    });
   }
 };
 
@@ -87,18 +80,15 @@ exports.verifyOtp = async (req, res) => {
     );
 
     const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email
-      },
+      { id: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.json({ token, user });
+    return res.json({ token, user });
   } catch (err) {
     console.error("VERIFY OTP ERROR:", err);
-    res.status(500).json({ message: "Login failed" });
+    return res.status(500).json({ message: "Login failed" });
   }
 };
 
@@ -118,9 +108,9 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.json(rows[0]);
+    return res.json(rows[0]);
   } catch (err) {
     console.error("GET ME ERROR:", err);
-    res.status(500).json({ message: "Failed to fetch user" });
+    return res.status(500).json({ message: "Failed to fetch user" });
   }
 };
