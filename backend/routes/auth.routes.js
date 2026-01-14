@@ -1,7 +1,7 @@
-const router = require("express").Router();
-const auth = require("../controllers/auth.controller");
+const express = require("express");
+const router = express.Router();
 
-// ✅ Correct middleware path
+const auth = require("../controllers/auth.controller");
 const userAuth = require("../middleware/auth.middleware");
 
 /* ===============================
@@ -9,12 +9,30 @@ const userAuth = require("../middleware/auth.middleware");
 ================================ */
 
 // Send OTP to email
-router.post("/send-otp", auth.sendOtp);
+router.post("/send-otp", async (req, res, next) => {
+  try {
+    await auth.sendOtp(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Verify OTP & login
-router.post("/verify-otp", auth.verifyOtp);
+router.post("/verify-otp", async (req, res, next) => {
+  try {
+    await auth.verifyOtp(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Get logged-in user profile
-router.get("/me", userAuth, auth.getMe);
+router.get("/me", userAuth, async (req, res, next) => {
+  try {
+    await auth.getMe(req, res);
+  } catch (err) {
+    next(err);
+  }
+});
 
 module.exports = router;
