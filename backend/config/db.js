@@ -1,4 +1,4 @@
-const mysql = require("mysql2");
+const mysql = require("mysql2/promise");
 
 /*************************************************
  * NORMALIZE RAILWAY MYSQL ENV (CRITICAL)
@@ -12,7 +12,7 @@ const MYSQL_DATABASE =
 const MYSQL_PORT = process.env.MYSQLPORT || process.env.MYSQL_PORT || 3306;
 
 /*************************************************
- * DEBUG (ONE TIME ONLY)
+ * DEBUG (SAFE — NO SECRETS)
  *************************************************/
 console.log("🔎 DB ENV CHECK:", {
   MYSQL_HOST,
@@ -22,15 +22,15 @@ console.log("🔎 DB ENV CHECK:", {
 });
 
 /*************************************************
- * HARD FAIL IF DB CONFIG MISSING
+ * HARD FAIL IF ENV VARS MISSING (CORRECT)
  *************************************************/
 if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) {
   console.error("❌ FATAL: MySQL env vars missing. App cannot start.");
-  process.exit(1); // 🔥 REQUIRED FOR RAILWAY
+  process.exit(1); // ✅ Correct for Railway
 }
 
 /*************************************************
- * CREATE CONNECTION POOL
+ * CREATE MYSQL POOL (PROMISE API)
  *************************************************/
 const pool = mysql.createPool({
   host: MYSQL_HOST,
@@ -44,15 +44,17 @@ const pool = mysql.createPool({
 });
 
 /*************************************************
- * VERIFY DB CONNECTION (NON-BLOCKING)
+ * VERIFY DB CONNECTION (NON-FATAL)
  *************************************************/
-pool.getConnection((err, conn) => {
-  if (err) {
-    console.error("❌ MySQL connection failed:", err.message);
-    process.exit(1); // 🔥 FAIL FAST
+(async () => {
+  try {
+    const conn = await pool.getConnection();
+    console.log("✅ MySQL connected successfully");
+    conn.release();
+  } catch (err) {
+    console.error("❌ MySQL connection error:", err.message);
+    // ❗ Do NOT exit here — prevents Railway restart loop
   }
-  console.log("✅ MySQL connected successfully");
-  conn.release();
-});
+})();
 
 module.exports = pool;
