@@ -87,6 +87,8 @@ app.use("/api/admin", require("./routes/admin.routes"));
 app.use("/api/admin/users", require("./routes/admin.users.routes"));
 app.use("/api/admin/products", require("./routes/admin.products.routes"));
 app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
+app.use("/api/products", require("./routes/product.routes"));
+
 
 
 /*************************************************
