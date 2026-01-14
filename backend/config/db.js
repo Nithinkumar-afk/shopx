@@ -1,24 +1,24 @@
 const mysql = require("mysql2");
 
-// ✅ Read env vars ONCE
+// ✅ Read Railway env vars (CORRECT NAMES)
 const {
-  MYSQL_HOST,
-  MYSQL_USER,
-  MYSQL_PASSWORD,
+  MYSQLHOST,
+  MYSQLUSER,
+  MYSQLPASSWORD,
   MYSQL_DATABASE,
-  MYSQL_PORT,
+  MYSQLPORT,
 } = process.env;
 
-// 🔎 Debug (VERY IMPORTANT)
+// 🔎 Debug
 console.log("🔎 ENV CHECK:", {
-  MYSQL_HOST,
-  MYSQL_USER,
+  MYSQLHOST,
+  MYSQLUSER,
   MYSQL_DATABASE,
-  MYSQL_PORT,
+  MYSQLPORT,
 });
 
 // ❌ Stop app if env vars missing
-if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) {
+if (!MYSQLHOST || !MYSQLUSER || !MYSQL_DATABASE) {
   console.error("⚠️ MySQL env vars missing. App running without DB.");
   module.exports = null;
   return;
@@ -26,11 +26,11 @@ if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) {
 
 // ✅ Create pool
 const pool = mysql.createPool({
-  host: MYSQL_HOST,
-  user: MYSQL_USER,
-  password: MYSQL_PASSWORD,
+  host: MYSQLHOST,
+  user: MYSQLUSER,
+  password: MYSQLPASSWORD,
   database: MYSQL_DATABASE,
-  port: MYSQL_PORT || 3306,
+  port: MYSQLPORT || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
