@@ -1,66 +1,47 @@
 const mysql = require("mysql2/promise");
 
 /*************************************************
- * NORMALIZE RAILWAY + LOCAL MYSQL ENV
+ * RAILWAY FIRST (MYSQL_URL)
  *************************************************/
-const MYSQL_HOST =
-  process.env.MYSQLHOST ||
-  process.env.MYSQL_HOST ||
-  "127.0.0.1";
+let pool;
 
-const MYSQL_USER =
-  process.env.MYSQLUSER ||
-  process.env.MYSQL_USER ||
-  "root";
+if (process.env.MYSQL_URL) {
+  // ✅ Railway / Production
+  console.log("🚄 Using Railway MYSQL_URL");
 
-const MYSQL_PASSWORD =
-  process.env.MYSQLPASSWORD ||
-  process.env.MYSQL_PASSWORD ||
-  "";
+  pool = mysql.createPool({
+    uri: process.env.MYSQL_URL,
+    waitForConnections: true,
+    connectionLimit: 10,
+  });
 
-const MYSQL_DATABASE =
-  process.env.MYSQLDATABASE ||
-  process.env.MYSQL_DATABASE;
+} else {
+  // ✅ Localhost fallback
+  console.log("💻 Using Local MySQL");
 
-const MYSQL_PORT = parseInt(
-  process.env.MYSQLPORT ||
-  process.env.MYSQL_PORT ||
-  "3306",
-  10
-);
+  const {
+    DB_HOST = "127.0.0.1",
+    DB_USER = "root",
+    DB_PASSWORD = "",
+    DB_NAME,
+    DB_PORT = 3306,
+  } = process.env;
 
-/*************************************************
- * SAFE ENV DEBUG
- *************************************************/
-console.log("🔎 DB ENV CHECK:", {
-  MYSQL_HOST,
-  MYSQL_USER: Boolean(MYSQL_USER),
-  MYSQL_DATABASE,
-  MYSQL_PORT,
-});
+  if (!DB_NAME) {
+    console.error("❌ Local DB_NAME missing");
+    process.exit(1);
+  }
 
-/*************************************************
- * ENV VALIDATION
- *************************************************/
-if (!MYSQL_HOST || !MYSQL_USER || !MYSQL_DATABASE) {
-  console.error("❌ MySQL env missing — DB disabled");
-  module.exports = null;
-  return;
+  pool = mysql.createPool({
+    host: DB_HOST,
+    user: DB_USER,
+    password: DB_PASSWORD,
+    database: DB_NAME,
+    port: Number(DB_PORT),
+    waitForConnections: true,
+    connectionLimit: 10,
+  });
 }
-
-/*************************************************
- * CREATE CONNECTION POOL
- *************************************************/
-const pool = mysql.createPool({
-  host: MYSQL_HOST,
-  user: MYSQL_USER,
-  password: MYSQL_PASSWORD,
-  database: MYSQL_DATABASE,
-  port: MYSQL_PORT,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
 
 /*************************************************
  * VERIFY CONNECTION
