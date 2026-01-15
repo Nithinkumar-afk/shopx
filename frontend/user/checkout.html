@@ -125,10 +125,10 @@ const addressList = document.getElementById("addressList");
 const summaryEl = document.getElementById("summary");
 const orderBtn = document.getElementById("orderBtn");
 
-let selectedAddress = null;
+let selectedAddressId = null;
 let total = 0;
 
-/* LOAD PROFILE (FIXED) */
+/* LOAD PROFILE */
 fetch(API+"/api/profile",{headers:authHeader})
 .then(r=>{
   if(!r.ok) throw "PROFILE ERROR";
@@ -154,7 +154,7 @@ fetch(API+"/api/profile",{headers:authHeader})
       });
       d.classList.add("active");
       d.querySelector("input").checked=true;
-      selectedAddress=a.address;
+      selectedAddressId = a.id;   // ✅ IMPORTANT FIX
       orderBtn.disabled=false;
     };
     if(i===0) d.click();
@@ -179,20 +179,35 @@ summaryEl.innerHTML+=`
 
 /* PLACE ORDER */
 orderBtn.onclick=async()=>{
-  const res=await fetch(API+"/api/orders",{
-    method:"POST",
-    headers:{...authHeader,"Content-Type":"application/json"},
-    body:JSON.stringify({
-      total_amount:total,
-      address:selectedAddress,
-      items:checkoutCart.map(i=>({
-        product_id:i.id,quantity:i.qty,price:i.price
-      }))
-    })
-  });
-  if(!res.ok) return alert("Order failed");
-  localStorage.removeItem("checkout_cart");
-  location.href="success.html";
+  try{
+    const res=await fetch(API+"/api/orders",{
+      method:"POST",
+      headers:{...authHeader,"Content-Type":"application/json"},
+      body:JSON.stringify({
+        address_id: selectedAddressId,   // ✅ FIX
+        total_amount: total,
+        items: checkoutCart.map(i=>({
+          product_id: i.id,
+          quantity: i.qty,
+          price: i.price
+        }))
+      })
+    });
+
+    if(!res.ok){
+      const err = await res.text();
+      console.error("ORDER ERROR:", err);
+      alert("Order failed");
+      return;
+    }
+
+    localStorage.removeItem("checkout_cart");
+    location.href="success.html";
+
+  }catch(err){
+    console.error(err);
+    alert("Order failed");
+  }
 };
 </script>
 
