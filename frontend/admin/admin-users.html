@@ -269,7 +269,6 @@ async function saveEdit(){
   fd.append("addresses",JSON.stringify(
     editAddresses.value.split("\n").filter(Boolean)
   ));
-  if(editImage.files[0]) fd.append("image",editImage.files[0]);
 
   await fetch(API+"/"+editUserId,{
     method:"PUT",
@@ -277,9 +276,21 @@ async function saveEdit(){
     body:fd
   });
 
+  if(editImage.files[0]){
+    const imgFd=new FormData();
+    imgFd.append("image",editImage.files[0]);
+
+    await fetch(API+"/"+editUserId+"/image",{
+      method:"PUT",
+      headers:{ Authorization:"Bearer "+token },
+      body:imgFd
+    });
+  }
+
   closeModal();
   loadUsers();
 }
+
 
 function deleteUser(id){
   if(confirm("Delete user?")){

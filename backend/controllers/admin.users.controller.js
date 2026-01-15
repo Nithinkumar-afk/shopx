@@ -30,129 +30,112 @@ exports.getUsers = async (req, res) => {
         }))
     }));
 
-    return res.json(result);
+    res.json(result);
   } catch (err) {
     console.error("ADMIN GET USERS ERROR:", err);
-    return res.status(500).json({ message: "Failed to load users" });
+    res.status(500).json({ message: "Failed to load users" });
   }
 };
 
-/* ================= UPDATE USER ================= */
+/* ================= UPDATE USER (NO IMAGE) ================= */
 exports.updateUser = async (req, res) => {
   const { id } = req.params;
   let { name, addresses } = req.body;
 
-  if (!id || isNaN(id)) {
-    return res.status(400).json({ message: "Invalid user ID" });
-  }
+  if (!id || isNaN(id)) return res.status(400).json({ message: "Invalid user ID" });
+  if (!name?.trim()) return res.status(400).json({ message: "Name required" });
 
-  if (!name || !name.trim()) {
-    return res.status(400).json({ message: "Name is required" });
-  }
-
-  // ✅ Parse addresses safely
   if (typeof addresses === "string") {
-    try {
-      addresses = JSON.parse(addresses);
-    } catch {
-      addresses = [];
-    }
+    try { addresses = JSON.parse(addresses); } catch { addresses = []; }
   }
-
-  if (!Array.isArray(addresses)) {
-    addresses = [];
-  }
+  if (!Array.isArray(addresses)) addresses = [];
 
   const conn = await db.getConnection();
-
   try {
     await conn.beginTransaction();
 
-    // ✅ Check user exists
-    const [[existingUser]] = await conn.query(
-      "SELECT id FROM users WHERE id=?",
-      [id]
-    );
-
-    if (!existingUser) {
-      await conn.rollback();
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // ✅ Update user (NO IMAGE HANDLING HERE)
-    await conn.query(
-      "UPDATE users SET name=? WHERE id=?",
-      [name.trim(), id]
-    );
-
-    // ✅ Replace addresses (same logic as profile)
+    await conn.query("UPDATE users SET name=? WHERE id=?", [name.trim(), id]);
     await conn.query("DELETE FROM addresses WHERE user_id=?", [id]);
 
-    for (const addr of addresses) {
-      if (typeof addr === "string" && addr.trim()) {
+    for (const a of addresses) {
+      if (typeof a === "string" && a.trim()) {
         await conn.query(
           "INSERT INTO addresses (user_id, address) VALUES (?,?)",
-          [id, addr.trim()]
+          [id, a.trim()]
         );
       }
     }
 
     await conn.commit();
-    return res.json({ message: "User updated successfully" });
-
+    res.json({ message: "User updated" });
   } catch (err) {
     await conn.rollback();
-    console.error("ADMIN UPDATE USER ERROR:", err);
-    return res.status(500).json({ message: "Update failed" });
+    console.error(err);
+    res.status(500).json({ message: "Update failed" });
   } finally {
     conn.release();
+  }
+};
+
+/* ================= UPDATE USER IMAGE (NEW ✅) ================= */
+exports.updateUserImage = async (req, res) => {
+  const { id } = req.params;
+
+  if (!req.file) {
+    return res.status(400).json({ message: "Image required" });
+  }
+
+  try {
+    const [[old]] = await db.query(
+      "SELECT image FROM users WHERE id=?",
+      [id]
+    );
+
+    if (old?.image && old.image.startsWith("/uploads/")) {
+      const oldPath = path.join(__dirname, "..", old.image);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    const imagePath = "/uploads/users/" + req.file.filename;
+
+    await db.query(
+      "UPDATE users SET image=? WHERE id=?",
+      [imagePath, id]
+    );
+
+    res.json({ message: "Image updated", image: imagePath });
+  } catch (err) {
+    console.error("ADMIN IMAGE ERROR:", err);
+    res.status(500).json({ message: "Image update failed" });
   }
 };
 
 /* ================= DELETE USER ================= */
 exports.deleteUser = async (req, res) => {
   const { id } = req.params;
-
-  if (!id || isNaN(id)) {
-    return res.status(400).json({ message: "Invalid user ID" });
-  }
-
   const conn = await db.getConnection();
 
   try {
     await conn.beginTransaction();
 
-    const [[user]] = await conn.query(
+    const [[u]] = await conn.query(
       "SELECT image FROM users WHERE id=?",
       [id]
     );
 
-    if (!user) {
-      await conn.rollback();
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.image && user.image.startsWith("/uploads/")) {
-      const imgPath = path.join(process.cwd(), user.image);
-      try {
-        if (fs.existsSync(imgPath)) {
-          fs.unlinkSync(imgPath);
-        }
-      } catch (err) {
-        console.warn("IMAGE DELETE FAILED:", err.message);
-      }
+    if (u?.image?.startsWith("/uploads/")) {
+      const img = path.join(__dirname, "..", u.image);
+      if (fs.existsSync(img)) fs.unlinkSync(img);
     }
 
     await conn.query("DELETE FROM addresses WHERE user_id=?", [id]);
     await conn.query("DELETE FROM users WHERE id=?", [id]);
 
     await conn.commit();
-    return res.json({ message: "User deleted successfully" });
-
+    res.json({ message: "User deleted" });
   } catch (err) {
     await conn.rollback();
-    console.error("ADMIN DELETE USER ERROR:", err);
-    return res.status(500).json({ message: "Delete failed" });
+    res.status(500).json({ message: "Delete failed" });
   } finally {
     conn.release();
   }
@@ -161,25 +144,6 @@ exports.deleteUser = async (req, res) => {
 /* ================= DELETE ADDRESS ================= */
 exports.deleteAddress = async (req, res) => {
   const { id } = req.params;
-
-  if (!id || isNaN(id)) {
-    return res.status(400).json({ message: "Invalid address ID" });
-  }
-
-  try {
-    const [result] = await db.query(
-      "DELETE FROM addresses WHERE id=?",
-      [id]
-    );
-
-    if (!result.affectedRows) {
-      return res.status(404).json({ message: "Address not found" });
-    }
-
-    return res.json({ message: "Address deleted successfully" });
-
-  } catch (err) {
-    console.error("ADMIN DELETE ADDRESS ERROR:", err);
-    return res.status(500).json({ message: "Delete failed" });
-  }
+  await db.query("DELETE FROM addresses WHERE id=?", [id]);
+  res.json({ message: "Address deleted" });
 };
