@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const sendOTPEmail = require("../utils/sendEmail");
+
 
 /* OTP STORE */
 const otpStore = new Map();
