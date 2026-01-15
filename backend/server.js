@@ -36,7 +36,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * MAILER INIT
+ * MAILER INIT (SAFE)
  *************************************************/
 try {
   require("./utils/mailer");
@@ -56,19 +56,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 require("./config/db");
 
 /*************************************************
- * SAFE ROUTE LOADER
+ * ROUTES
  *************************************************/
-const safeRoute = (routePath, routeFile) => {
-  try {
-    app.use(routePath, require(routeFile));
-    console.log(`✅ Loaded route: ${routePath}`);
-  } catch (err) {
-    console.error(`❌ Failed route: ${routeFile}`);
-    console.error(err.message);
-  }
-};
 
-//* AUTH */
+/* AUTH */
 app.use("/api/auth", require("./routes/auth.routes"));
 
 /* PUBLIC */
@@ -82,7 +73,7 @@ app.use("/api/orders", require("./routes/orders.routes"));
 app.use("/api/admin/users", require("./routes/admin.users.routes"));
 app.use("/api/admin/products", require("./routes/admin.products.routes"));
 app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
-
+app.use("/api/admin", require("./routes/admin.routes")); // 🔥 LOGIN + STATS
 
 /*************************************************
  * HEALTH CHECK
@@ -97,7 +88,7 @@ app.get("/", (req, res) => {
 });
 
 /*************************************************
- * 404 HANDLER
+ * 404 HANDLER (MUST BE LAST ROUTE)
  *************************************************/
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
