@@ -180,10 +180,13 @@ addBtn.onclick = async () => {
     img1Input.value.trim(),
     img2Input.value.trim(),
     img3Input.value.trim()
-  ].filter(isValidImageURL);
+  ].filter(url => url && isValidImageURL(url));
 
-  if (!images.length) {
-    alert("Only Cloudinary / ImageKit image URLs allowed");
+  if (images.length === 0) {
+    alert(
+      "Please paste at least ONE Cloudinary or ImageKit image URL.\n\n" +
+      "Example:\nhttps://res.cloudinary.com/yourname/image/upload/xxx.jpg"
+    );
     return;
   }
 
@@ -196,7 +199,7 @@ addBtn.onclick = async () => {
   };
 
   if (!payload.name || !payload.category || isNaN(payload.price)) {
-    alert("Name, price & category required");
+    alert("Name, price & category are required");
     return;
   }
 
@@ -210,7 +213,7 @@ addBtn.onclick = async () => {
   });
 
   const data = await res.json();
-  if (!res.ok) return alert(data.message);
+  if (!res.ok) return alert(data.message || "Add product failed");
 
   clearForm();
   loadProducts();
@@ -231,15 +234,20 @@ async function deleteProduct(id){
 
 /* ================= CLEAR ================= */
 function clearForm(){
-  [nameInput,priceInput,categoryInput,
-   img1Input,img2Input,img3Input,descInput]
-  .forEach(i => i.value = "");
+  [
+    nameInput,
+    priceInput,
+    categoryInput,
+    img1Input,
+    img2Input,
+    img3Input,
+    descInput
+  ].forEach(i => i.value = "");
 }
 
 loadProducts();
 </script>
 
-</script>
 
 </body>
 </html>
