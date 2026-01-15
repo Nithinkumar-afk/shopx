@@ -1,27 +1,24 @@
 const express = require("express");
 const router = express.Router();
-
+const adminController = require("../controllers/admin.controller");
 const adminAuth = require("../middleware/adminAuth");
-const adminOrdersController = require("../controllers/admin.orders.controller");
 
 /**
- * ===============================
- * ADMIN DASHBOARD ROUTES
- * Base: /api/admin
- * ===============================
+ * ADMIN LOGIN
+ * POST /api/admin/login
  */
+router.post("/login", adminController.login);
 
 /**
- * GET /api/admin/dashboard
- * Returns:
- *  - totalOrders
- *  - totalRevenue
- *  - totalUsers
+ * ADMIN DASHBOARD
+ * GET /api/admin/stats
  */
-router.get(
-  "/dashboard",
-  adminAuth,
-  adminOrdersController.getDashboardStats
-);
+router.get("/stats", adminAuth, adminController.getStats);
+
+/**
+ * RECENT ORDERS
+ * GET /api/admin/recent-orders
+ */
+router.get("/recent-orders", adminAuth, adminController.getRecentOrders);
 
 module.exports = router;
