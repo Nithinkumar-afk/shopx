@@ -1,14 +1,10 @@
 const db = require("../config/db");
 
 /* =========================
-   IMAGE URL RULES (STRICT)
+   CONSTANTS
 ========================= */
-const CLOUDINARY_REGEX = /^https:\/\/res\.cloudinary\.com\//;
-const IMAGEKIT_REGEX   = /^https:\/\/ik\.imagekit\.io\//;
-
-const isValidImageURL = (url) =>
-  typeof url === "string" &&
-  (CLOUDINARY_REGEX.test(url) || IMAGEKIT_REGEX.test(url));
+const FALLBACK_IMAGE =
+  "https://via.placeholder.com/600x400?text=No+Image";
 
 /* =========================
    DB DOWN HANDLER
@@ -17,8 +13,7 @@ const dbDown = (res) =>
   res.status(503).json({ message: "Database unavailable" });
 
 /* =========================
-   NORMALIZE IMAGES (OUTPUT)
-   ✔ No placeholder
+   NORMALIZE IMAGES (PUBLIC OUTPUT)
 ========================= */
 function normalizeImages(images) {
   try {
@@ -30,11 +25,13 @@ function normalizeImages(images) {
       arr = JSON.parse(images);
     }
 
-    return Array.isArray(arr)
-      ? arr.filter(isValidImageURL)
+    const clean = Array.isArray(arr)
+      ? arr.filter(img => typeof img === "string" && img.trim())
       : [];
+
+    return clean.length ? clean : [FALLBACK_IMAGE];
   } catch {
-    return [];
+    return [FALLBACK_IMAGE];
   }
 }
 
@@ -57,7 +54,7 @@ exports.getProducts = async (req, res) => {
       price: Number(p.price),
       category: p.category,
       description: p.description || "",
-      images: normalizeImages(p.images) // ✅ only cloudinary/imagekit
+      images: normalizeImages(p.images)
     }));
 
     res.json(products);
@@ -69,7 +66,6 @@ exports.getProducts = async (req, res) => {
 
 /* =========================
    ADD PRODUCT (ADMIN)
-   ✔ STRICT IMAGE CHECK
 ========================= */
 exports.addProduct = async (req, res) => {
   if (!db) return dbDown(res);
@@ -80,18 +76,16 @@ exports.addProduct = async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  if (!Array.isArray(images) || !images.length) {
-    return res.status(400).json({
-      message: "At least one Cloudinary or ImageKit image is required"
-    });
+  let finalImages = [];
+
+  if (Array.isArray(images)) {
+    finalImages = images.filter(
+      img => typeof img === "string" && img.trim()
+    );
   }
 
-  const cleanImages = images.filter(isValidImageURL);
-
-  if (!cleanImages.length) {
-    return res.status(400).json({
-      message: "Only Cloudinary or ImageKit URLs are allowed"
-    });
+  if (!finalImages.length) {
+    finalImages = [FALLBACK_IMAGE];
   }
 
   try {
@@ -105,7 +99,7 @@ exports.addProduct = async (req, res) => {
         Number(price),
         category.trim(),
         description?.trim() || "",
-        JSON.stringify(cleanImages)
+        JSON.stringify(finalImages)
       ]
     );
 

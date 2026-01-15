@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 
 /**
- * ADMIN AUTH MIDDLEWARE (STABLE & COMPATIBLE)
+ * ADMIN AUTH MIDDLEWARE (FIXED & COMPATIBLE)
  */
 module.exports = (req, res, next) => {
   try {
@@ -22,10 +22,16 @@ module.exports = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     /**
-     * ✅ STRICT ADMIN CHECK
-     * Token MUST contain: role: "admin"
+     * ✅ FLEXIBLE ADMIN CHECK (FIX)
+     * Accepts:
+     * - role === "admin"
+     * - isAdmin === true
      */
-    if (decoded.role !== "admin") {
+    const isAdmin =
+      decoded.role === "admin" ||
+      decoded.isAdmin === true;
+
+    if (!isAdmin) {
       return res.status(403).json({ message: "Access denied: Admins only" });
     }
 
@@ -33,7 +39,7 @@ module.exports = (req, res, next) => {
     req.admin = {
       id: decoded.id,
       email: decoded.email,
-      role: decoded.role
+      role: "admin"
     };
 
     next();
