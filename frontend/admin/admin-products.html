@@ -5,9 +5,9 @@
 <title>Admin – Products | JD</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
+<style>
 *{box-sizing:border-box}
 body{
   margin:0;
@@ -16,6 +16,7 @@ body{
   color:#e5e7eb;
 }
 
+/* HEADER */
 header{
   padding:18px 22px;
   display:flex;
@@ -36,6 +37,7 @@ header button{
   cursor:pointer;
 }
 
+/* FORM */
 .form{
   margin:18px;
   padding:18px;
@@ -64,27 +66,37 @@ textarea{grid-column:1/-1}
   cursor:pointer;
 }
 
+/* PRODUCTS GRID */
 .products{
   padding:18px;
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
   gap:18px;
 }
+
+/* CARD */
 .card{
   background:rgba(255,255,255,.06);
   border-radius:22px;
   padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
 }
+
+/* FAST IMAGE */
 .card img{
   width:100%;
   height:150px;
   object-fit:cover;
   border-radius:16px;
   display:block;
+  background:#111;
 }
+
+/* DELETE BUTTON */
 .card button{
-  margin-top:10px;
-  width:100%;
+  margin-top:auto;
   padding:10px;
   border:none;
   border-radius:14px;
@@ -102,6 +114,7 @@ textarea{grid-column:1/-1}
   <button onclick="location.href='admin-dashboard.html'">Dashboard</button>
 </header>
 
+<!-- ADD PRODUCT -->
 <div class="form">
   <input id="name" placeholder="Product name">
   <input id="price" type="number" placeholder="Price">
@@ -113,19 +126,23 @@ textarea{grid-column:1/-1}
   <button id="addBtn">Add Product</button>
 </div>
 
+<!-- PRODUCTS -->
 <div class="products" id="list"></div>
 
 <script>
+/* ================= CONFIG ================= */
 const API_BASE = "https://shopx-production-b1ad.up.railway.app/api";
 const PUBLIC_PRODUCTS_API = API_BASE + "/products";
 const ADMIN_PRODUCTS_API = API_BASE + "/admin/products";
 
-const token = localStorage.getItem("adminToken");
-if (!token) location.href = "admin-login.html";
-
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
 
+/* ================= AUTH ================= */
+const token = localStorage.getItem("adminToken");
+if (!token) location.href = "admin-login.html";
+
+/* ================= ELEMENTS ================= */
 const list = document.getElementById("list");
 const addBtn = document.getElementById("addBtn");
 
@@ -138,43 +155,53 @@ const img3Input = document.getElementById("img3");
 const descInput = document.getElementById("desc");
 
 /* ================= LOAD PRODUCTS ================= */
-async function loadProducts() {
-  const res = await fetch(PUBLIC_PRODUCTS_API);
-  const products = await res.json();
-
+async function loadProducts(){
   list.innerHTML = "";
 
-  products.forEach(p => {
-    let imgs = [];
+  let res;
+  try{
+    res = await fetch(PUBLIC_PRODUCTS_API);
+  }catch{
+    alert("Server unreachable");
+    return;
+  }
 
-    // ✅ Normalize images safely
-    if (Array.isArray(p.images)) {
-      imgs = p.images;
-    } else {
-      try {
-        imgs = JSON.parse(p.images);
-      } catch {
-        imgs = [];
+  const products = await res.json();
+
+  products.forEach(p=>{
+    let images = [];
+
+    // SAFE NORMALIZATION
+    if(Array.isArray(p.images)){
+      images = p.images;
+    }else if(typeof p.images === "string"){
+      try{
+        images = JSON.parse(p.images);
+      }catch{
+        images = [];
       }
     }
 
-    // ✅ CRITICAL FIX: remove empty / invalid URLs
-    imgs = imgs.filter(
-      img => typeof img === "string" && img.trim() !== ""
-    );
+    // REMOVE EMPTY URLS
+    images = images.filter(i => typeof i === "string" && i.trim());
 
-    const imageSrc = imgs[0] || FALLBACK_IMAGE;
+    const imgSrc = images[0] || FALLBACK_IMAGE;
 
     const card = document.createElement("div");
     card.className = "card";
+
     card.innerHTML = `
-      <img 
-        src="${imageSrc}" 
+      <img
+        src="${imgSrc}"
+        width="300"
+        height="150"
         loading="lazy"
-        onerror="this.src='${FALLBACK_IMAGE}'"
+        decoding="async"
+        fetchpriority="low"
+        onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'"
       >
-      <h4>${p.name}</h4>
-      <p>₹${p.price}</p>
+      <strong>${p.name}</strong>
+      <span>₹${p.price}</span>
       <small>${p.category}</small>
       <button>Delete</button>
     `;
@@ -185,7 +212,7 @@ async function loadProducts() {
 }
 
 /* ================= ADD PRODUCT ================= */
-addBtn.onclick = async () => {
+addBtn.onclick = async ()=>{
   const payload = {
     name: nameInput.value.trim(),
     price: Number(priceInput.value),
@@ -196,37 +223,37 @@ addBtn.onclick = async () => {
     image3: img3Input.value.trim()
   };
 
-  if (!payload.name || !payload.category || isNaN(payload.price)) {
-    alert("Name, price and category are required");
+  if(!payload.name || !payload.category || isNaN(payload.price)){
+    alert("Name, price and category required");
     return;
   }
 
-  const res = await fetch(ADMIN_PRODUCTS_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token
+  const res = await fetch(ADMIN_PRODUCTS_API,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer "+token
     },
-    body: JSON.stringify(payload)
+    body:JSON.stringify(payload)
   });
 
   const data = await res.json();
-  if (!res.ok) return alert(data.message || "Add failed");
+  if(!res.ok) return alert(data.message || "Add failed");
 
   clearForm();
   loadProducts();
 };
 
 /* ================= DELETE PRODUCT ================= */
-async function deleteProduct(id) {
-  if (!confirm("Delete product?")) return;
+async function deleteProduct(id){
+  if(!confirm("Delete product?")) return;
 
-  const res = await fetch(`${ADMIN_PRODUCTS_API}/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: "Bearer " + token }
+  const res = await fetch(`${ADMIN_PRODUCTS_API}/${id}`,{
+    method:"DELETE",
+    headers:{ Authorization:"Bearer "+token }
   });
 
-  if (!res.ok) {
+  if(!res.ok){
     alert("Delete failed");
     return;
   }
@@ -235,16 +262,15 @@ async function deleteProduct(id) {
 }
 
 /* ================= HELPERS ================= */
-function clearForm() {
+function clearForm(){
   [
-    nameInput, priceInput, categoryInput,
-    img1Input, img2Input, img3Input, descInput
-  ].forEach(i => i.value = "");
+    nameInput,priceInput,categoryInput,
+    img1Input,img2Input,img3Input,descInput
+  ].forEach(i=>i.value="");
 }
 
 loadProducts();
 </script>
-
 
 </body>
 </html>
