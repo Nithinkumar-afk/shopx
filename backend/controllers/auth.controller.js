@@ -18,8 +18,16 @@ exports.sendOtp = async (req, res) => {
   try {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await sendOTP(email, otp, name);
+    /* ✅ SEND EMAIL FIRST */
+    const mailSent = await sendOTP(email, otp, name);
 
+    if (!mailSent) {
+      return res.status(500).json({
+        message: "Failed to send OTP. Try again later."
+      });
+    }
+
+    /* ✅ SAVE OTP ONLY IF MAIL SENT */
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -33,6 +41,7 @@ exports.sendOtp = async (req, res) => {
     );
 
     res.json({ message: "OTP sent successfully" });
+
   } catch (err) {
     console.error("🔥 SEND OTP ERROR:", err.message);
     res.status(500).json({ message: "Failed to send OTP" });
@@ -66,10 +75,15 @@ exports.verifyOtp = async (req, res) => {
 
     const user = rows[0];
 
+    /* ✅ CLEAR OTP AFTER SUCCESS */
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]
     );
+
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: "JWT secret not configured" });
+    }
 
     const token = jwt.sign(
       {
@@ -90,6 +104,7 @@ exports.verifyOtp = async (req, res) => {
         role: "user"
       }
     });
+
   } catch (err) {
     console.error("🔥 VERIFY OTP ERROR:", err.message);
     res.status(500).json({ message: "Login failed" });
@@ -122,12 +137,10 @@ exports.getMe = async (req, res) => {
 exports.adminLogin = (req, res) => {
   const { username, password } = req.body;
 
-  // ✅ STRICT CHECK
   if (!username || !password) {
     return res.status(400).json({ message: "Missing credentials" });
   }
 
-  // ✅ SIMPLE STATIC ADMIN (SAFE FOR NOW)
   if (username !== "admin" || password !== "admin123") {
     return res.status(401).json({ message: "Invalid credentials" });
   }
