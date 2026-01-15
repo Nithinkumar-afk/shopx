@@ -27,10 +27,7 @@ exports.getProfile = async (req, res) => {
       [userId]
     );
 
-    res.json({
-      ...user,
-      addresses
-    });
+    res.json({ ...user, addresses });
   } catch (err) {
     console.error("GET PROFILE ERROR:", err);
     res.status(500).json({ message: "Failed to load profile" });
@@ -38,7 +35,7 @@ exports.getProfile = async (req, res) => {
 };
 
 /* ================================
-   UPDATE PROFILE (NO IMAGE)
+   UPDATE PROFILE
 ================================ */
 exports.updateProfile = async (req, res) => {
   try {
@@ -83,7 +80,7 @@ exports.updateProfileImage = async (req, res) => {
 
     if (old?.image) {
       const oldPath = path.join(__dirname, "..", old.image);
-      fs.unlink(oldPath, () => {}); // 🔥 safe async delete
+      fs.unlink(oldPath, () => {});
     }
 
     const imagePath = "/uploads/users/" + req.file.filename;
@@ -93,10 +90,7 @@ exports.updateProfileImage = async (req, res) => {
       [imagePath, userId]
     );
 
-    res.json({
-      message: "Profile image updated",
-      image: imagePath
-    });
+    res.json({ message: "Profile image updated", image: imagePath });
   } catch (err) {
     console.error("IMAGE UPDATE ERROR:", err);
     res.status(500).json({ message: "Failed to update image" });
@@ -104,7 +98,7 @@ exports.updateProfileImage = async (req, res) => {
 };
 
 /* ================================
-   ADD ADDRESS
+   ADD ADDRESS  ✅ FIXED
 ================================ */
 exports.addAddress = async (req, res) => {
   try {
@@ -115,14 +109,24 @@ exports.addAddress = async (req, res) => {
       return res.status(400).json({ message: "Address required" });
     }
 
-    const [result] = await db.query(
+    // 🔒 Insert address
+    await db.query(
       "INSERT INTO addresses (user_id, address) VALUES (?, ?)",
       [userId, address]
     );
 
-    res.json({
+    // ✅ Immediately return updated list (IMPORTANT)
+    const [addresses] = await db.query(
+      `SELECT id, address
+       FROM addresses
+       WHERE user_id=?
+       ORDER BY id DESC`,
+      [userId]
+    );
+
+    res.status(201).json({
       message: "Address added successfully",
-      addressId: result.insertId
+      addresses
     });
   } catch (err) {
     console.error("ADD ADDRESS ERROR:", err);
@@ -131,7 +135,7 @@ exports.addAddress = async (req, res) => {
 };
 
 /* ================================
-   DELETE ADDRESS (SAFE)
+   DELETE ADDRESS
 ================================ */
 exports.deleteAddress = async (req, res) => {
   try {
