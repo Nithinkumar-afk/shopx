@@ -18,7 +18,7 @@ exports.getUsers = async (req, res) => {
         "SELECT id, address FROM addresses WHERE user_id=? ORDER BY id DESC",
         [u.id]
       );
-      u.addresses = addresses;
+      u.addresses = addresses || [];
     }
 
     res.json(users);
@@ -34,10 +34,18 @@ exports.getUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const userId = Number(req.params.id);
-    const { name, addresses } = req.body;
+    let { name, addresses } = req.body;
 
     if (!userId || !name) {
       return res.status(400).json({ message: "Invalid data" });
+    }
+
+    const [[exists]] = await db.query(
+      "SELECT id FROM users WHERE id=?",
+      [userId]
+    );
+    if (!exists) {
+      return res.status(404).json({ message: "User not found" });
     }
 
     await db.query(
@@ -46,18 +54,24 @@ exports.updateUser = async (req, res) => {
     );
 
     if (addresses) {
+      // accept both JSON string & array
+      const list = Array.isArray(addresses)
+        ? addresses
+        : JSON.parse(addresses);
+
       await db.query("DELETE FROM addresses WHERE user_id=?", [userId]);
 
-      const list = JSON.parse(addresses);
       for (const addr of list) {
-        await db.query(
-          "INSERT INTO addresses (user_id, address) VALUES (?,?)",
-          [userId, addr.trim()]
-        );
+        if (addr && addr.trim()) {
+          await db.query(
+            "INSERT INTO addresses (user_id, address) VALUES (?,?)",
+            [userId, addr.trim()]
+          );
+        }
       }
     }
 
-    res.json({ message: "User updated" });
+    res.json({ message: "User updated successfully" });
   } catch (err) {
     console.error("ADMIN UPDATE USER ERROR:", err);
     res.status(500).json({ message: "Update failed" });
@@ -81,7 +95,9 @@ exports.updateUserImage = async (req, res) => {
 
     if (old?.image) {
       const oldPath = path.join(__dirname, "..", old.image);
-      fs.unlink(oldPath, () => {});
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
     }
 
     const imagePath = "/uploads/users/" + req.file.filename;

@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Admin Users | JD</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
 
@@ -15,8 +12,6 @@
   --glass:rgba(255,255,255,.06);
   --border:rgba(255,255,255,.12);
   --text:#e5e7eb;
-  --primary:#3b82f6;
-  --danger:#ef4444;
 }
 
 *{box-sizing:border-box}
@@ -24,33 +19,32 @@
 body{
   margin:0;
   font-family:Poppins,sans-serif;
-  background:radial-gradient(circle at top,#020617,#000);
+  background:#000;
   color:var(--text);
 }
 
-/* HEADER */
 header{
   padding:20px 28px;
   display:flex;
   justify-content:space-between;
-  align-items:center;
   border-bottom:1px solid var(--border);
 }
+
 header button{
-  background:linear-gradient(135deg,#ef4444,#dc2626);
-  color:#fff;
+  background:#ef4444;
   border:none;
   padding:10px 22px;
   border-radius:999px;
+  color:#fff;
   cursor:pointer;
 }
 
-/* NAV */
 .nav{
   display:flex;
   gap:14px;
   padding:18px 26px;
 }
+
 .nav a{
   text-decoration:none;
   padding:12px 20px;
@@ -60,10 +54,8 @@ header button{
   color:var(--text);
 }
 
-/* SECTION */
 .section{ padding:26px }
 
-/* USER CARD */
 .user-card{
   background:var(--glass);
   border:1px solid var(--border);
@@ -73,6 +65,7 @@ header button{
   display:flex;
   gap:18px;
 }
+
 .user-image{
   width:90px;
   height:90px;
@@ -80,11 +73,13 @@ header button{
   object-fit:cover;
   border:2px solid var(--border);
 }
+
 .actions{
   margin-top:10px;
   display:flex;
   gap:10px;
 }
+
 .edit-btn{
   background:#3b82f6;
   border:none;
@@ -93,6 +88,7 @@ header button{
   border-radius:999px;
   cursor:pointer;
 }
+
 .delete-btn{
   background:#ef4444;
   border:none;
@@ -102,7 +98,6 @@ header button{
   cursor:pointer;
 }
 
-/* MODAL */
 .modal{
   position:fixed;
   inset:0;
@@ -111,6 +106,7 @@ header button{
   justify-content:center;
   align-items:center;
 }
+
 .modal-content{
   background:#020617;
   padding:26px;
@@ -118,6 +114,7 @@ header button{
   width:90%;
   max-width:440px;
 }
+
 .modal-content input,
 .modal-content textarea{
   width:100%;
@@ -128,6 +125,7 @@ header button{
   background:var(--glass);
   color:var(--text);
 }
+
 .preview{
   width:90px;
   height:90px;
@@ -156,7 +154,6 @@ header button{
   <div id="usersList">Loading users...</div>
 </section>
 
-<!-- EDIT MODAL -->
 <div id="editModal" class="modal">
   <div class="modal-content">
     <h3>Edit User</h3>
@@ -164,7 +161,7 @@ header button{
     <input id="editName" placeholder="Full Name">
     <input id="editPhone" readonly>
     <input id="editAltPhone" readonly>
-    <input type="file" id="editImage" accept="image/*">
+    <input type="file" id="editImage">
     <textarea id="editAddresses" placeholder="One address per line"></textarea>
     <button class="edit-btn" onclick="saveEdit()">Save</button>
     <button class="delete-btn" onclick="closeModal()">Cancel</button>
@@ -192,52 +189,57 @@ const imagePreview = document.getElementById("imagePreview");
 let users = [];
 let editUserId = null;
 
-/* LOAD USERS — SAFE */
+/* =========================
+   LOAD USERS
+========================= */
 async function loadUsers(){
   try{
     const res = await fetch(API,{
       headers:{ Authorization:"Bearer "+token }
     });
 
-    if(res.status === 401 || res.status === 403){
-      return logout();
-    }
+    if(res.status === 401 || res.status === 403) return logout();
 
     const data = await res.json();
 
     if(!Array.isArray(data)){
-      usersList.innerHTML = "<p style='color:red'>Failed to load users</p>";
-      console.error(data);
+      usersList.innerHTML = "No users";
       return;
     }
 
-    users = data.map(u=>({
-      ...u,
-      image: u.image ? API_BASE + u.image : DEFAULT_IMAGE
-    }));
+    users = data.map(u=>{
+      const image =
+        u.image
+          ? API_BASE + u.image
+          : DEFAULT_IMAGE;
+
+      return { ...u, image };
+    });
 
     renderUsers();
-
   }catch(err){
     console.error(err);
-    usersList.innerHTML="<p style='color:red'>Server error</p>";
+    usersList.innerHTML="Server error";
   }
 }
 
+/* =========================
+   RENDER USERS
+========================= */
 function renderUsers(){
-  usersList.innerHTML="";
+  usersList.innerHTML = "";
+
   if(!users.length){
-    usersList.innerHTML="<p>No users found</p>";
+    usersList.innerHTML = "No users found";
     return;
   }
 
   users.forEach(u=>{
-    usersList.innerHTML+=`
+    usersList.innerHTML += `
       <div class="user-card">
-        <img class="user-image" src="${u.image}"
-             onerror="this.src='${DEFAULT_IMAGE}'">
+        <img class="user-image" src="${u.image}" onerror="this.src='${DEFAULT_IMAGE}'">
         <div style="flex:1">
-          <p><strong>${u.name}</strong></p>
+          <p><strong>${u.name || "No Name"}</strong></p>
           <div class="actions">
             <button class="edit-btn" onclick="openEdit(${u.id})">Edit</button>
             <button class="delete-btn" onclick="deleteUser(${u.id})">Delete</button>
@@ -248,59 +250,115 @@ function renderUsers(){
   });
 }
 
+/* =========================
+   OPEN EDIT MODAL
+========================= */
 function openEdit(id){
-  const u = users.find(x=>x.id===id);
-  editUserId=id;
-  editName.value=u.name;
-  editPhone.value=u.phone||"";
-  editAltPhone.value=u.altPhone||"";
-  editAddresses.value=u.addresses.map(a=>a.address).join("\n");
-  imagePreview.src=u.image;
-  editModal.style.display="flex";
+  const u = users.find(x => x.id == id);
+  if(!u) return;
+
+  editUserId = id;
+  editName.value = u.name || "";
+  editPhone.value = u.phone || "";
+  editAltPhone.value = u.altPhone || "";
+
+  editAddresses.value = Array.isArray(u.addresses)
+    ? u.addresses.map(a => a.address).join("\n")
+    : "";
+
+  imagePreview.src = u.image;
+  editImage.value = "";
+  editModal.style.display = "flex";
 }
 
+/* =========================
+   IMAGE PREVIEW FIX
+========================= */
+editImage.addEventListener("change", () => {
+  const file = editImage.files[0];
+  if(file){
+    imagePreview.src = URL.createObjectURL(file);
+  }
+});
+
+/* =========================
+   CLOSE MODAL
+========================= */
 function closeModal(){
-  editModal.style.display="none";
+  editModal.style.display = "none";
 }
 
+/* =========================
+   SAVE USER
+========================= */
 async function saveEdit(){
-  const fd=new FormData();
-  fd.append("name",editName.value.trim());
-  fd.append("addresses",JSON.stringify(
-    editAddresses.value.split("\n").filter(Boolean)
-  ));
+  const name = editName.value.trim();
+  if(!name){
+    alert("Name is required");
+    return;
+  }
 
-  await fetch(API+"/"+editUserId,{
-    method:"PUT",
-    headers:{ Authorization:"Bearer "+token },
-    body:fd
-  });
+  const addrList = editAddresses.value
+    .split("\n")
+    .map(a => a.trim())
+    .filter(Boolean);
 
-  if(editImage.files[0]){
-    const imgFd=new FormData();
-    imgFd.append("image",editImage.files[0]);
+  const fd = new FormData();
+  fd.append("name", name);
+  fd.append("addresses", JSON.stringify(addrList));
 
-    await fetch(API+"/"+editUserId+"/image",{
+  try{
+    const res = await fetch(API + "/" + editUserId,{
       method:"PUT",
-      headers:{ Authorization:"Bearer "+token },
-      body:imgFd
+      headers:{ Authorization:"Bearer " + token },
+      body: fd
     });
-  }
 
-  closeModal();
-  loadUsers();
+    if(!res.ok) throw new Error("Update failed");
+
+    if(editImage.files[0]){
+      const imgFd = new FormData();
+      imgFd.append("image", editImage.files[0]);
+
+      const imgRes = await fetch(API + "/" + editUserId + "/image",{
+        method:"PUT",
+        headers:{ Authorization:"Bearer " + token },
+        body: imgFd
+      });
+
+      if(!imgRes.ok) throw new Error("Image upload failed");
+    }
+
+    closeModal();
+    loadUsers();
+  }catch(err){
+    alert(err.message);
+    console.error(err);
+  }
 }
 
+/* =========================
+   DELETE USER
+========================= */
+async function deleteUser(id){
+  if(!confirm("Delete user permanently?")) return;
 
-function deleteUser(id){
-  if(confirm("Delete user?")){
-    fetch(API+"/"+id,{
+  try{
+    const res = await fetch(API + "/" + id,{
       method:"DELETE",
-      headers:{ Authorization:"Bearer "+token }
-    }).then(loadUsers);
+      headers:{ Authorization:"Bearer " + token }
+    });
+
+    if(!res.ok) throw new Error("Delete failed");
+    loadUsers();
+  }catch(err){
+    alert(err.message);
   }
 }
 
+/* =========================
+   LOGOUT
+========================= */
 function logout(){
   localStorage.removeItem("adminToken");
   location.replace("admin-login.html");

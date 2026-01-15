@@ -5,34 +5,30 @@ const path = require("path");
 /* ================================
    GET USER PROFILE
 ================================ */
-exports.getProfile = async (req, res) => {
+exports.deleteUser = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = Number(req.params.id);
 
     const [[user]] = await db.query(
-      `SELECT id, name, phone, alt_phone AS altPhone, image
-       FROM users WHERE id = ?`,
+      "SELECT image FROM users WHERE id=?",
       [userId]
     );
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    if (user?.image) {
+      const imgPath = path.join(__dirname, "..", user.image);
+      fs.existsSync(imgPath) && fs.unlink(imgPath, () => {});
     }
 
-    const [addresses] = await db.query(
-      `SELECT id, address
-       FROM addresses
-       WHERE user_id = ?
-       ORDER BY id DESC`,
-      [userId]
-    );
+    await db.query("DELETE FROM addresses WHERE user_id=?", [userId]);
+    await db.query("DELETE FROM users WHERE id=?", [userId]);
 
-    res.json({ ...user, addresses });
+    res.json({ message: "User deleted" });
   } catch (err) {
-    console.error("GET PROFILE ERROR:", err);
-    res.status(500).json({ message: "Failed to load profile" });
+    console.error("ADMIN DELETE USER ERROR:", err);
+    res.status(500).json({ message: "Delete failed" });
   }
 };
+
 
 /* ================================
    UPDATE PROFILE
