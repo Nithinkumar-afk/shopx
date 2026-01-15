@@ -105,9 +105,9 @@ textarea{grid-column:1/-1}
   <input id="name" placeholder="Product name">
   <input id="price" type="number" placeholder="Price">
   <input id="category" placeholder="Category">
-  <input id="img1" placeholder="Cloudinary / ImageKit URL 1">
-  <input id="img2" placeholder="Cloudinary / ImageKit URL 2 (optional)">
-  <input id="img3" placeholder="Cloudinary / ImageKit URL 3 (optional)">
+  <input id="img1" placeholder="Image URL 1">
+  <input id="img2" placeholder="Image URL 2 (optional)">
+  <input id="img3" placeholder="Image URL 3 (optional)">
   <textarea id="desc" rows="3" placeholder="Description (optional)"></textarea>
   <button id="addBtn">Add Product</button>
 </div>
@@ -122,9 +122,6 @@ const ADMIN_PRODUCTS_API = API_BASE + "/admin/products";
 
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
-
-const CLOUDINARY_REGEX = /^https:\/\/res\.cloudinary\.com\//;
-const IMAGEKIT_REGEX   = /^https:\/\/ik\.imagekit\.io\//;
 
 /* ================= AUTH ================= */
 const token = localStorage.getItem("adminToken");
@@ -141,10 +138,6 @@ const img1Input = document.getElementById("img1");
 const img2Input = document.getElementById("img2");
 const img3Input = document.getElementById("img3");
 const descInput = document.getElementById("desc");
-
-/* ================= HELPERS ================= */
-const isValidImageURL = (url) =>
-  CLOUDINARY_REGEX.test(url) || IMAGEKIT_REGEX.test(url);
 
 /* ================= LOAD PRODUCTS ================= */
 async function loadProducts(){
@@ -174,21 +167,13 @@ async function loadProducts(){
   });
 }
 
-/* ================= ADD PRODUCT ================= */
+/* ================= ADD PRODUCT (FIXED) ================= */
 addBtn.onclick = async () => {
   const images = [
     img1Input.value.trim(),
     img2Input.value.trim(),
     img3Input.value.trim()
-  ].filter(url => url && isValidImageURL(url));
-
-  if (images.length === 0) {
-    alert(
-      "Please paste at least ONE Cloudinary or ImageKit image URL.\n\n" +
-      "Example:\nhttps://res.cloudinary.com/yourname/image/upload/xxx.jpg"
-    );
-    return;
-  }
+  ].filter(Boolean); // ✅ allow ALL URLs
 
   const payload = {
     name: nameInput.value.trim(),
@@ -247,7 +232,6 @@ function clearForm(){
 
 loadProducts();
 </script>
-
 
 </body>
 </html>

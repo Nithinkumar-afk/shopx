@@ -78,7 +78,7 @@ exports.getProducts = async (req, res) => {
    ADD PRODUCT (ADMIN)
 ========================= */
 exports.addProduct = async (req, res) => {
-  if (!db) return dbDown(res);
+  if (!db) return res.status(503).json({ message: "Database unavailable" });
 
   const { name, price, category, description, images } = req.body;
 
@@ -86,24 +86,26 @@ exports.addProduct = async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  // 🔐 Backend-enforced image validation
-  if (!Array.isArray(images)) {
-    return res.status(400).json({ message: "Images array required" });
+  let finalImages = [];
+
+  // ✅ Accept ANY image URLs (array or single string)
+  if (Array.isArray(images)) {
+    finalImages = images.filter(
+      img => typeof img === "string" && img.trim()
+    );
   }
 
-  const validImages = images.filter(isValidImageURL);
-
-  if (!validImages.length) {
-    return res.status(400).json({
-      message: "Only Cloudinary / ImageKit image URLs allowed"
-    });
+  // ✅ Absolute fallback (NO ERROR)
+  if (!finalImages.length) {
+    finalImages = [
+      "https://via.placeholder.com/600x400?text=No+Image"
+    ];
   }
 
   try {
     await db.query(
       `
-      INSERT INTO products
-      (name, price, category, description, images)
+      INSERT INTO products (name, price, category, description, images)
       VALUES (?, ?, ?, ?, ?)
       `,
       [
@@ -111,13 +113,13 @@ exports.addProduct = async (req, res) => {
         Number(price),
         category.trim(),
         description?.trim() || "",
-        JSON.stringify(validImages)
+        JSON.stringify(finalImages)
       ]
     );
 
     res.status(201).json({ message: "Product added successfully" });
   } catch (err) {
-    console.error("❌ ADD PRODUCT ERROR:", err);
+    console.error("ADD PRODUCT ERROR:", err);
     res.status(500).json({ message: "Failed to add product" });
   }
 };
