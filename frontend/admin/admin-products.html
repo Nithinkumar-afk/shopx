@@ -115,98 +115,130 @@ textarea{grid-column:1/-1}
 <div class="products" id="list"></div>
 
 <script>
-const API = "https://shopx-production-b1ad.up.railway.app/api";
-const PUBLIC_API = API + "/products";
-const ADMIN_API = API + "/admin/products";
+/* ================= CONFIG ================= */
+const API_BASE = "https://shopx-production-b1ad.up.railway.app/api";
+const PUBLIC_PRODUCTS_API = API_BASE + "/products";
+const ADMIN_PRODUCTS_API = API_BASE + "/admin/products";
 
-const FALLBACK =
+const FALLBACK_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
 
-const token = localStorage.getItem("adminToken");
-if(!token) location.href="admin-login.html";
+const CLOUDINARY_REGEX = /^https:\/\/res\.cloudinary\.com\//;
+const IMAGEKIT_REGEX   = /^https:\/\/ik\.imagekit\.io\//;
 
+/* ================= AUTH ================= */
+const token = localStorage.getItem("adminToken");
+if (!token) location.href = "admin-login.html";
+
+/* ================= ELEMENTS ================= */
 const list = document.getElementById("list");
 const addBtn = document.getElementById("addBtn");
 
-const nameI = nameInput = document.getElementById("name");
-const priceI = document.getElementById("price");
-const catI = document.getElementById("category");
-const img1I = document.getElementById("img1");
-const img2I = document.getElementById("img2");
-const img3I = document.getElementById("img3");
-const descI = document.getElementById("desc");
+const nameInput = document.getElementById("name");
+const priceInput = document.getElementById("price");
+const categoryInput = document.getElementById("category");
+const img1Input = document.getElementById("img1");
+const img2Input = document.getElementById("img2");
+const img3Input = document.getElementById("img3");
+const descInput = document.getElementById("desc");
 
-const isValidImageURL = url =>
-  /^https:\/\/(res\.cloudinary\.com|ik\.imagekit\.io)\//.test(url);
+/* ================= HELPERS ================= */
+const isValidImageURL = (url) =>
+  CLOUDINARY_REGEX.test(url) || IMAGEKIT_REGEX.test(url);
 
+/* ================= LOAD PRODUCTS ================= */
 async function loadProducts(){
-  list.innerHTML="";
-  const res = await fetch(PUBLIC_API);
+  list.innerHTML = "";
+
+  const res = await fetch(PUBLIC_PRODUCTS_API);
   const products = await res.json();
 
   products.forEach(p=>{
-    const img = Array.isArray(p.images) && p.images[0]
+    const imgSrc = Array.isArray(p.images) && p.images.length
       ? p.images[0]
-      : FALLBACK;
+      : FALLBACK_IMAGE;
 
     const card = document.createElement("div");
-    card.className="card";
-    card.innerHTML=`
-      <img src="${img}" onerror="this.src='${FALLBACK}'">
+    card.className = "card";
+
+    card.innerHTML = `
+      <img src="${imgSrc}" onerror="this.src='${FALLBACK_IMAGE}'">
       <strong>${p.name}</strong>
       <span>₹${p.price}</span>
       <small>${p.category}</small>
       <button>Delete</button>
     `;
-    card.querySelector("button").onclick=()=>deleteProduct(p.id);
+
+    card.querySelector("button").onclick = () => deleteProduct(p.id);
     list.appendChild(card);
   });
 }
 
-addBtn.onclick = async ()=>{
-  const images = [img1I.value,img2I.value,img3I.value]
-    .map(i=>i.trim())
-    .filter(i=>i && isValidImageURL(i));
+/* ================= ADD PRODUCT ================= */
+addBtn.onclick = async () => {
+  const images = [
+    img1Input.value.trim(),
+    img2Input.value.trim(),
+    img3Input.value.trim()
+  ].filter(isValidImageURL);
 
-  if(!nameI.value || !catI.value || !priceI.value){
-    return alert("Name, price & category required");
-  }
-  if(!images.length){
-    return alert("At least ONE Cloudinary / ImageKit image required");
+  if (!images.length) {
+    alert("Only Cloudinary / ImageKit image URLs allowed");
+    return;
   }
 
-  const res = await fetch(ADMIN_API,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
+  const payload = {
+    name: nameInput.value.trim(),
+    price: Number(priceInput.value),
+    category: categoryInput.value.trim(),
+    description: descInput.value.trim(),
+    images
+  };
+
+  if (!payload.name || !payload.category || isNaN(payload.price)) {
+    alert("Name, price & category required");
+    return;
+  }
+
+  const res = await fetch(ADMIN_PRODUCTS_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token
     },
-    body:JSON.stringify({
-      name:nameI.value.trim(),
-      price:Number(priceI.value),
-      category:catI.value.trim(),
-      description:descI.value.trim(),
-      images
-    })
+    body: JSON.stringify(payload)
   });
 
   const data = await res.json();
-  if(!res.ok) return alert(data.message);
+  if (!res.ok) return alert(data.message);
 
-  [nameI,priceI,catI,img1I,img2I,img3I,descI].forEach(i=>i.value="");
+  clearForm();
   loadProducts();
 };
 
+/* ================= DELETE PRODUCT ================= */
 async function deleteProduct(id){
-  if(!confirm("Delete product?")) return;
-  await fetch(`${ADMIN_API}/${id}`,{
-    method:"DELETE",
-    headers:{Authorization:"Bearer "+token}
+  if (!confirm("Delete product?")) return;
+
+  const res = await fetch(`${ADMIN_PRODUCTS_API}/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: "Bearer " + token }
   });
+
+  if (!res.ok) alert("Delete failed");
   loadProducts();
 }
 
+/* ================= CLEAR ================= */
+function clearForm(){
+  [nameInput,priceInput,categoryInput,
+   img1Input,img2Input,img3Input,descInput]
+  .forEach(i => i.value = "");
+}
+
 loadProducts();
+</script>
+
 </script>
 
 </body>

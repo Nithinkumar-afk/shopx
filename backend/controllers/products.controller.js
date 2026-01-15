@@ -1,13 +1,49 @@
 const db = require("../config/db");
 
-const DEFAULT_IMAGE =
+/* =========================
+   CONSTANTS
+========================= */
+const FALLBACK_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
+
+const CLOUDINARY_REGEX = /^https:\/\/res\.cloudinary\.com\//;
+const IMAGEKIT_REGEX   = /^https:\/\/ik\.imagekit\.io\//;
 
 /* =========================
    DB DOWN HANDLER
 ========================= */
 const dbDown = (res) =>
   res.status(503).json({ message: "Database unavailable" });
+
+/* =========================
+   IMAGE VALIDATOR
+========================= */
+const isValidImageURL = (url) =>
+  typeof url === "string" &&
+  (CLOUDINARY_REGEX.test(url) || IMAGEKIT_REGEX.test(url));
+
+/* =========================
+   NORMALIZE IMAGES (OUTPUT)
+========================= */
+function normalizeImages(images) {
+  try {
+    let arr = [];
+
+    if (Array.isArray(images)) {
+      arr = images;
+    } else if (typeof images === "string") {
+      arr = JSON.parse(images);
+    }
+
+    const clean = Array.isArray(arr)
+      ? arr.filter(isValidImageURL)
+      : [];
+
+    return clean.length ? clean : [FALLBACK_IMAGE];
+  } catch {
+    return [FALLBACK_IMAGE];
+  }
+}
 
 /* =========================
    GET ALL PRODUCTS (PUBLIC)
@@ -44,38 +80,23 @@ exports.getProducts = async (req, res) => {
 exports.addProduct = async (req, res) => {
   if (!db) return dbDown(res);
 
-  const {
-    name,
-    price,
-    category,
-    description,
-    images,
-    image1,
-    image2,
-    image3
-  } = req.body;
+  const { name, price, category, description, images } = req.body;
 
   if (!name || price === undefined || !category) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  let finalImages = [];
-
-  // 1️⃣ Prefer images array (future-proof)
-  if (Array.isArray(images)) {
-    finalImages = images;
-  } else {
-    // 2️⃣ Fallback to image1,image2,image3
-    finalImages = [image1, image2, image3];
+  // 🔐 Backend-enforced image validation
+  if (!Array.isArray(images)) {
+    return res.status(400).json({ message: "Images array required" });
   }
 
-  // 3️⃣ Clean invalid URLs
-  finalImages = finalImages
-    .filter(img => typeof img === "string" && img.trim());
+  const validImages = images.filter(isValidImageURL);
 
-  // 4️⃣ Always guarantee at least one image
-  if (!finalImages.length) {
-    finalImages = [DEFAULT_IMAGE];
+  if (!validImages.length) {
+    return res.status(400).json({
+      message: "Only Cloudinary / ImageKit image URLs allowed"
+    });
   }
 
   try {
@@ -90,7 +111,7 @@ exports.addProduct = async (req, res) => {
         Number(price),
         category.trim(),
         description?.trim() || "",
-        JSON.stringify(finalImages)
+        JSON.stringify(validImages)
       ]
     );
 
@@ -128,27 +149,3 @@ exports.deleteProduct = async (req, res) => {
     res.status(500).json({ message: "Failed to delete product" });
   }
 };
-
-/* =========================
-   IMAGE NORMALIZER (CORE FIX)
-========================= */
-function normalizeImages(images) {
-  try {
-    // Already array → fastest path
-    if (Array.isArray(images)) {
-      return images.length ? images : [DEFAULT_IMAGE];
-    }
-
-    // JSON string → parse once
-    const parsed = JSON.parse(images);
-    if (Array.isArray(parsed) && parsed.length) {
-      return parsed.filter(
-        img => typeof img === "string" && img.trim()
-      );
-    }
-
-    return [DEFAULT_IMAGE];
-  } catch {
-    return [DEFAULT_IMAGE];
-  }
-}
