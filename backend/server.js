@@ -17,19 +17,18 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 /*************************************************
- * TRUST PROXY (Railway / Render safe)
+ * TRUST PROXY (Railway safe)
  *************************************************/
 app.set("trust proxy", 1);
 
 /*************************************************
- * BODY PARSERS (MUST BE FIRST)
+ * BODY PARSERS (✅ FIXED)
  *************************************************/
-app.use(express.json({ limit: "5mb", strict: false }));
+app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.text({ type: "*/*" })); // 🔥 important for proxies
 
 /*************************************************
- * CORS (Netlify + Admin + Local safe)
+ * CORS (Netlify + Admin + Local)
  *************************************************/
 app.use(
   cors({
@@ -55,7 +54,7 @@ require("./config/db");
  * ROUTES
  *************************************************/
 
-/* AUTH */
+/* USER AUTH */
 app.use("/api/auth", require("./routes/auth.routes"));
 
 /* ADMIN */
