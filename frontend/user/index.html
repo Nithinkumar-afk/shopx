@@ -194,96 +194,126 @@ header{
 <div id="toast" class="toast"></div>
 
 <script>
-const API="https://shopx-production-b1ad.up.railway.app/api/products";
-const FALLBACK="https://via.placeholder.com/300x200?text=No+Image";
+const API = "https://shopx-production-b1ad.up.railway.app/api/products";
+const FALLBACK = "https://via.placeholder.com/300x200?text=No+Image";
 
-const user=JSON.parse(localStorage.getItem("loggedInUser"));
-const token=localStorage.getItem("token");
-if(!user||!token) location.href="login.html";
+/* ===== AUTH ===== */
+const user = JSON.parse(localStorage.getItem("loggedInUser"));
+const token = localStorage.getItem("token");
+if (!user || !token) location.href = "login.html";
 
-userName.textContent=user.name||"User";
-avatar.textContent=(user.name||"U")[0].toUpperCase();
+userName.textContent = user.name || "User";
+avatar.textContent = (user.name || "U")[0].toUpperCase();
 
-let products=[];
-let cart=JSON.parse(localStorage.getItem("cart"))||[];
-let wishlist=JSON.parse(localStorage.getItem("wishlist"))||[];
-let selectedCategory="all";
-cartCount.textContent=cart.length;
+/* ===== STATE ===== */
+let productsData = [];
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
+let selectedCategory = "all";
 
-const normalize=v=>(v||"").toLowerCase().trim();
+cartCount.textContent = cart.length;
 
-function showToast(m){
-  toast.textContent=m;
+/* ===== ELEMENTS ===== */
+const productsContainer = document.getElementById("products");
+const categoriesContainer = document.getElementById("categories");
+
+/* ===== HELPERS ===== */
+const normalize = v => (v || "").toLowerCase().trim();
+
+function showToast(msg) {
+  toast.textContent = msg;
   toast.classList.add("show");
-  setTimeout(()=>toast.classList.remove("show"),2000);
+  setTimeout(() => toast.classList.remove("show"), 2000);
 }
 
-profileBtn.onclick=e=>{
+/* ===== PROFILE MENU ===== */
+profileBtn.onclick = e => {
   e.stopPropagation();
-  menu.style.display=menu.style.display==="block"?"none":"block";
+  menu.style.display = menu.style.display === "block" ? "none" : "block";
 };
-document.addEventListener("click",()=>menu.style.display="none");
+document.addEventListener("click", () => menu.style.display = "none");
 
-function logout(){
+function logout() {
   localStorage.clear();
-  location.href="login.html";
+  location.href = "login.html";
 }
 
+/* ===== FETCH PRODUCTS ===== */
 fetch(API)
-.then(r=>r.json())
-.then(d=>{
-  products=(Array.isArray(d)?d:[]).map(p=>({
-    id:p.id,
-    name:p.name,
-    price:p.price,
-    category:normalize(p.category),
-    images:Array.isArray(p.images)&&p.images.length?p.images:[FALLBACK]
-  }));
-  renderCategories();
-  renderProducts();
-})
-.catch(()=>showToast("Failed to load products"));
+  .then(res => res.json())
+  .then(data => {
+    productsData = (Array.isArray(data) ? data : []).map(p => ({
+      id: p.id,
+      name: p.name || "Unnamed",
+      price: Number(p.price) || 0,
+      category: normalize(p.category),
+      images: Array.isArray(p.images) && p.images.length
+        ? p.images
+        : [FALLBACK]
+    }));
 
-function renderCategories(){
-  const cats=["all",...new Set(products.map(p=>p.category).filter(Boolean))];
-  categories.innerHTML="";
-  cats.forEach(c=>{
-    const b=document.createElement("button");
-    b.textContent=c==="all"?"All":c;
-    if(c===selectedCategory) b.classList.add("active");
-    b.onclick=()=>{selectedCategory=c;renderCategories();renderProducts()};
-    categories.appendChild(b);
+    renderCategories();
+    renderProducts();
+  })
+  .catch(err => {
+    console.error(err);
+    showToast("Failed to load products");
+  });
+
+/* ===== RENDER CATEGORY ===== */
+function renderCategories() {
+  const cats = ["all", ...new Set(productsData.map(p => p.category).filter(Boolean))];
+  categoriesContainer.innerHTML = "";
+
+  cats.forEach(c => {
+    const btn = document.createElement("button");
+    btn.textContent = c === "all" ? "All" : c;
+    if (c === selectedCategory) btn.classList.add("active");
+    btn.onclick = () => {
+      selectedCategory = c;
+      renderCategories();
+      renderProducts();
+    };
+    categoriesContainer.appendChild(btn);
   });
 }
 
-function renderProducts(){
-  const q=normalize(search.value);
-  productsEl.innerHTML="";
-  products.forEach(p=>{
-    if(selectedCategory!=="all"&&p.category!==selectedCategory) return;
-    if(!normalize(p.name).includes(q)) return;
-    const img=p.images[0]||FALLBACK;
-    products.insertAdjacentHTML("beforeend",`
+/* ===== RENDER PRODUCTS ===== */
+function renderProducts() {
+  const q = normalize(search.value);
+  productsContainer.innerHTML = "";
+
+  productsData.forEach(p => {
+    if (selectedCategory !== "all" && p.category !== selectedCategory) return;
+    if (!normalize(p.name).includes(q)) return;
+
+    const img = p.images[0] || FALLBACK;
+
+    productsContainer.insertAdjacentHTML("beforeend", `
       <div class="product" onclick="location.href='product.html?id=${p.id}'">
         <img src="${img}" onerror="this.src='${FALLBACK}'">
         <h3>${p.name}</h3>
-        <div>₹${p.price}</div>
-        <button class="cart-btn" onclick="event.stopPropagation();addToCart(${p.id})">Add to Cart</button>
+        <div class="price">₹${p.price}</div>
+        <button class="cart-btn" onclick="event.stopPropagation();addToCart(${p.id})">
+          Add to Cart
+        </button>
       </div>
     `);
   });
 }
 
-function addToCart(id){
-  if(cart.some(i=>i.id===id)) return showToast("Already in cart");
-  const p=products.find(p=>p.id===id);
-  cart.push({...p,qty:1});
-  localStorage.setItem("cart",JSON.stringify(cart));
-  cartCount.textContent=cart.length;
-  showToast("Added to cart");
+/* ===== CART ===== */
+function addToCart(id) {
+  if (cart.some(i => i.id === id)) return showToast("Already in cart");
+  const p = productsData.find(p => p.id === id);
+  if (!p) return;
+  cart.push({ ...p, qty: 1 });
+  localStorage.setItem("cart", JSON.stringify(cart));
+  cartCount.textContent = cart.length;
+  showToast("Added to cart 🛒");
 }
 
-search.oninput=renderProducts;
+search.oninput = renderProducts;
 </script>
 
 </body>
