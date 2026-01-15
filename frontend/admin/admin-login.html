@@ -54,7 +54,6 @@ button{
   font-weight:600;
   cursor:pointer;
 }
-button:disabled{opacity:.7}
 .error{color:#ef4444;font-size:13px;margin-bottom:10px;display:none;text-align:center}
 .footer{text-align:center;margin-top:18px;font-size:13px;color:#cbd5e1}
 </style>
@@ -68,10 +67,13 @@ button:disabled{opacity:.7}
 
   <div class="error" id="error"></div>
 
-  <input id="username" placeholder="Admin Username">
-  <input id="password" type="password" placeholder="Admin Password">
+  <!-- ✅ FORM ADDED -->
+  <form id="loginForm">
+    <input id="username" type="text" placeholder="Admin Username" required>
+    <input id="password" type="password" placeholder="Admin Password" required>
+    <button type="submit">Login</button>
+  </form>
 
-  <button id="loginBtn">Login</button>
   <div class="footer">© JD Admin Panel</div>
 </div>
 
@@ -80,15 +82,16 @@ button:disabled{opacity:.7}
 
 /* ================= CONFIG ================= */
 const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
-const LOGIN_API = BASE_URL + "/api/auth/admin/login";
+const LOGIN_API = BASE_URL + "/api/admin/login"; // ✅ FIXED PATH
 
 /* ================= ELEMENTS ================= */
-const usernameInput = document.querySelector("input[type='text']");
-const passwordInput = document.querySelector("input[type='password']");
-const errorText = document.querySelector(".error");
+const form = document.getElementById("loginForm");
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
+const errorText = document.getElementById("error");
 
 /* ================= LOGIN ================= */
-async function login(e) {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const username = usernameInput.value.trim();
@@ -103,10 +106,7 @@ async function login(e) {
     const res = await fetch(LOGIN_API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username,   // ✅ MUST BE username
-        password    // ✅ MUST BE password
-      })
+      body: JSON.stringify({ username, password })
     });
 
     const data = await res.json();
@@ -116,31 +116,20 @@ async function login(e) {
       return;
     }
 
-    // ✅ SAVE TOKEN
     localStorage.setItem("adminToken", data.token);
-
-    // ✅ REDIRECT
     location.replace("admin-dashboard.html");
 
   } catch (err) {
-    console.error("Login error:", err);
+    console.error(err);
     showError("Server not reachable");
   }
-}
+});
 
-/* ================= ERROR UI ================= */
+/* ================= ERROR ================= */
 function showError(msg) {
-  if (errorText) {
-    errorText.textContent = msg;
-    errorText.style.display = "block";
-  } else {
-    alert(msg);
-  }
+  errorText.textContent = msg;
+  errorText.style.display = "block";
 }
-
-/* ================= EVENT ================= */
-document.querySelector("form")
-  ?.addEventListener("submit", login);
 </script>
 
 </body>
