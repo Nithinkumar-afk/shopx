@@ -13,6 +13,7 @@ exports.getUserOrders = async (req, res) => {
         o.id AS order_id,
         o.total_amount,
         o.status,
+        o.address,
         o.created_at,
         oi.quantity,
         oi.price,
@@ -35,6 +36,7 @@ exports.getUserOrders = async (req, res) => {
           id: r.order_id,
           total_amount: r.total_amount,
           status: r.status,
+          address: r.address,
           created_at: r.created_at,
           items: []
         };
@@ -72,7 +74,7 @@ exports.getOrderById = async (req, res) => {
 
     const [[order]] = await db.query(
       `
-      SELECT id, total_amount, status, created_at
+      SELECT id, total_amount, status, address, created_at
       FROM orders
       WHERE id = ? AND user_id = ?
       `,
@@ -102,7 +104,7 @@ exports.getOrderById = async (req, res) => {
 };
 
 /* ===============================
-   PLACE ORDER
+   PLACE ORDER (FIXED)
 ================================ */
 exports.placeOrder = async (req, res) => {
   let connection;
@@ -118,16 +120,18 @@ exports.placeOrder = async (req, res) => {
     connection = await db.getConnection();
     await connection.beginTransaction();
 
+    // ✅ INSERT ORDER (ADDRESS STORED HERE)
     const [orderResult] = await connection.query(
       `
-      INSERT INTO orders (user_id, total_amount, status)
-      VALUES (?, ?, 'placed')
+      INSERT INTO orders (user_id, total_amount, status, address)
+      VALUES (?, ?, 'placed', ?)
       `,
-      [userId, total_amount]
+      [userId, total_amount, address]
     );
 
     const orderId = orderResult.insertId;
 
+    // ✅ INSERT ITEMS
     for (const item of items) {
       await connection.query(
         `
@@ -137,14 +141,6 @@ exports.placeOrder = async (req, res) => {
         [orderId, item.product_id, item.quantity, item.price]
       );
     }
-
-    await connection.query(
-      `
-      INSERT INTO order_addresses (order_id, full_address)
-      VALUES (?, ?)
-      `,
-      [orderId, address]
-    );
 
     await connection.commit();
 
@@ -198,7 +194,7 @@ exports.getLatestOrder = async (req, res) => {
 
     const [[order]] = await db.query(
       `
-      SELECT id, total_amount, status, created_at
+      SELECT id, total_amount, status, address, created_at
       FROM orders
       WHERE user_id = ?
       ORDER BY created_at DESC

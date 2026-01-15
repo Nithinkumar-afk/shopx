@@ -13,10 +13,10 @@ exports.getProducts = async (req, res) => {
   if (!db) return dbDown(res);
 
   try {
+    // ✅ SAFE QUERY (no dependency on is_active)
     const [rows] = await db.query(`
       SELECT id, name, price, category, description, images
       FROM products
-      WHERE is_active = 1
       ORDER BY id DESC
     `);
 
@@ -25,13 +25,13 @@ exports.getProducts = async (req, res) => {
       name: p.name,
       price: Number(p.price),
       category: p.category,
-      description: p.description,
+      description: p.description || "",
       images: parseImages(p.images),
     }));
 
     res.json(products);
   } catch (err) {
-    console.error("❌ GET PRODUCTS:", err.message);
+    console.error("❌ GET PRODUCTS ERROR:", err);
     res.status(500).json({ message: "Failed to fetch products" });
   }
 };
@@ -47,28 +47,26 @@ exports.addProduct = async (req, res) => {
     price,
     category,
     description,
+    images,
     image1,
     image2,
     image3,
-    images, // ✅ support array too (important)
   } = req.body;
 
   if (!name || price === undefined || !category) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  // ✅ SAFELY BUILD IMAGE ARRAY (NO BUGS)
+  // ✅ SAFE IMAGE HANDLING
   let finalImages = [];
 
   if (Array.isArray(images)) {
-    finalImages = images
-      .filter((img) => typeof img === "string" && img.trim() !== "");
+    finalImages = images.filter(Boolean);
   } else {
-    finalImages = [image1, image2, image3]
-      .filter((img) => typeof img === "string" && img.trim() !== "");
+    finalImages = [image1, image2, image3].filter(Boolean);
   }
 
-  if (finalImages.length === 0) {
+  if (!finalImages.length) {
     finalImages = [DEFAULT_IMAGE];
   }
 
@@ -76,8 +74,8 @@ exports.addProduct = async (req, res) => {
     await db.query(
       `
       INSERT INTO products
-      (name, price, category, description, images, is_active)
-      VALUES (?, ?, ?, ?, ?, 1)
+      (name, price, category, description, images)
+      VALUES (?, ?, ?, ?, ?)
       `,
       [
         name.trim(),
@@ -90,39 +88,41 @@ exports.addProduct = async (req, res) => {
 
     res.status(201).json({ message: "Product added successfully" });
   } catch (err) {
-    console.error("❌ ADD PRODUCT:", err.message);
+    console.error("❌ ADD PRODUCT ERROR:", err);
     res.status(500).json({ message: "Failed to add product" });
   }
 };
 
 /* =========================
-   DELETE PRODUCT
+   DELETE PRODUCT (HARD DELETE)
 ========================= */
 exports.deleteProduct = async (req, res) => {
   if (!db) return dbDown(res);
 
   const id = Number(req.params.id);
-  if (!id) return res.status(400).json({ message: "Invalid ID" });
+  if (!id) {
+    return res.status(400).json({ message: "Invalid product ID" });
+  }
 
   try {
-    const [r] = await db.query(
-      "UPDATE products SET is_active = 0 WHERE id = ?",
+    const [result] = await db.query(
+      "DELETE FROM products WHERE id = ?",
       [id]
     );
 
-    if (!r.affectedRows) {
+    if (!result.affectedRows) {
       return res.status(404).json({ message: "Product not found" });
     }
 
     res.json({ message: "Product deleted successfully" });
   } catch (err) {
-    console.error("❌ DELETE PRODUCT:", err.message);
+    console.error("❌ DELETE PRODUCT ERROR:", err);
     res.status(500).json({ message: "Failed to delete product" });
   }
 };
 
 /* =========================
-   HELPER
+   HELPERS
 ========================= */
 function parseImages(images) {
   try {
