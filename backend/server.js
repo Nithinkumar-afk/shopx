@@ -9,6 +9,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const helmet = require("helmet");
+const compression = require("compression");
 
 /*************************************************
  * APP INIT
@@ -22,15 +24,24 @@ const PORT = Number(process.env.PORT) || 8080;
 app.set("trust proxy", 1);
 
 /*************************************************
- * MIDDLEWARE
+ * GLOBAL MIDDLEWARE
+ *************************************************/
+app.use(helmet());
+app.use(compression());
+
+/*************************************************
+ * CORS (NETLIFY + ADMIN SAFE)
  *************************************************/
 app.use(
   cors({
-    origin: "*", // Netlify safe
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: "*", // ✅ allow Netlify + admin
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Handle preflight explicitly
+app.options("*", cors());
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -51,18 +62,23 @@ try {
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT
+ * DATABASE INIT (SAFE)
  *************************************************/
-require("./config/db");
+try {
+  require("./config/db");
+  console.log("🗄️ Database connected");
+} catch (err) {
+  console.error("❌ Database init failed:", err.message);
+}
 
 /*************************************************
- * ROUTES (✔ CORRECT ORDER)
+ * ROUTES (✔ ORDER IS CORRECT)
  *************************************************/
 
 /* AUTH */
 app.use("/api/auth", require("./routes/auth.routes"));
 
-/* ADMIN (LOGIN MUST COME FIRST) */
+/* ADMIN */
 app.use("/api/admin", require("./routes/admin.routes"));
 app.use("/api/admin/users", require("./routes/admin.users.routes"));
 app.use("/api/admin/products", require("./routes/admin.products.routes"));
