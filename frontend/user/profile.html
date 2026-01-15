@@ -27,6 +27,7 @@ header{
 }
 header a{color:#4fb6e8;font-size:22px;text-decoration:none}
 .container{max-width:920px;margin:auto;padding:28px 20px}
+
 .card{
   background:rgba(255,255,255,.08);
   backdrop-filter:blur(18px);
@@ -36,21 +37,37 @@ header a{color:#4fb6e8;font-size:22px;text-decoration:none}
   box-shadow:0 30px 80px rgba(0,0,0,.85);
   margin-bottom:24px;
 }
+
 .profile-top{display:flex;gap:28px;align-items:center}
+
 .profile-pic{
   width:130px;height:130px;border-radius:50%;
   background:linear-gradient(135deg,#4fb6e8,#2563eb);
-  padding:5px;cursor:pointer
+  padding:5px;cursor:pointer;
 }
-.profile-pic img{
-  width:100%;height:100%;border-radius:50%;
-  object-fit:cover;background:black;
-  border:3px solid rgba(255,255,255,.8)
+
+.profile-pic img,
+.emoji-avatar{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  object-fit:cover;
+  background:black;
+  border:3px solid rgba(255,255,255,.8);
 }
+
+.emoji-avatar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:56px;
+}
+
 label{
   font-size:13px;font-weight:600;color:#cbd5e1;
   margin-top:12px;display:block
 }
+
 input,textarea{
   width:100%;margin-top:6px;
   padding:14px 16px;border-radius:14px;
@@ -58,15 +75,18 @@ input,textarea{
   background:rgba(0,0,0,.4);
   color:white;font-family:Poppins,sans-serif
 }
+
 button{
   margin-top:16px;padding:14px 22px;
   border:none;border-radius:14px;
   font-weight:600;cursor:pointer
 }
+
 .primary{
   background:linear-gradient(135deg,#4fb6e8,#2563eb);
   color:white
 }
+
 .address-card{
   border:1px solid rgba(255,255,255,.2);
   border-radius:18px;
@@ -74,11 +94,13 @@ button{
   display:flex;justify-content:space-between;
   background:rgba(0,0,0,.35)
 }
+
 .delete-btn{
   background:#ef4444;color:white;
   padding:8px 14px;border-radius:10px;
   font-size:13px;border:none
 }
+
 .empty{color:#94a3b8;font-size:14px;margin-top:10px}
 </style>
 </head>
@@ -92,11 +114,12 @@ button{
 
 <div class="container">
 
-  <!-- PROFILE -->
+  <!-- PROFILE CARD -->
   <div class="card">
     <div class="profile-top">
       <div class="profile-pic" onclick="imgInput.click()">
-        <img id="profileImage" src="https://i.imgur.com/8Km9tLL.png">
+        <div id="avatar" class="emoji-avatar">👤</div>
+        <img id="profileImage" hidden>
       </div>
 
       <div style="flex:1">
@@ -134,29 +157,33 @@ button{
 <script>
 const API = "https://shopx-production-b1ad.up.railway.app";
 
-/* AUTH */
-const token = localStorage.getItem("userToken") || localStorage.getItem("token");
-if(!token) location.replace("login.html");
+/* TOKEN */
+const token =
+  localStorage.getItem("userToken") ||
+  localStorage.getItem("token");
+
+if(!token){
+  location.replace("login.html");
+}
 
 const authHeader = { Authorization: "Bearer " + token };
 
-/* ELEMENTS */
-const nameInput = document.getElementById("name");
-const phoneInput = document.getElementById("phone");
-const altPhoneInput = document.getElementById("altPhone");
-const profileImage = document.getElementById("profileImage");
-const imgInput = document.getElementById("imgInput");
-const addressList = document.getElementById("addressList");
-const saveBtn = document.getElementById("saveBtn");
-const addAddressBtn = document.getElementById("addAddressBtn");
-const newAddress = document.getElementById("newAddress");
+const nameInput=document.getElementById("name");
+const phoneInput=document.getElementById("phone");
+const altPhoneInput=document.getElementById("altPhone");
+const profileImage=document.getElementById("profileImage");
+const avatar=document.getElementById("avatar");
+const imgInput=document.getElementById("imgInput");
+const addressList=document.getElementById("addressList");
+const saveBtn=document.getElementById("saveBtn");
+const addAddressBtn=document.getElementById("addAddressBtn");
+const newAddress=document.getElementById("newAddress");
 
 /* LOAD PROFILE */
 async function loadProfile(){
   try{
-    const res = await fetch(API + "/api/profile", { headers: authHeader });
-    if(!res.ok) throw new Error("Unauthorized");
-
+    const res = await fetch(API+"/api/profile",{ headers: authHeader });
+    if(!res.ok) throw new Error();
     const d = await res.json();
 
     nameInput.value = d.name || "";
@@ -164,33 +191,34 @@ async function loadProfile(){
     altPhoneInput.value = d.altPhone || "";
 
     if(d.image){
-      profileImage.src = d.image.startsWith("http")
-        ? d.image
-        : API + d.image;
+      profileImage.src = d.image.startsWith("http") ? d.image : API + d.image;
+      profileImage.hidden = false;
+      avatar.style.display = "none";
+    }else{
+      profileImage.hidden = true;
+      avatar.style.display = "flex";
     }
 
     renderAddresses(d.addresses || []);
-  }catch(e){
-    alert("Failed to load profile. Please login again.");
-    localStorage.clear();
-    location.replace("login.html");
+  }catch{
+    alert("Failed to load profile");
   }
 }
 
 /* SAVE PROFILE */
 saveBtn.onclick = async () => {
-  const res = await fetch(API + "/api/profile",{
+  const res = await fetch(API+"/api/profile",{
     method:"PUT",
-    headers:{ ...authHeader, "Content-Type":"application/json" },
+    headers:{...authHeader,"Content-Type":"application/json"},
     body:JSON.stringify({
-      name: nameInput.value.trim(),
-      phone: phoneInput.value.trim(),
-      altPhone: altPhoneInput.value.trim()
+      name:nameInput.value.trim(),
+      phone:phoneInput.value.trim(),
+      altPhone:altPhoneInput.value.trim()
     })
   });
 
   if(!res.ok) return alert("Profile update failed");
-  alert("Profile updated successfully");
+  alert("Profile updated");
 };
 
 /* IMAGE UPLOAD */
@@ -201,15 +229,17 @@ imgInput.onchange = async () => {
   const fd = new FormData();
   fd.append("image", file);
 
-  const res = await fetch(API + "/api/profile/image",{
+  const res = await fetch(API+"/api/profile/image",{
     method:"PUT",
-    headers: authHeader,
-    body: fd
+    headers:authHeader,
+    body:fd
   });
 
   if(res.ok){
     const d = await res.json();
     profileImage.src = API + d.image;
+    profileImage.hidden = false;
+    avatar.style.display = "none";
   }
 };
 
@@ -218,38 +248,38 @@ addAddressBtn.onclick = async () => {
   const address = newAddress.value.trim();
   if(!address) return;
 
-  await fetch(API + "/api/profile/address",{
+  await fetch(API+"/api/profile/address",{
     method:"POST",
-    headers:{ ...authHeader, "Content-Type":"application/json" },
-    body: JSON.stringify({ address })
+    headers:{...authHeader,"Content-Type":"application/json"},
+    body:JSON.stringify({address})
   });
 
-  newAddress.value = "";
+  newAddress.value="";
   loadProfile();
 };
 
 function removeAddress(id){
-  fetch(API + "/api/profile/address/" + id,{
+  fetch(API+"/api/profile/address/"+id,{
     method:"DELETE",
-    headers: authHeader
+    headers:authHeader
   }).then(loadProfile);
 }
 
 function renderAddresses(list){
-  addressList.innerHTML = "";
+  addressList.innerHTML="";
   if(!list.length){
-    addressList.innerHTML = `<p class="empty">No saved addresses</p>`;
+    addressList.innerHTML='<p class="empty">No saved addresses</p>';
     return;
   }
 
   list.forEach(a=>{
-    const div = document.createElement("div");
-    div.className = "address-card";
-    div.innerHTML = `
+    const div=document.createElement("div");
+    div.className="address-card";
+    div.innerHTML=`
       <div>${a.address}</div>
       <button class="delete-btn">Delete</button>
     `;
-    div.querySelector("button").onclick = () => removeAddress(a.id);
+    div.querySelector("button").onclick=()=>removeAddress(a.id);
     addressList.appendChild(div);
   });
 }
