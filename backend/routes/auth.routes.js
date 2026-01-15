@@ -1,27 +1,45 @@
-const express = require("express");
-const router = express.Router();
+const nodemailer = require("nodemailer");
 
-const auth = require("../controllers/auth.controller");
-const userAuth = require("../middleware/auth.middleware");
+/**
+ * Gmail SMTP transporter
+ */
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 
-/* ===============================
-   USER AUTH ROUTES
-================================ */
+/**
+ * Send OTP Email
+ * MUST NEVER CRASH LOGIN FLOW
+ */
+exports.sendOTP = async (to, otp, name = "User") => {
+  try {
+    await transporter.sendMail({
+      from: `"JD Infotech" <${process.env.GMAIL_USER}>`,
+      to,
+      subject: "Your Login OTP",
+      html: `
+        <div style="font-family:Arial,sans-serif">
+          <h2>Hello ${name},</h2>
+          <p>Your OTP is:</p>
+          <h1 style="letter-spacing:2px">${otp}</h1>
+          <p>This OTP is valid for <b>5 minutes</b>.</p>
+          <br/>
+          <p>— JD Infotech</p>
+        </div>
+      `,
+    });
 
-// Send OTP
-router.post("/send-otp", auth.sendOtp);
+    console.log("✅ OTP email sent to:", to);
+    return true;
 
-// Verify OTP & login
-router.post("/verify-otp", auth.verifyOtp);
+  } catch (err) {
+    console.error("❌ OTP mail failed:", err.message);
 
-// Get logged-in user
-router.get("/me", userAuth, auth.getMe);
-
-/* ===============================
-   ADMIN AUTH ROUTES ✅ FIX
-================================ */
-
-// ADMIN LOGIN (USERNAME + PASSWORD ONLY)
-router.post("/admin/login", auth.adminLogin);
-
-module.exports = router;
+    // IMPORTANT: DO NOT BLOCK LOGIN
+    return true;
+  }
+};
