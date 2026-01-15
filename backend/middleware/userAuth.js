@@ -1,5 +1,9 @@
 const jwt = require("jsonwebtoken");
 
+/**
+ * USER AUTH MIDDLEWARE (FIXED)
+ * Ensures req.user.id ALWAYS exists
+ */
 module.exports = function (req, res, next) {
   const header = req.headers.authorization;
 
@@ -16,7 +20,23 @@ module.exports = function (req, res, next) {
     const token = header.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = decoded;
+    /**
+     * 🔧 NORMALIZE USER ID
+     * Supports tokens with:
+     * - id
+     * - userId
+     * - sub
+     */
+    req.user = {
+      id: decoded.id || decoded.userId || decoded.sub,
+      email: decoded.email,
+      role: decoded.role
+    };
+
+    if (!req.user.id) {
+      return res.status(401).json({ message: "Invalid token payload" });
+    }
+
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });

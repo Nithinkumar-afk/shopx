@@ -5,7 +5,10 @@ const db = require("../config/db");
 ================================ */
 exports.getUserOrders = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
     const [rows] = await db.query(
       `
@@ -34,7 +37,7 @@ exports.getUserOrders = async (req, res) => {
       if (!ordersMap[r.order_id]) {
         ordersMap[r.order_id] = {
           id: r.order_id,
-          total_amount: r.total_amount,
+          total_amount: Number(r.total_amount),
           status: r.status,
           address: r.address,
           created_at: r.created_at,
@@ -50,8 +53,8 @@ exports.getUserOrders = async (req, res) => {
 
         ordersMap[r.order_id].items.push({
           name: r.name,
-          price: r.price,
-          quantity: r.quantity,
+          price: Number(r.price),
+          quantity: Number(r.quantity),
           image: images[0] || ""
         });
       }
@@ -69,8 +72,12 @@ exports.getUserOrders = async (req, res) => {
 ================================ */
 exports.getOrderById = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const orderId = Number(req.params.id);
+
+    if (!userId || !orderId) {
+      return res.status(400).json({ message: "Invalid request" });
+    }
 
     const [[order]] = await db.query(
       `
@@ -110,17 +117,23 @@ exports.placeOrder = async (req, res) => {
   let connection;
 
   try {
+    const userId = req.user?.id;
     const { total_amount, address, items } = req.body;
-    const userId = req.user.id;
 
-    if (!total_amount || !address || !Array.isArray(items) || !items.length) {
+    if (
+      !userId ||
+      typeof total_amount !== "number" ||
+      total_amount < 0 ||
+      !address ||
+      !Array.isArray(items) ||
+      !items.length
+    ) {
       return res.status(400).json({ message: "Invalid order data" });
     }
 
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    // ✅ INSERT ORDER (ADDRESS STORED HERE)
     const [orderResult] = await connection.query(
       `
       INSERT INTO orders (user_id, total_amount, status, address)
@@ -131,7 +144,6 @@ exports.placeOrder = async (req, res) => {
 
     const orderId = orderResult.insertId;
 
-    // ✅ INSERT ITEMS
     for (const item of items) {
       await connection.query(
         `
@@ -162,8 +174,12 @@ exports.placeOrder = async (req, res) => {
 ================================ */
 exports.cancelOrder = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
     const orderId = Number(req.params.id);
+
+    if (!userId || !orderId) {
+      return res.status(400).json({ message: "Invalid request" });
+    }
 
     const [result] = await db.query(
       `
@@ -190,7 +206,10 @@ exports.cancelOrder = async (req, res) => {
 ================================ */
 exports.getLatestOrder = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
     const [[order]] = await db.query(
       `
