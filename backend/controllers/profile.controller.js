@@ -3,7 +3,39 @@ const fs = require("fs");
 const path = require("path");
 
 /* ================================
-   GET USER PROFILE
+   GET USER PROFILE ✅ REQUIRED
+================================ */
+exports.getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [[user]] = await db.query(
+      `SELECT id, name, phone, alt_phone AS altPhone, image
+       FROM users WHERE id=?`,
+      [userId]
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const [addresses] = await db.query(
+      `SELECT id, address
+       FROM addresses
+       WHERE user_id=?
+       ORDER BY id DESC`,
+      [userId]
+    );
+
+    res.json({ ...user, addresses });
+  } catch (err) {
+    console.error("GET PROFILE ERROR:", err);
+    res.status(500).json({ message: "Failed to load profile" });
+  }
+};
+
+/* ================================
+   ADMIN DELETE USER (DO NOT TOUCH)
 ================================ */
 exports.deleteUser = async (req, res) => {
   try {
@@ -28,7 +60,6 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ message: "Delete failed" });
   }
 };
-
 
 /* ================================
    UPDATE PROFILE
@@ -94,7 +125,7 @@ exports.updateProfileImage = async (req, res) => {
 };
 
 /* ================================
-   ADD ADDRESS  ✅ FIXED
+   ADD ADDRESS
 ================================ */
 exports.addAddress = async (req, res) => {
   try {
@@ -105,13 +136,11 @@ exports.addAddress = async (req, res) => {
       return res.status(400).json({ message: "Address required" });
     }
 
-    // 🔒 Insert address
     await db.query(
       "INSERT INTO addresses (user_id, address) VALUES (?, ?)",
       [userId, address]
     );
 
-    // ✅ Immediately return updated list (IMPORTANT)
     const [addresses] = await db.query(
       `SELECT id, address
        FROM addresses
