@@ -8,9 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-/* ===== RESET ===== */
 *{margin:0;padding:0;box-sizing:border-box}
-
 :root{
   --bg:#000;
   --glass:rgba(255,255,255,0.06);
@@ -19,17 +17,13 @@
   --muted:#9aa0a6;
   --primary:#4da3ff;
   --primary2:#2b6df6;
-  --radius:18px;
 }
-
 body{
   font-family:Poppins,sans-serif;
   background:radial-gradient(circle at top,#0b0b0b,#000);
-  color:var(--text);
+  color:white;
   min-height:100vh;
 }
-
-/* ===== HEADER ===== */
 header{
   display:flex;
   align-items:center;
@@ -42,15 +36,8 @@ header{
   top:0;
   z-index:100;
 }
-
-.logo{
-  font-size:22px;
-  font-weight:600;
-  cursor:pointer;
-}
+.logo{font-size:22px;font-weight:600;cursor:pointer}
 .logo span:first-child{color:var(--primary)}
-.logo span:last-child{color:white}
-
 #search{
   width:40%;
   max-width:420px;
@@ -61,19 +48,7 @@ header{
   color:white;
   outline:none;
 }
-#search::placeholder{color:var(--muted)}
-#search:focus{
-  border-color:var(--primary);
-  box-shadow:0 0 0 2px rgba(77,163,255,.25);
-}
-
-.header-right{
-  display:flex;
-  gap:14px;
-  align-items:center;
-}
-
-/* ===== PROFILE ===== */
+.header-right{display:flex;gap:14px;align-items:center}
 .profile-btn{
   display:flex;
   gap:10px;
@@ -85,8 +60,6 @@ header{
   color:white;
   cursor:pointer;
 }
-.profile-btn:hover{background:rgba(255,255,255,.1)}
-
 .avatar{
   width:36px;
   height:36px;
@@ -97,65 +70,27 @@ header{
   justify-content:center;
   font-weight:600;
 }
-
-.profile-text small{
-  font-size:11px;
-  color:var(--muted);
-}
-
-/* ===== DROPDOWN ===== */
 .dropdown{
   position:absolute;
   top:70px;
   right:28px;
   width:230px;
-  background:rgba(15,15,15,.95);
+  background:#0f0f0f;
   border:1px solid var(--border);
   border-radius:16px;
-  backdrop-filter:blur(18px);
   display:none;
-  overflow:hidden;
-  box-shadow:0 25px 60px rgba(0,0,0,.6);
 }
-
-.dropdown-header{
-  padding:16px;
-  border-bottom:1px solid var(--border);
-}
-.dropdown-header small{
-  color:var(--muted);
-  font-size:12px;
-}
-
-.dropdown a{
-  display:block;
-  padding:12px 16px;
-  text-decoration:none;
-  color:white;
-  font-size:14px;
-}
-.dropdown a:hover{background:rgba(255,255,255,.08)}
-.dropdown .logout{color:#ff6b6b}
-
-/* ===== CART ===== */
+.dropdown a{display:block;padding:12px 16px;color:white;text-decoration:none}
+.dropdown a:hover{background:#222}
 .cart{
   padding:10px 18px;
   border-radius:999px;
   border:none;
   background:linear-gradient(135deg,var(--primary),var(--primary2));
   color:white;
-  font-weight:500;
   cursor:pointer;
 }
-
-/* ===== LAYOUT ===== */
-.container{
-  display:flex;
-  gap:24px;
-  padding:26px;
-}
-
-/* ===== CATEGORIES ===== */
+.container{display:flex;gap:24px;padding:26px}
 .categories{
   min-width:200px;
   display:flex;
@@ -169,36 +104,23 @@ header{
   background:var(--glass);
   color:white;
   cursor:pointer;
-  text-align:left;
 }
-.categories button:hover,
 .categories button.active{
   background:linear-gradient(135deg,var(--primary),var(--primary2));
-  border-color:transparent;
 }
-
-/* ===== PRODUCTS ===== */
 .products{
   flex:1;
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
   gap:22px;
 }
-
 .product{
-  position:relative;
-  background:linear-gradient(180deg,#0f0f0f,#0a0a0a);
+  background:#0f0f0f;
   border:1px solid var(--border);
   border-radius:22px;
   padding:16px;
   cursor:pointer;
-  transition:.3s;
 }
-.product:hover{
-  transform:translateY(-6px);
-  box-shadow:0 30px 60px rgba(0,0,0,.7);
-}
-
 .product img{
   width:100%;
   height:200px;
@@ -206,17 +128,6 @@ header{
   border-radius:14px;
   margin-bottom:12px;
 }
-
-.product h3{
-  font-size:16px;
-  margin-bottom:6px;
-}
-
-.price{
-  font-weight:600;
-  margin-bottom:10px;
-}
-
 .cart-btn{
   width:100%;
   padding:12px;
@@ -224,47 +135,32 @@ header{
   border:none;
   background:linear-gradient(135deg,var(--primary),var(--primary2));
   color:white;
-  cursor:pointer;
 }
-
-/* ===== WISHLIST ===== */
 .wishlist-btn{
   position:absolute;
   top:14px;
   right:14px;
-  width:38px;
-  height:38px;
-  border-radius:50%;
   border:none;
-  background:rgba(0,0,0,.55);
-  color:white;
-  cursor:pointer;
+  background:none;
+  font-size:18px;
 }
-.wishlist-btn.active{color:#ff5c8a}
-
-/* ===== TOAST ===== */
 .toast{
   position:fixed;
   bottom:30px;
   left:50%;
-  transform:translateX(-50%) translateY(20px);
-  background:rgba(20,20,20,.95);
-  padding:14px 22px;
+  transform:translateX(-50%);
+  background:#111;
+  padding:12px 22px;
   border-radius:999px;
-  border:1px solid var(--border);
   opacity:0;
   transition:.3s;
 }
-.toast.show{
-  opacity:1;
-  transform:translateX(-50%) translateY(0);
-}
+.toast.show{opacity:1}
 </style>
 </head>
 
 <body>
 
-<!-- ===== UI UNCHANGED ===== -->
 <header>
   <div class="logo" onclick="location.href='index.html'">
     <span>J</span><span>D</span>
@@ -275,22 +171,13 @@ header{
   <div class="header-right">
     <button class="profile-btn" id="profileBtn">
       <div class="avatar" id="avatar">U</div>
-      <span class="profile-text">
-        <strong id="userName">Account</strong>
-        <small>My profile</small>
-      </span>
+      <span id="userName">Account</span>
     </button>
 
     <div class="dropdown" id="menu">
-      <div class="dropdown-header">
-        <strong id="dropName">User</strong>
-        <small id="dropEmail">user@email.com</small>
-      </div>
-      <a href="profile.html">👤 Profile</a>
-      <a href="orders.html">📦 Orders</a>
-      <a href="wishlist.html">❤️ Wishlist</a>
-      <hr>
-      <a href="#" class="logout" onclick="logout()">🚪 Logout</a>
+      <a href="profile.html">Profile</a>
+      <a href="orders.html">Orders</a>
+      <a href="#" onclick="logout()">Logout</a>
     </div>
 
     <button class="cart" onclick="location.href='cart.html'">
@@ -306,33 +193,25 @@ header{
 
 <div id="toast" class="toast"></div>
 
-<!-- ===== JS LOGIC (UNCHANGED) ===== -->
 <script>
-const BASE_URL="https://shopx-production-b1ad.up.railway.app";
-const API=BASE_URL+"/api/products";
-const IMAGE_BASE=BASE_URL+"/";
+const API="https://shopx-production-b1ad.up.railway.app/api/products";
 const FALLBACK="https://via.placeholder.com/300x200?text=No+Image";
 
 const user=JSON.parse(localStorage.getItem("loggedInUser"));
 const token=localStorage.getItem("token");
 if(!user||!token) location.href="login.html";
 
-const name=user.name||"User";
-const email=user.email||"Account";
-
-userName.textContent=name;
-dropName.textContent=name;
-dropEmail.textContent=email;
-avatar.textContent=name.charAt(0).toUpperCase();
+userName.textContent=user.name||"User";
+avatar.textContent=(user.name||"U")[0].toUpperCase();
 
 let products=[];
 let cart=JSON.parse(localStorage.getItem("cart"))||[];
 let wishlist=JSON.parse(localStorage.getItem("wishlist"))||[];
 let selectedCategory="all";
-
 cartCount.textContent=cart.length;
 
 const normalize=v=>(v||"").toLowerCase().trim();
+
 function showToast(m){
   toast.textContent=m;
   toast.classList.add("show");
@@ -343,7 +222,6 @@ profileBtn.onclick=e=>{
   e.stopPropagation();
   menu.style.display=menu.style.display==="block"?"none":"block";
 };
-menu.onclick=e=>e.stopPropagation();
 document.addEventListener("click",()=>menu.style.display="none");
 
 function logout(){
@@ -351,17 +229,15 @@ function logout(){
   location.href="login.html";
 }
 
-fetch(API,{headers:{Authorization:"Bearer "+token}})
+fetch(API)
 .then(r=>r.json())
 .then(d=>{
-  products=(Array.isArray(d)?d:[]).map((p,i)=>({
-    id:p.id??i,
-    name:p.name||"Unnamed",
-    price:p.price||0,
+  products=(Array.isArray(d)?d:[]).map(p=>({
+    id:p.id,
+    name:p.name,
+    price:p.price,
     category:normalize(p.category),
-    images:Array.isArray(p.images)
-      ? p.images.map(i=>i.startsWith("http")?i:IMAGE_BASE+i)
-      : []
+    images:Array.isArray(p.images)&&p.images.length?p.images:[FALLBACK]
   }));
   renderCategories();
   renderProducts();
@@ -382,18 +258,16 @@ function renderCategories(){
 
 function renderProducts(){
   const q=normalize(search.value);
-  products.innerHTML="";
+  productsEl.innerHTML="";
   products.forEach(p=>{
     if(selectedCategory!=="all"&&p.category!==selectedCategory) return;
     if(!normalize(p.name).includes(q)) return;
     const img=p.images[0]||FALLBACK;
-    const inWish=wishlist.some(w=>w.id===p.id);
     products.insertAdjacentHTML("beforeend",`
       <div class="product" onclick="location.href='product.html?id=${p.id}'">
-        <button class="wishlist-btn ${inWish?'active':''}" onclick="event.stopPropagation();toggleWish(${p.id})">❤️</button>
         <img src="${img}" onerror="this.src='${FALLBACK}'">
         <h3>${p.name}</h3>
-        <div class="price">₹${p.price}</div>
+        <div>₹${p.price}</div>
         <button class="cart-btn" onclick="event.stopPropagation();addToCart(${p.id})">Add to Cart</button>
       </div>
     `);
@@ -403,20 +277,10 @@ function renderProducts(){
 function addToCart(id){
   if(cart.some(i=>i.id===id)) return showToast("Already in cart");
   const p=products.find(p=>p.id===id);
-  if(!p) return;
   cart.push({...p,qty:1});
   localStorage.setItem("cart",JSON.stringify(cart));
   cartCount.textContent=cart.length;
-  showToast("Added to cart 🛒");
-}
-
-function toggleWish(id){
-  const i=wishlist.findIndex(w=>w.id===id);
-  const p=products.find(p=>p.id===id);
-  if(!p) return;
-  i===-1?wishlist.push(p):wishlist.splice(i,1);
-  localStorage.setItem("wishlist",JSON.stringify(wishlist));
-  renderProducts();
+  showToast("Added to cart");
 }
 
 search.oninput=renderProducts;

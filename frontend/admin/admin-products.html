@@ -105,7 +105,7 @@ textarea{grid-column:1/-1}
   <input id="name" placeholder="Product name">
   <input id="price" type="number" placeholder="Price">
   <input id="category" placeholder="Category">
-  <input id="img1" placeholder="Image URL 1">
+  <input id="img1" placeholder="Image URL 1 (required)">
   <input id="img2" placeholder="Image URL 2 (optional)">
   <input id="img3" placeholder="Image URL 3 (optional)">
   <textarea id="desc" rows="3" placeholder="Description (optional)"></textarea>
@@ -147,9 +147,7 @@ async function loadProducts(){
   const products = await res.json();
 
   products.forEach(p=>{
-    const imgSrc = Array.isArray(p.images) && p.images.length
-      ? p.images[0]
-      : FALLBACK_IMAGE;
+    const imgSrc = p.images?.[0] || FALLBACK_IMAGE;
 
     const card = document.createElement("div");
     card.className = "card";
@@ -167,13 +165,18 @@ async function loadProducts(){
   });
 }
 
-/* ================= ADD PRODUCT (FIXED) ================= */
+/* ================= ADD PRODUCT ================= */
 addBtn.onclick = async () => {
   const images = [
     img1Input.value.trim(),
     img2Input.value.trim(),
     img3Input.value.trim()
-  ].filter(Boolean); // ✅ allow ALL URLs
+  ].filter(Boolean); // ✅ ONLY remove empty values
+
+  if (!images.length) {
+    alert("At least ONE image URL is required");
+    return;
+  }
 
   const payload = {
     name: nameInput.value.trim(),
@@ -219,15 +222,8 @@ async function deleteProduct(id){
 
 /* ================= CLEAR ================= */
 function clearForm(){
-  [
-    nameInput,
-    priceInput,
-    categoryInput,
-    img1Input,
-    img2Input,
-    img3Input,
-    descInput
-  ].forEach(i => i.value = "");
+  [nameInput,priceInput,categoryInput,img1Input,img2Input,img3Input,descInput]
+    .forEach(i => i.value = "");
 }
 
 loadProducts();
