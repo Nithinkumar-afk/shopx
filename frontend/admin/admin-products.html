@@ -116,7 +116,6 @@ textarea{grid-column:1/-1}
 
 <script>
 const API_BASE = "https://shopx-production-b1ad.up.railway.app/api";
-
 const PUBLIC_PRODUCTS_API = API_BASE + "/products";
 const ADMIN_PRODUCTS_API = API_BASE + "/admin/products";
 
@@ -126,7 +125,6 @@ if (!token) location.href = "admin-login.html";
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
 
-/* ELEMENTS */
 const list = document.getElementById("list");
 const addBtn = document.getElementById("addBtn");
 
@@ -138,40 +136,46 @@ const img2Input = document.getElementById("img2");
 const img3Input = document.getElementById("img3");
 const descInput = document.getElementById("desc");
 
-/* LOAD PRODUCTS (PUBLIC) */
+/* LOAD PRODUCTS */
 async function loadProducts() {
   const res = await fetch(PUBLIC_PRODUCTS_API);
   const products = await res.json();
 
   list.innerHTML = "";
+
   products.forEach(p => {
     const imgs = Array.isArray(p.images) && p.images.length
       ? p.images
       : [FALLBACK_IMAGE];
 
-    list.innerHTML += `
-      <div class="card">
-        <img src="${imgs[0]}" onerror="this.src='${FALLBACK_IMAGE}'">
-        <h4>${p.name}</h4>
-        <p>₹${p.price}</p>
-        <small>${p.category}</small>
-        <button onclick="deleteProduct(${p.id})">Delete</button>
-      </div>
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <img src="${imgs[0]}" onerror="this.src='${FALLBACK_IMAGE}'">
+      <h4>${p.name}</h4>
+      <p>₹${p.price}</p>
+      <small>${p.category}</small>
+      <button>Delete</button>
     `;
+
+    card.querySelector("button").onclick = () => deleteProduct(p.id);
+    list.appendChild(card);
   });
 }
 
-/* ADD PRODUCT (ADMIN) */
+/* ADD PRODUCT */
 addBtn.onclick = async () => {
   const payload = {
     name: nameInput.value.trim(),
     price: Number(priceInput.value),
     category: categoryInput.value.trim(),
     description: descInput.value.trim(),
-    images: [img1Input.value, img2Input.value, img3Input.value].filter(Boolean)
+    image1: img1Input.value.trim(),
+    image2: img2Input.value.trim(),
+    image3: img3Input.value.trim()
   };
 
-  if (!payload.name || !payload.price || !payload.category) {
+  if (!payload.name || !payload.category || isNaN(payload.price)) {
     alert("Name, price and category are required");
     return;
   }
@@ -188,21 +192,23 @@ addBtn.onclick = async () => {
   const data = await res.json();
   if (!res.ok) return alert(data.message || "Add failed");
 
-  alert("✅ Product added");
   clearForm();
   loadProducts();
 };
 
-/* DELETE PRODUCT (ADMIN) */
+/* DELETE PRODUCT */
 async function deleteProduct(id) {
   if (!confirm("Delete product?")) return;
 
-  await fetch(`${ADMIN_PRODUCTS_API}/${id}`, {
+  const res = await fetch(`${ADMIN_PRODUCTS_API}/${id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: "Bearer " + token
-    }
+    headers: { Authorization: "Bearer " + token }
   });
+
+  if (!res.ok) {
+    alert("Delete failed");
+    return;
+  }
 
   loadProducts();
 }
@@ -215,7 +221,6 @@ function clearForm() {
 
 loadProducts();
 </script>
-
 
 </body>
 </html>
