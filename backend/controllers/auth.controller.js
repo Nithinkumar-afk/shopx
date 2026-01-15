@@ -14,8 +14,10 @@ exports.sendOtp = async (req, res) => {
   try {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+    // 1️⃣ SEND EMAIL FIRST (CRITICAL)
     await sendOTP(email, otp, name);
 
+    // 2️⃣ SAVE OTP ONLY IF EMAIL SUCCESS
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -29,9 +31,12 @@ exports.sendOtp = async (req, res) => {
     );
 
     return res.json({ message: "OTP sent successfully" });
+
   } catch (err) {
     console.error("🔥 SEND OTP ERROR:", err.message);
-    return res.status(500).json({ message: "Failed to send OTP" });
+    return res.status(500).json({
+      message: "Failed to send OTP. Try again."
+    });
   }
 };
 
@@ -67,29 +72,14 @@ exports.verifyOtp = async (req, res) => {
       [user.id]
     );
 
-    // ✅ ADMIN EMAIL CHECK
-    const role =
-      user.email === process.env.ADMIN_EMAIL ? "admin" : "user";
-
     const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role
-      },
+      { id: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    return res.json({
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role
-      }
-    });
+    return res.json({ token, user });
+
   } catch (err) {
     console.error("🔥 VERIFY OTP ERROR:", err.message);
     return res.status(500).json({ message: "Login failed" });
@@ -109,6 +99,7 @@ exports.getMe = async (req, res) => {
     }
 
     return res.json(rows[0]);
+
   } catch (err) {
     console.error("🔥 GET ME ERROR:", err.message);
     return res.status(500).json({ message: "Failed to fetch user" });

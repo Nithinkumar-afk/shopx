@@ -68,22 +68,26 @@ const safeRoute = (routePath, routeFile) => {
   }
 };
 
-//* AUTH */
+/*************************************************
+ * ROUTES (FINAL FIX)
+ *************************************************/
+
+/* AUTH */
 app.use("/api/auth", require("./routes/auth.routes"));
 
-/* PUBLIC */
+/* ✅ PUBLIC PRODUCTS */
 app.use("/api/products", require("./routes/product.routes"));
 
-/* USER (protected inside routes) */
+/* USER */
 app.use("/api/cart", require("./routes/cart.routes"));
 app.use("/api/orders", require("./routes/orders.routes"));
 
-/* ADMIN (adminAuth inside each route file) */
+/* ADMIN */
+app.use("/api/admin", require("./routes/admin.routes"));
 app.use("/api/admin/users", require("./routes/admin.users.routes"));
 app.use("/api/admin/products", require("./routes/admin.products.routes"));
 app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
-app.use("/api/admin", require("./routes/admin.routes"));
-
+app.use("/api/products", require("./routes/product.routes"));
 
 
 

@@ -9,10 +9,10 @@ exports.getAllOrders = async (req, res) => {
       SELECT
         o.id,
         o.total_amount,
-        o.status,
         o.created_at,
+        LOWER(o.status) AS raw_status,
         u.name,
-        u.email
+        u.phone
       FROM orders o
       JOIN users u ON u.id = o.user_id
       ORDER BY o.created_at DESC
@@ -22,16 +22,23 @@ exports.getAllOrders = async (req, res) => {
       return res.json([]);
     }
 
-    // Normalize status + init items
+    // 🔥 NORMALIZE STATUS
     orders.forEach(o => {
-      o.status = (o.status || "placed").toLowerCase();
+      let s = o.raw_status || "placed";
+
+      if (s.includes("place") || s === "pending") s = "placed";
+      else if (s.includes("ship")) s = "shipped";
+      else if (s.includes("deliver")) s = "delivered";
+      else if (s.includes("cancel")) s = "cancelled";
+
+      o.status = s;
+      delete o.raw_status;
       o.items = [];
     });
 
     const orderIds = orders.map(o => o.id);
 
-    const [items] = await db.query(
-      `
+    const [items] = await db.query(`
       SELECT
         oi.order_id,
         p.name,
@@ -40,12 +47,10 @@ exports.getAllOrders = async (req, res) => {
       FROM order_items oi
       JOIN products p ON p.id = oi.product_id
       WHERE oi.order_id IN (?)
-      `,
-      [orderIds]
-    );
+    `, [orderIds]);
 
     const map = {};
-    orders.forEach(o => (map[o.id] = o));
+    orders.forEach(o => map[o.id] = o);
 
     items.forEach(i => {
       if (map[i.order_id]) {
@@ -57,42 +62,12 @@ exports.getAllOrders = async (req, res) => {
       }
     });
 
+    // ✅ ALWAYS RETURN ARRAY
     res.json(orders);
+
   } catch (err) {
-    console.error("ADMIN GET ORDERS ERROR:", err.message);
+    console.error("ADMIN GET ORDERS ERROR:", err);
     res.status(500).json({ message: "Failed to fetch orders" });
-  }
-};
-
-/* =====================================================
-   ADMIN - GET DASHBOARD STATS (🔥 FIXES REVENUE)
-===================================================== */
-exports.getDashboardStats = async (req, res) => {
-  try {
-    const [[stats]] = await db.query(`
-      SELECT
-        COUNT(*) AS totalOrders,
-        COALESCE(SUM(
-          CASE
-            WHEN status = 'delivered' THEN total_amount
-            ELSE 0
-          END
-        ), 0) AS totalRevenue
-      FROM orders
-    `);
-
-    const [[users]] = await db.query(`
-      SELECT COUNT(*) AS totalUsers FROM users
-    `);
-
-    res.json({
-      totalOrders: stats.totalOrders,
-      totalRevenue: Number(stats.totalRevenue),
-      totalUsers: users.totalUsers
-    });
-  } catch (err) {
-    console.error("ADMIN DASHBOARD ERROR:", err.message);
-    res.status(500).json({ message: "Failed to load dashboard stats" });
   }
 };
 
@@ -112,7 +87,7 @@ exports.updateStatus = async (req, res) => {
 
     const allowed = ["placed", "shipped", "delivered", "cancelled"];
     if (!allowed.includes(status)) {
-      return res.status(400).json({ message: "Invalid status" });
+      return res.status(400).json({ message: "Invalid status value" });
     }
 
     const [rows] = await db.query(
@@ -129,15 +104,19 @@ exports.updateStatus = async (req, res) => {
       [status, orderId]
     );
 
-    res.json({ message: "Order status updated", status });
+    res.json({
+      message: "Order status updated",
+      status
+    });
+
   } catch (err) {
-    console.error("UPDATE STATUS ERROR:", err.message);
+    console.error("UPDATE STATUS ERROR:", err);
     res.status(500).json({ message: "Failed to update order status" });
   }
 };
 
 /* =====================================================
-   ADMIN - DELETE ORDER
+   ADMIN - DELETE ORDER (TRANSACTION SAFE)
 ===================================================== */
 exports.deleteOrder = async (req, res) => {
   const orderId = req.params.id;
@@ -165,10 +144,12 @@ exports.deleteOrder = async (req, res) => {
       "DELETE FROM order_items WHERE order_id = ?",
       [orderId]
     );
+
     await connection.query(
       "DELETE FROM order_addresses WHERE order_id = ?",
       [orderId]
     );
+
     await connection.query(
       "DELETE FROM orders WHERE id = ?",
       [orderId]
@@ -177,9 +158,10 @@ exports.deleteOrder = async (req, res) => {
     await connection.commit();
 
     res.json({ message: "Order deleted successfully" });
+
   } catch (err) {
     await connection.rollback();
-    console.error("DELETE ORDER ERROR:", err.message);
+    console.error("DELETE ORDER ERROR:", err);
     res.status(500).json({ message: "Failed to delete order" });
   } finally {
     connection.release();
