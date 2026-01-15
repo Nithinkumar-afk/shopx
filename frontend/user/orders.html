@@ -16,7 +16,7 @@ body{
   color:#f8fafc;
 }
 
-/* ================= HEADER ================= */
+/* HEADER */
 header{
   position:sticky;
   top:0;
@@ -40,23 +40,21 @@ header button{
   cursor:pointer;
 }
 
-/* JD LOGO */
 .logo{
   font-size:22px;
   font-weight:700;
-  letter-spacing:1px;
 }
 .logo span:first-child{color:#38bdf8}
 .logo span:last-child{color:#f8fafc}
 
-/* ================= CONTAINER ================= */
+/* CONTAINER */
 #orders{
   max-width:900px;
   margin:auto;
   padding:22px 16px;
 }
 
-/* ================= ORDER CARD ================= */
+/* ORDER CARD */
 .order{
   background:rgba(255,255,255,.07);
   backdrop-filter:blur(20px);
@@ -85,7 +83,7 @@ header button{
   color:#cbd5f5;
 }
 
-/* ================= STATUS ================= */
+/* STATUS */
 .status{
   font-size:11px;
   font-weight:600;
@@ -99,7 +97,7 @@ header button{
 .status.DELIVERED{background:#dcfce7;color:#15803d;}
 .status.CANCELLED{background:#fee2e2;color:#b91c1c;}
 
-/* ================= ITEMS ================= */
+/* ITEMS */
 .item{
   display:flex;
   gap:14px;
@@ -109,18 +107,19 @@ header button{
   background:rgba(255,255,255,.06);
 }
 
-.item img{
+.item-icon{
   width:76px;
   height:76px;
   border-radius:16px;
-  object-fit:cover;
   background:#020617;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:34px;
 }
 
 .item-info h4{
-  margin:0;
   font-size:14px;
-  color:#f8fafc;
 }
 
 .item-info p{
@@ -129,7 +128,7 @@ header button{
   color:#94a3b8;
 }
 
-/* ================= TOTAL ================= */
+/* TOTAL */
 .total{
   text-align:right;
   margin-top:16px;
@@ -138,7 +137,7 @@ header button{
   color:#22c55e;
 }
 
-/* ================= EMPTY ================= */
+/* EMPTY */
 .empty{
   text-align:center;
   color:#94a3b8;
@@ -161,63 +160,70 @@ header button{
 /* ================= CONFIG ================= */
 const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
 const API = BASE_URL + "/api";
-const token = localStorage.getItem("token");
 
-if (!token) {
-  location.href = "login.html";
-}
+/* ✅ TOKEN FIX */
+const token =
+  localStorage.getItem("userToken") ||
+  localStorage.getItem("token");
+
+if (!token) location.href = "login.html";
 
 /* ================= ELEMENTS ================= */
 const ordersDiv = document.getElementById("orders");
 const money = n => "₹" + Number(n || 0).toLocaleString("en-IN");
 
+/* ================= STATUS NORMALIZER ================= */
+function normalizeStatus(s=""){
+  s = s.toLowerCase();
+  if(s.includes("place")) return "PLACED";
+  if(s.includes("ship")) return "SHIPPED";
+  if(s.includes("deliver")) return "DELIVERED";
+  if(s.includes("cancel")) return "CANCELLED";
+  return "PLACED";
+}
+
 /* ================= LOAD ORDERS ================= */
-async function loadOrders() {
-  try {
-    const res = await fetch(`${API}/orders`, {
-      headers: {
-        Authorization: "Bearer " + token
-      }
+async function loadOrders(){
+  try{
+    const res = await fetch(API + "/orders",{
+      headers:{ Authorization:"Bearer "+token }
     });
 
-    if (res.status === 401) {
+    if(res.status === 401){
       localStorage.clear();
-      location.href = "login.html";
+      location.href="login.html";
       return;
     }
 
-    const orders = await res.json();
+    const list = await res.json();
 
-    if (!Array.isArray(orders) || !orders.length) {
+    if(!Array.isArray(list) || !list.length){
       ordersDiv.innerHTML = "<p class='empty'>No orders found</p>";
       return;
     }
 
-    ordersDiv.innerHTML = "";
-    orders.forEach(renderOrder);
+    ordersDiv.innerHTML="";
+    list.forEach(renderOrder);
 
-  } catch (err) {
-    console.error("ORDERS LOAD ERROR:", err);
-    ordersDiv.innerHTML = "<p class='empty'>Failed to load orders</p>";
+  }catch(err){
+    console.error(err);
+    ordersDiv.innerHTML="<p class='empty'>Failed to load orders</p>";
   }
 }
 
-/* ================= RENDER ORDER ================= */
-function renderOrder(order) {
-  const status = (order.status || "PLACED").toUpperCase();
+/* ================= RENDER ================= */
+function renderOrder(order){
+  const status = normalizeStatus(order.status);
 
-  let itemsHTML = "";
-  (order.items || []).forEach(item => {
-    itemsHTML += `
-      <div class="item">
-        <img src="${item.image || 'https://via.placeholder.com/150'}">
-        <div class="item-info">
-          <h4>${item.name}</h4>
-          <p>${money(item.price)} × ${item.quantity}</p>
-        </div>
+  const itemsHTML = (order.items || []).map(i=>`
+    <div class="item">
+      <div class="item-icon">📦</div>
+      <div class="item-info">
+        <h4>${i.name}</h4>
+        <p>${money(i.price)} × ${i.quantity}</p>
       </div>
-    `;
-  });
+    </div>
+  `).join("");
 
   ordersDiv.innerHTML += `
     <div class="order">
