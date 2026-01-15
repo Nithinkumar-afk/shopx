@@ -15,8 +15,6 @@ body{
   background:radial-gradient(circle at top,#0b0b0b,#000);
   color:#e5e7eb;
 }
-
-/* HEADER */
 header{
   padding:18px 22px;
   display:flex;
@@ -36,8 +34,6 @@ header button{
   font-weight:600;
   cursor:pointer;
 }
-
-/* FORM */
 .form{
   margin:18px;
   padding:18px;
@@ -65,16 +61,12 @@ textarea{grid-column:1/-1}
   font-weight:600;
   cursor:pointer;
 }
-
-/* PRODUCTS GRID */
 .products{
   padding:18px;
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
   gap:18px;
 }
-
-/* CARD */
 .card{
   background:rgba(255,255,255,.06);
   border-radius:22px;
@@ -83,18 +75,13 @@ textarea{grid-column:1/-1}
   flex-direction:column;
   gap:8px;
 }
-
-/* FAST IMAGE */
 .card img{
   width:100%;
   height:150px;
   object-fit:cover;
   border-radius:16px;
-  display:block;
   background:#111;
 }
-
-/* DELETE BUTTON */
 .card button{
   margin-top:auto;
   padding:10px;
@@ -114,159 +101,109 @@ textarea{grid-column:1/-1}
   <button onclick="location.href='admin-dashboard.html'">Dashboard</button>
 </header>
 
-<!-- ADD PRODUCT -->
 <div class="form">
   <input id="name" placeholder="Product name">
   <input id="price" type="number" placeholder="Price">
   <input id="category" placeholder="Category">
-  <input id="img1" placeholder="Image URL 1 (optional)">
-  <input id="img2" placeholder="Image URL 2 (optional)">
-  <input id="img3" placeholder="Image URL 3 (optional)">
+  <input id="img1" placeholder="Cloudinary / ImageKit URL 1">
+  <input id="img2" placeholder="Cloudinary / ImageKit URL 2 (optional)">
+  <input id="img3" placeholder="Cloudinary / ImageKit URL 3 (optional)">
   <textarea id="desc" rows="3" placeholder="Description (optional)"></textarea>
   <button id="addBtn">Add Product</button>
 </div>
 
-<!-- PRODUCTS -->
 <div class="products" id="list"></div>
 
 <script>
-/* ================= CONFIG ================= */
-const API_BASE = "https://shopx-production-b1ad.up.railway.app/api";
-const PUBLIC_PRODUCTS_API = API_BASE + "/products";
-const ADMIN_PRODUCTS_API = API_BASE + "/admin/products";
+const API = "https://shopx-production-b1ad.up.railway.app/api";
+const PUBLIC_API = API + "/products";
+const ADMIN_API = API + "/admin/products";
 
-const FALLBACK_IMAGE =
+const FALLBACK =
   "https://via.placeholder.com/600x400?text=No+Image";
 
-/* ================= AUTH ================= */
 const token = localStorage.getItem("adminToken");
-if (!token) location.href = "admin-login.html";
+if(!token) location.href="admin-login.html";
 
-/* ================= ELEMENTS ================= */
 const list = document.getElementById("list");
 const addBtn = document.getElementById("addBtn");
 
-const nameInput = document.getElementById("name");
-const priceInput = document.getElementById("price");
-const categoryInput = document.getElementById("category");
-const img1Input = document.getElementById("img1");
-const img2Input = document.getElementById("img2");
-const img3Input = document.getElementById("img3");
-const descInput = document.getElementById("desc");
+const nameI = nameInput = document.getElementById("name");
+const priceI = document.getElementById("price");
+const catI = document.getElementById("category");
+const img1I = document.getElementById("img1");
+const img2I = document.getElementById("img2");
+const img3I = document.getElementById("img3");
+const descI = document.getElementById("desc");
 
-/* ================= LOAD PRODUCTS ================= */
+const isValidImageURL = url =>
+  /^https:\/\/(res\.cloudinary\.com|ik\.imagekit\.io)\//.test(url);
+
 async function loadProducts(){
-  list.innerHTML = "";
-
-  let res;
-  try{
-    res = await fetch(PUBLIC_PRODUCTS_API);
-  }catch{
-    alert("Server unreachable");
-    return;
-  }
-
+  list.innerHTML="";
+  const res = await fetch(PUBLIC_API);
   const products = await res.json();
 
   products.forEach(p=>{
-    let images = [];
-
-    // SAFE NORMALIZATION
-    if(Array.isArray(p.images)){
-      images = p.images;
-    }else if(typeof p.images === "string"){
-      try{
-        images = JSON.parse(p.images);
-      }catch{
-        images = [];
-      }
-    }
-
-    // REMOVE EMPTY URLS
-    images = images.filter(i => typeof i === "string" && i.trim());
-
-    const imgSrc = images[0] || FALLBACK_IMAGE;
+    const img = Array.isArray(p.images) && p.images[0]
+      ? p.images[0]
+      : FALLBACK;
 
     const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML = `
-      <img
-        src="${imgSrc}"
-        width="300"
-        height="150"
-        loading="lazy"
-        decoding="async"
-        fetchpriority="low"
-        onerror="this.onerror=null;this.src='${FALLBACK_IMAGE}'"
-      >
+    card.className="card";
+    card.innerHTML=`
+      <img src="${img}" onerror="this.src='${FALLBACK}'">
       <strong>${p.name}</strong>
       <span>₹${p.price}</span>
       <small>${p.category}</small>
       <button>Delete</button>
     `;
-
-    card.querySelector("button").onclick = () => deleteProduct(p.id);
+    card.querySelector("button").onclick=()=>deleteProduct(p.id);
     list.appendChild(card);
   });
 }
 
-/* ================= ADD PRODUCT ================= */
 addBtn.onclick = async ()=>{
-  const payload = {
-    name: nameInput.value.trim(),
-    price: Number(priceInput.value),
-    category: categoryInput.value.trim(),
-    description: descInput.value.trim(),
-    image1: img1Input.value.trim(),
-    image2: img2Input.value.trim(),
-    image3: img3Input.value.trim()
-  };
+  const images = [img1I.value,img2I.value,img3I.value]
+    .map(i=>i.trim())
+    .filter(i=>i && isValidImageURL(i));
 
-  if(!payload.name || !payload.category || isNaN(payload.price)){
-    alert("Name, price and category required");
-    return;
+  if(!nameI.value || !catI.value || !priceI.value){
+    return alert("Name, price & category required");
+  }
+  if(!images.length){
+    return alert("At least ONE Cloudinary / ImageKit image required");
   }
 
-  const res = await fetch(ADMIN_PRODUCTS_API,{
+  const res = await fetch(ADMIN_API,{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
       Authorization:"Bearer "+token
     },
-    body:JSON.stringify(payload)
+    body:JSON.stringify({
+      name:nameI.value.trim(),
+      price:Number(priceI.value),
+      category:catI.value.trim(),
+      description:descI.value.trim(),
+      images
+    })
   });
 
   const data = await res.json();
-  if(!res.ok) return alert(data.message || "Add failed");
+  if(!res.ok) return alert(data.message);
 
-  clearForm();
+  [nameI,priceI,catI,img1I,img2I,img3I,descI].forEach(i=>i.value="");
   loadProducts();
 };
 
-/* ================= DELETE PRODUCT ================= */
 async function deleteProduct(id){
   if(!confirm("Delete product?")) return;
-
-  const res = await fetch(`${ADMIN_PRODUCTS_API}/${id}`,{
+  await fetch(`${ADMIN_API}/${id}`,{
     method:"DELETE",
-    headers:{ Authorization:"Bearer "+token }
+    headers:{Authorization:"Bearer "+token}
   });
-
-  if(!res.ok){
-    alert("Delete failed");
-    return;
-  }
-
   loadProducts();
-}
-
-/* ================= HELPERS ================= */
-function clearForm(){
-  [
-    nameInput,priceInput,categoryInput,
-    img1Input,img2Input,img3Input,descInput
-  ].forEach(i=>i.value="");
 }
 
 loadProducts();
