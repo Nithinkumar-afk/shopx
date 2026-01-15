@@ -9,47 +9,26 @@
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-
 body{
   font-family:Poppins,sans-serif;
   background:radial-gradient(circle at top,#0f172a,#020617);
   color:#f8fafc;
 }
-
-/* ================= HEADER ================= */
 header{
-  position:sticky;
-  top:0;
-  z-index:100;
+  position:sticky;top:0;z-index:100;
   background:rgba(2,6,23,.75);
   backdrop-filter:blur(18px);
   padding:16px 22px;
   border-bottom:1px solid rgba(255,255,255,.12);
 }
-
 header h2{
-  margin:0;
-  font-size:14px;
-  cursor:pointer;
-  color:#38bdf8;
-  font-weight:500;
+  font-size:14px;cursor:pointer;color:#38bdf8;font-weight:500;
 }
-
-/* ================= LAYOUT ================= */
 .container{
-  max-width:1200px;
-  margin:auto;
-  padding:24px;
-  display:grid;
-  grid-template-columns:1.6fr 1fr;
-  gap:22px;
+  max-width:1200px;margin:auto;padding:24px;
+  display:grid;grid-template-columns:1.6fr 1fr;gap:22px;
 }
-
-@media(max-width:900px){
-  .container{grid-template-columns:1fr}
-}
-
-/* ================= CARD ================= */
+@media(max-width:900px){.container{grid-template-columns:1fr}}
 .card{
   background:rgba(255,255,255,.07);
   backdrop-filter:blur(20px);
@@ -58,92 +37,39 @@ header h2{
   border:1px solid rgba(255,255,255,.12);
   box-shadow:0 30px 70px rgba(0,0,0,.85);
 }
-
-.card h3{
-  margin-bottom:16px;
-  font-size:16px;
-  font-weight:600;
-  color:#f8fafc;
-}
-
-/* ================= FORM ================= */
-label{
-  font-size:12px;
-  color:#94a3b8;
-  margin-bottom:6px;
-  display:block;
-}
-
+.card h3{margin-bottom:16px;font-size:16px;font-weight:600}
+label{font-size:12px;color:#94a3b8;margin-bottom:6px;display:block}
 input{
-  width:100%;
-  padding:12px 14px;
-  border-radius:14px;
+  width:100%;padding:12px 14px;border-radius:14px;
   border:1px solid rgba(255,255,255,.15);
-  margin-bottom:14px;
-  background:rgba(255,255,255,.06);
-  color:#f8fafc;
-  font-size:13px;
+  margin-bottom:14px;background:rgba(255,255,255,.06);
+  color:#f8fafc;font-size:13px;
 }
-
-input:disabled{
-  color:#cbd5f5;
-}
-
-/* ================= ADDRESS ================= */
 .address-card{
   border:2px solid rgba(255,255,255,.12);
-  border-radius:16px;
-  padding:14px;
-  margin-bottom:12px;
-  cursor:pointer;
-  display:grid;
-  grid-template-columns:22px 1fr;
-  gap:12px;
-  background:rgba(255,255,255,.05);
-  transition:.25s;
+  border-radius:16px;padding:14px;margin-bottom:12px;
+  cursor:pointer;display:grid;grid-template-columns:22px 1fr;
+  gap:12px;background:rgba(255,255,255,.05);
 }
-
 .address-card.active{
-  border-color:#38bdf8;
-  background:rgba(56,189,248,.12);
+  border-color:#38bdf8;background:rgba(56,189,248,.12);
 }
-
-/* ================= BUTTON ================= */
 .place-order{
-  width:100%;
-  padding:15px;
+  width:100%;padding:15px;
   background:linear-gradient(135deg,#38bdf8,#2563eb);
-  color:#fff;
-  border:none;
-  border-radius:18px;
-  font-weight:600;
-  cursor:pointer;
-  margin-top:10px;
+  color:#fff;border:none;border-radius:18px;
+  font-weight:600;cursor:pointer;margin-top:10px;
 }
-
-.place-order:disabled{
-  background:#64748b;
-  cursor:not-allowed;
-}
-
-/* ================= SUMMARY ================= */
+.place-order:disabled{background:#64748b}
 .summary-item{
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:10px;
-  font-size:14px;
-  color:#e5e7eb;
+  display:flex;justify-content:space-between;
+  margin-bottom:10px;font-size:14px;color:#e5e7eb;
 }
-
 .summary-total{
-  display:flex;
-  justify-content:space-between;
-  margin-top:14px;
-  padding-top:14px;
+  display:flex;justify-content:space-between;
+  margin-top:14px;padding-top:14px;
   border-top:1px dashed rgba(255,255,255,.25);
-  font-weight:600;
-  font-size:15px;
-  color:#22c55e;
+  font-weight:600;font-size:15px;color:#22c55e;
 }
 </style>
 </head>
@@ -156,25 +82,19 @@ input:disabled{
 
 <div class="container">
 
-  <!-- LEFT -->
   <div class="card">
     <h3>Customer Details</h3>
-
     <label>Name</label>
     <input id="name" disabled>
-
     <label>Phone</label>
     <input id="phone" disabled>
 
     <h3>Select Address</h3>
     <div id="addressList"></div>
 
-    <button class="place-order" id="orderBtn" disabled>
-      Place Order
-    </button>
+    <button class="place-order" id="orderBtn" disabled>Place Order</button>
   </div>
 
-  <!-- RIGHT -->
   <div class="card">
     <h3>Order Summary</h3>
     <div id="summary"></div>
@@ -183,18 +103,20 @@ input:disabled{
 </div>
 
 <script>
-const API = "https://shopx-production-b1ad.up.railway.app/api";
+const API = "https://shopx-production-b1ad.up.railway.app";
 const token = localStorage.getItem("token");
 
-if (!token) {
-  location.href = "login.html";
-  throw new Error("No token");
+if(!token){
+  location.href="login.html";
+  throw "NO TOKEN";
 }
 
+const authHeader = { Authorization:"Bearer "+token };
+
 const checkoutCart = JSON.parse(localStorage.getItem("checkout_cart")) || [];
-if (!checkoutCart.length) {
-  location.href = "cart.html";
-  throw new Error("Empty cart");
+if(!checkoutCart.length){
+  location.href="cart.html";
+  throw "EMPTY CART";
 }
 
 const nameEl = document.getElementById("name");
@@ -206,107 +128,71 @@ const orderBtn = document.getElementById("orderBtn");
 let selectedAddress = null;
 let total = 0;
 
-/* ================= LOAD PROFILE ================= */
-fetch(API + "/profile", {
-  headers: { Authorization: "Bearer " + token }
+/* LOAD PROFILE (FIXED) */
+fetch(API+"/api/profile",{headers:authHeader})
+.then(r=>{
+  if(!r.ok) throw "PROFILE ERROR";
+  return r.json();
 })
-.then(res => {
-  if (!res.ok) throw new Error("Profile fetch failed");
-  return res.json();
-})
-.then(p => {
-  nameEl.value = p?.name || "";
-  phoneEl.value = p?.phone || "";
+.then(p=>{
+  nameEl.value = p.name || "";
+  phoneEl.value = p.phone || "";
 
-  if (!Array.isArray(p.addresses) || p.addresses.length === 0) {
-    addressList.innerHTML =
-      "<p style='font-size:13px;color:#94a3b8'>No address found</p>";
+  if(!p.addresses || !p.addresses.length){
+    addressList.innerHTML="<p style='color:#94a3b8'>No address found</p>";
     return;
   }
 
-  p.addresses.forEach((a, i) => {
-    const d = document.createElement("div");
-    d.className = "address-card";
-    d.innerHTML = `
-      <input type="radio" name="address">
-      <div>${a.address}</div>
-    `;
-
-    d.onclick = () => {
-      document.querySelectorAll(".address-card").forEach(x => {
+  p.addresses.forEach((a,i)=>{
+    const d=document.createElement("div");
+    d.className="address-card";
+    d.innerHTML=`<input type="radio"><div>${a.address}</div>`;
+    d.onclick=()=>{
+      document.querySelectorAll(".address-card").forEach(x=>{
         x.classList.remove("active");
-        x.querySelector("input").checked = false;
+        x.querySelector("input").checked=false;
       });
       d.classList.add("active");
-      d.querySelector("input").checked = true;
-      selectedAddress = a.address;
-      orderBtn.disabled = false;
+      d.querySelector("input").checked=true;
+      selectedAddress=a.address;
+      orderBtn.disabled=false;
     };
-
-    if (i === 0) d.click();
+    if(i===0) d.click();
     addressList.appendChild(d);
   });
 })
-.catch(() => alert("Failed to load profile"));
+.catch(()=>alert("Failed to load profile"));
 
-/* ================= ORDER SUMMARY ================= */
-checkoutCart.forEach(i => {
-  total += i.price * i.qty;
-  summaryEl.innerHTML += `
+/* SUMMARY */
+checkoutCart.forEach(i=>{
+  total+=i.price*i.qty;
+  summaryEl.innerHTML+=`
     <div class="summary-item">
       <span>${i.name} × ${i.qty}</span>
-      <span>₹${i.price * i.qty}</span>
-    </div>
-  `;
+      <span>₹${i.price*i.qty}</span>
+    </div>`;
 });
-
-summaryEl.innerHTML += `
+summaryEl.innerHTML+=`
   <div class="summary-total">
-    <span>Total</span>
-    <span>₹${total}</span>
-  </div>
-`;
+    <span>Total</span><span>₹${total}</span>
+  </div>`;
 
-/* ================= PLACE ORDER ================= */
-orderBtn.onclick = async () => {
-  if (!selectedAddress) {
-    alert("Select address");
-    return;
-  }
-
-  orderBtn.disabled = true;
-  orderBtn.textContent = "Placing Order...";
-
-  try {
-    const res = await fetch(API + "/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
-      },
-      body: JSON.stringify({
-        total_amount: total,
-        address: selectedAddress,
-        items: checkoutCart.map(i => ({
-          product_id: i.id,
-          quantity: i.qty,
-          price: i.price
-        }))
-      })
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Order failed");
-
-    localStorage.setItem("lastOrderId", data.order_id || data.id);
-    localStorage.removeItem("checkout_cart");
-    location.href = "success.html";
-
-  } catch (err) {
-    alert(err.message);
-    orderBtn.disabled = false;
-    orderBtn.textContent = "Place Order";
-  }
+/* PLACE ORDER */
+orderBtn.onclick=async()=>{
+  const res=await fetch(API+"/api/orders",{
+    method:"POST",
+    headers:{...authHeader,"Content-Type":"application/json"},
+    body:JSON.stringify({
+      total_amount:total,
+      address:selectedAddress,
+      items:checkoutCart.map(i=>({
+        product_id:i.id,quantity:i.qty,price:i.price
+      }))
+    })
+  });
+  if(!res.ok) return alert("Order failed");
+  localStorage.removeItem("checkout_cart");
+  location.href="success.html";
 };
 </script>
 
