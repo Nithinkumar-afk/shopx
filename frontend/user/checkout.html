@@ -125,16 +125,16 @@ const addressList = document.getElementById("addressList");
 const summaryEl = document.getElementById("summary");
 const orderBtn = document.getElementById("orderBtn");
 
-let selectedAddressId = null;
+let selectedAddress = null;
 let total = 0;
 
 /* LOAD PROFILE */
-fetch(API+"/api/profile",{headers:authHeader})
-.then(r=>{
+fetch(API + "/api/profile", { headers: authHeader })
+.then(r => {
   if(!r.ok) throw "PROFILE ERROR";
   return r.json();
 })
-.then(p=>{
+.then(p => {
   nameEl.value = p.name || "";
   phoneEl.value = p.phone || "";
 
@@ -154,8 +154,8 @@ fetch(API+"/api/profile",{headers:authHeader})
       });
       d.classList.add("active");
       d.querySelector("input").checked=true;
-      selectedAddressId = a.id;   // ✅ IMPORTANT FIX
-      orderBtn.disabled=false;
+      selectedAddress = a.address;
+      orderBtn.disabled = false;
     };
     if(i===0) d.click();
     addressList.appendChild(d);
@@ -165,46 +165,50 @@ fetch(API+"/api/profile",{headers:authHeader})
 
 /* SUMMARY */
 checkoutCart.forEach(i=>{
-  total+=i.price*i.qty;
-  summaryEl.innerHTML+=`
+  total += i.price * i.qty;
+  summaryEl.innerHTML += `
     <div class="summary-item">
       <span>${i.name} × ${i.qty}</span>
-      <span>₹${i.price*i.qty}</span>
+      <span>₹${i.price * i.qty}</span>
     </div>`;
 });
-summaryEl.innerHTML+=`
+summaryEl.innerHTML += `
   <div class="summary-total">
     <span>Total</span><span>₹${total}</span>
   </div>`;
 
-/* PLACE ORDER */
-orderBtn.onclick=async()=>{
-  try{
-    const res=await fetch(API+"/api/orders",{
-      method:"POST",
-      headers:{...authHeader,"Content-Type":"application/json"},
-      body:JSON.stringify({
-        address_id: selectedAddressId,   // ✅ FIX
+/* PLACE ORDER — ✅ FIXED */
+orderBtn.onclick = async () => {
+  try {
+    const res = await fetch(API + "/api/orders", {
+      method: "POST",
+      headers: {
+        ...authHeader,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        address: selectedAddress,
         total_amount: total,
-        items: checkoutCart.map(i=>({
-          product_id: i.id,
+        items: checkoutCart.map(i => ({
+          name: i.name,
+          price: i.price,
           quantity: i.qty,
-          price: i.price
+          image: i.image || null
         }))
       })
     });
 
     if(!res.ok){
       const err = await res.text();
-      console.error("ORDER ERROR:", err);
+      console.error(err);
       alert("Order failed");
       return;
     }
 
     localStorage.removeItem("checkout_cart");
-    location.href="success.html";
+    location.href = "success.html";
 
-  }catch(err){
+  } catch (err) {
     console.error(err);
     alert("Order failed");
   }
