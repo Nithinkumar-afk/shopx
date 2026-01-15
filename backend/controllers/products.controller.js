@@ -3,6 +3,9 @@ const db = require("../config/db");
 const DEFAULT_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
 
+/* =========================
+   DB DOWN HANDLER
+========================= */
 const dbDown = (res) =>
   res.status(503).json({ message: "Database unavailable" });
 
@@ -13,7 +16,6 @@ exports.getProducts = async (req, res) => {
   if (!db) return dbDown(res);
 
   try {
-    // ✅ SAFE QUERY (no dependency on is_active)
     const [rows] = await db.query(`
       SELECT id, name, price, category, description, images
       FROM products
@@ -26,7 +28,7 @@ exports.getProducts = async (req, res) => {
       price: Number(p.price),
       category: p.category,
       description: p.description || "",
-      images: parseImages(p.images),
+      images: normalizeImages(p.images)
     }));
 
     res.json(products);
@@ -50,22 +52,28 @@ exports.addProduct = async (req, res) => {
     images,
     image1,
     image2,
-    image3,
+    image3
   } = req.body;
 
   if (!name || price === undefined || !category) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  // ✅ SAFE IMAGE HANDLING
   let finalImages = [];
 
+  // 1️⃣ Prefer images array (future-proof)
   if (Array.isArray(images)) {
-    finalImages = images.filter(Boolean);
+    finalImages = images;
   } else {
-    finalImages = [image1, image2, image3].filter(Boolean);
+    // 2️⃣ Fallback to image1,image2,image3
+    finalImages = [image1, image2, image3];
   }
 
+  // 3️⃣ Clean invalid URLs
+  finalImages = finalImages
+    .filter(img => typeof img === "string" && img.trim());
+
+  // 4️⃣ Always guarantee at least one image
   if (!finalImages.length) {
     finalImages = [DEFAULT_IMAGE];
   }
@@ -82,7 +90,7 @@ exports.addProduct = async (req, res) => {
         Number(price),
         category.trim(),
         description?.trim() || "",
-        JSON.stringify(finalImages),
+        JSON.stringify(finalImages)
       ]
     );
 
@@ -94,7 +102,7 @@ exports.addProduct = async (req, res) => {
 };
 
 /* =========================
-   DELETE PRODUCT (HARD DELETE)
+   DELETE PRODUCT (ADMIN)
 ========================= */
 exports.deleteProduct = async (req, res) => {
   if (!db) return dbDown(res);
@@ -122,14 +130,24 @@ exports.deleteProduct = async (req, res) => {
 };
 
 /* =========================
-   HELPERS
+   IMAGE NORMALIZER (CORE FIX)
 ========================= */
-function parseImages(images) {
+function normalizeImages(images) {
   try {
-    const arr = JSON.parse(images);
-    return Array.isArray(arr) && arr.length
-      ? arr
-      : [DEFAULT_IMAGE];
+    // Already array → fastest path
+    if (Array.isArray(images)) {
+      return images.length ? images : [DEFAULT_IMAGE];
+    }
+
+    // JSON string → parse once
+    const parsed = JSON.parse(images);
+    if (Array.isArray(parsed) && parsed.length) {
+      return parsed.filter(
+        img => typeof img === "string" && img.trim()
+      );
+    }
+
+    return [DEFAULT_IMAGE];
   } catch {
     return [DEFAULT_IMAGE];
   }
