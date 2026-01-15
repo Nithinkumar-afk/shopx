@@ -78,28 +78,23 @@ button:disabled{opacity:.7}
 <script>
 "use strict";
 
-/* ================= CONFIG ================= */
 const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
 const API = BASE_URL + "/api";
 
-/* ================= ELEMENTS ================= */
 const errorBox = document.getElementById("error");
 const loginBtn = document.getElementById("loginBtn");
 const usernameInput = document.getElementById("username");
 const passwordInput = document.getElementById("password");
 
-/* ================= AUTO REDIRECT ================= */
 if (localStorage.getItem("adminToken")) {
   location.replace("admin-dashboard.html");
 }
 
-/* ================= EVENTS ================= */
 loginBtn.addEventListener("click", login);
 passwordInput.addEventListener("keydown", e => {
   if (e.key === "Enter") login();
 });
 
-/* ================= LOGIN ================= */
 async function login() {
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
@@ -117,7 +112,10 @@ async function login() {
     const res = await fetch(API + "/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({
+        email: username,   // ✅ IMPORTANT FIX
+        password
+      })
     });
 
     const data = await res.json();
@@ -126,13 +124,7 @@ async function login() {
       throw new Error(data.message || "Login failed");
     }
 
-    if (!data.token) {
-      throw new Error("Token missing from server");
-    }
-
-    /* ✅ SAVE TOKEN (MATCHES admin-orders.html) */
     localStorage.setItem("adminToken", data.token);
-
     location.replace("admin-dashboard.html");
 
   } catch (err) {
@@ -143,7 +135,6 @@ async function login() {
   }
 }
 
-/* ================= UI HELPERS ================= */
 function showError(msg) {
   errorBox.textContent = msg;
   errorBox.style.display = "block";
@@ -152,5 +143,6 @@ function hideError() {
   errorBox.style.display = "none";
 }
 </script>
+
 </body>
 </html>

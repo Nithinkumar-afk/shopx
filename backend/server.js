@@ -22,12 +22,18 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 
 /*************************************************
+ * BODY PARSERS (MUST BE FIRST)
+ *************************************************/
+app.use(express.json({ limit: "5mb", strict: false }));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.text({ type: "*/*" })); // 🔥 important for proxies
+
+/*************************************************
  * CORS (Netlify + Admin + Local safe)
  *************************************************/
 app.use(
   cors({
     origin: "*",
-    credentials: false,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -36,13 +42,7 @@ app.use(
 app.options("*", cors());
 
 /*************************************************
- * BODY PARSERS
- *************************************************/
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true }));
-
-/*************************************************
- * STATIC FILES (IMAGES)
+ * STATIC FILES
  *************************************************/
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -58,25 +58,19 @@ require("./config/db");
 /* AUTH */
 app.use("/api/auth", require("./routes/auth.routes"));
 
-/* ADMIN (PROTECTED) */
+/* ADMIN */
 app.use("/api/admin", require("./routes/admin.routes"));
 app.use("/api/admin/users", require("./routes/admin.users.routes"));
 app.use("/api/admin/products", require("./routes/admin.products.routes"));
 app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
-app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
 
-
-
-
-/* PUBLIC PRODUCTS (VERY IMPORTANT) */
+/* PUBLIC PRODUCTS */
 app.use("/api/products", require("./routes/product.routes"));
 
 /* USER */
 app.use("/api/cart", require("./routes/cart.routes"));
 app.use("/api/orders", require("./routes/orders.routes"));
 app.use("/api/profile", require("./routes/profile.routes"));
-
-
 
 /*************************************************
  * HEALTH CHECK
