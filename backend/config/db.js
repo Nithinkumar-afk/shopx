@@ -10,7 +10,7 @@ if (
   process.env.MYSQLUSER &&
   process.env.MYSQLDATABASE
 ) {
-  console.log("🚄 Using Railway MySQL ENV");
+  console.log("🚄 Using Railway MySQL");
 
   pool = mysql.createPool({
     host: process.env.MYSQLHOST,
@@ -54,16 +54,16 @@ else {
 }
 
 /*************************************************
- * VERIFY CONNECTION (NON-BLOCKING)
+ * VERIFY CONNECTION
  *************************************************/
-pool
-  .getConnection()
-  .then((conn) => {
-    console.log("✅ MySQL connected successfully");
+(async () => {
+  try {
+    const conn = await pool.getConnection();
+    console.log("✅ MySQL connected");
     conn.release();
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error("❌ MySQL connection failed:", err.message);
-  });
+  }
+})();
 
 module.exports = pool;

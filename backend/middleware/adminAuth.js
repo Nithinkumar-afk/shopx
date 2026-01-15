@@ -1,45 +1,41 @@
 const jwt = require("jsonwebtoken");
 
 /**
- * ADMIN AUTH MIDDLEWARE (FIXED & COMPATIBLE)
+ * ADMIN AUTH MIDDLEWARE (PRODUCTION SAFE)
+ * Allows ONLY admin users
  */
 module.exports = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    // ❌ No Authorization header
+    // ❌ No token
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Unauthorized: No token" });
+      return res.status(401).json({ message: "Unauthorized: No token provided" });
     }
 
     const token = authHeader.split(" ")[1];
 
     if (!process.env.JWT_SECRET) {
-      console.error("❌ JWT_SECRET not defined");
-      return res.status(500).json({ message: "Server configuration error" });
+      console.error("❌ JWT_SECRET missing");
+      return res.status(500).json({ message: "Server config error" });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    /**
-     * ✅ FLEXIBLE ADMIN CHECK (FIX)
-     * Accepts:
-     * - role === "admin"
-     * - isAdmin === true
-     */
+    // ✅ Flexible admin check
     const isAdmin =
-      decoded.role === "admin" ||
-      decoded.isAdmin === true;
+      decoded?.role === "admin" ||
+      decoded?.isAdmin === true;
 
     if (!isAdmin) {
-      return res.status(403).json({ message: "Access denied: Admins only" });
+      return res.status(403).json({ message: "Admins only access" });
     }
 
-    // ✅ Attach admin to request
+    // ✅ Attach admin info
     req.admin = {
       id: decoded.id,
       email: decoded.email,
-      role: "admin"
+      role: "admin",
     };
 
     next();
