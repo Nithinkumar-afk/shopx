@@ -80,6 +80,7 @@ textarea{grid-column:1/-1}
   height:150px;
   object-fit:cover;
   border-radius:16px;
+  display:block;
 }
 .card button{
   margin-top:10px;
@@ -136,7 +137,7 @@ const img2Input = document.getElementById("img2");
 const img3Input = document.getElementById("img3");
 const descInput = document.getElementById("desc");
 
-/* LOAD PRODUCTS */
+/* ================= LOAD PRODUCTS ================= */
 async function loadProducts() {
   const res = await fetch(PUBLIC_PRODUCTS_API);
   const products = await res.json();
@@ -144,14 +145,34 @@ async function loadProducts() {
   list.innerHTML = "";
 
   products.forEach(p => {
-    const imgs = Array.isArray(p.images) && p.images.length
-      ? p.images
-      : [FALLBACK_IMAGE];
+    let imgs = [];
+
+    // ✅ Normalize images safely
+    if (Array.isArray(p.images)) {
+      imgs = p.images;
+    } else {
+      try {
+        imgs = JSON.parse(p.images);
+      } catch {
+        imgs = [];
+      }
+    }
+
+    // ✅ CRITICAL FIX: remove empty / invalid URLs
+    imgs = imgs.filter(
+      img => typeof img === "string" && img.trim() !== ""
+    );
+
+    const imageSrc = imgs[0] || FALLBACK_IMAGE;
 
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <img src="${imgs[0]}" onerror="this.src='${FALLBACK_IMAGE}'">
+      <img 
+        src="${imageSrc}" 
+        loading="lazy"
+        onerror="this.src='${FALLBACK_IMAGE}'"
+      >
       <h4>${p.name}</h4>
       <p>₹${p.price}</p>
       <small>${p.category}</small>
@@ -163,7 +184,7 @@ async function loadProducts() {
   });
 }
 
-/* ADD PRODUCT */
+/* ================= ADD PRODUCT ================= */
 addBtn.onclick = async () => {
   const payload = {
     name: nameInput.value.trim(),
@@ -196,7 +217,7 @@ addBtn.onclick = async () => {
   loadProducts();
 };
 
-/* DELETE PRODUCT */
+/* ================= DELETE PRODUCT ================= */
 async function deleteProduct(id) {
   if (!confirm("Delete product?")) return;
 
@@ -213,14 +234,17 @@ async function deleteProduct(id) {
   loadProducts();
 }
 
-/* HELPERS */
+/* ================= HELPERS ================= */
 function clearForm() {
-  [nameInput, priceInput, categoryInput, img1Input, img2Input, img3Input, descInput]
-    .forEach(i => i.value = "");
+  [
+    nameInput, priceInput, categoryInput,
+    img1Input, img2Input, img3Input, descInput
+  ].forEach(i => i.value = "");
 }
 
 loadProducts();
 </script>
+
 
 </body>
 </html>
