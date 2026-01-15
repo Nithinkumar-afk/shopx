@@ -2,6 +2,10 @@ const db = require("../config/db");
 const jwt = require("jsonwebtoken");
 const { sendOTP } = require("../utils/mailer");
 
+/* =====================================================
+   USER AUTH (OTP BASED)
+===================================================== */
+
 /* ================= SEND OTP ================= */
 exports.sendOtp = async (req, res) => {
   const name = (req.body.name || "User").trim();
@@ -28,10 +32,10 @@ exports.sendOtp = async (req, res) => {
       [name, email, otp]
     );
 
-    return res.json({ message: "OTP sent successfully" });
+    res.json({ message: "OTP sent successfully" });
   } catch (err) {
     console.error("🔥 SEND OTP ERROR:", err.message);
-    return res.status(500).json({ message: "Failed to send OTP" });
+    res.status(500).json({ message: "Failed to send OTP" });
   }
 };
 
@@ -67,32 +71,28 @@ exports.verifyOtp = async (req, res) => {
       [user.id]
     );
 
-    // ✅ ADMIN EMAIL CHECK
-    const role =
-      user.email === process.env.ADMIN_EMAIL ? "admin" : "user";
-
     const token = jwt.sign(
       {
         id: user.id,
         email: user.email,
-        role
+        role: "user"
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    return res.json({
+    res.json({
       token,
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role
+        role: "user"
       }
     });
   } catch (err) {
     console.error("🔥 VERIFY OTP ERROR:", err.message);
-    return res.status(500).json({ message: "Login failed" });
+    res.status(500).json({ message: "Login failed" });
   }
 };
 
@@ -108,29 +108,46 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    return res.json(rows[0]);
+    res.json(rows[0]);
   } catch (err) {
     console.error("🔥 GET ME ERROR:", err.message);
-    return res.status(500).json({ message: "Failed to fetch user" });
+    res.status(500).json({ message: "Failed to fetch user" });
   }
 };
-exports.adminLogin = async (req, res) => {
+
+/* =====================================================
+   ADMIN AUTH (USERNAME + PASSWORD ONLY)
+===================================================== */
+
+exports.adminLogin = (req, res) => {
   const { username, password } = req.body;
 
+  // ✅ STRICT CHECK
   if (!username || !password) {
     return res.status(400).json({ message: "Missing credentials" });
   }
 
-  // HARD-CODED (OR DB)
+  // ✅ SIMPLE STATIC ADMIN (SAFE FOR NOW)
   if (username !== "admin" || password !== "admin123") {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
+  if (!process.env.JWT_SECRET) {
+    return res.status(500).json({ message: "JWT secret not configured" });
+  }
+
   const token = jwt.sign(
-    { id: 1, role: "admin" },
+    {
+      id: 1,
+      username: "admin",
+      role: "admin"
+    },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
 
-  res.json({ token });
+  res.json({
+    message: "Admin login successful",
+    token
+  });
 };
