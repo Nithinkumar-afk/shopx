@@ -86,6 +86,8 @@ const LOGIN_API = API_BASE + "/admin/login";
 /* ================= ELEMENTS ================= */
 const errorBox = document.getElementById("error");
 const loginBtn = document.getElementById("loginBtn");
+const usernameInput = document.getElementById("username");
+const passwordInput = document.getElementById("password");
 
 /* ================= AUTO REDIRECT ================= */
 if (localStorage.getItem("adminToken")) {
@@ -94,16 +96,19 @@ if (localStorage.getItem("adminToken")) {
 
 /* ================= EVENTS ================= */
 loginBtn.addEventListener("click", login);
+passwordInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") login();
+});
 
 /* ================= LOGIN ================= */
 async function login() {
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value.trim();
+  const email = usernameInput.value.trim().toLowerCase();
+  const password = passwordInput.value.trim();
 
   hideError();
 
-  if (!username || !password) {
-    return showError("Username and password required");
+  if (!email || !password) {
+    return showError("Email and password are required");
   }
 
   loginBtn.disabled = true;
@@ -116,25 +121,28 @@ async function login() {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ email, password })
     });
 
-    let data = {};
+    let data;
     try {
       data = await res.json();
-    } catch {}
+    } catch {
+      throw new Error("Invalid server response");
+    }
 
     if (!res.ok) {
-      throw new Error(data.message || "Invalid admin credentials");
+      throw new Error(data.message || `Login failed (${res.status})`);
     }
 
     if (!data.token) {
       throw new Error("Login failed: token missing");
     }
 
+    /* ================= SUCCESS ================= */
     localStorage.setItem("adminToken", data.token);
 
-    /* HARD REDIRECT (prevents back button issues) */
+    // Hard redirect (prevents back button issues)
     location.replace("admin-dashboard.html");
 
   } catch (err) {
@@ -149,15 +157,17 @@ async function login() {
   }
 }
 
-/* ================= UI ================= */
-function showError(msg) {
-  errorBox.textContent = msg;
+/* ================= UI HELPERS ================= */
+function showError(message) {
+  errorBox.textContent = message;
   errorBox.style.display = "block";
 }
+
 function hideError() {
   errorBox.style.display = "none";
 }
 </script>
+
 
 </body>
 </html>
