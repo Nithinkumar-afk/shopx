@@ -4,15 +4,10 @@ const router = express.Router();
 const {
   addProduct,
   deleteProduct,
-} = require("../controllers/products.controller"); // ✅ MUST MATCH FILE NAME
+} = require("../controllers/products.controller");
 
-const adminAuth = require("../middleware/auth.middleware");
+const adminAuth = require("../middleware/adminAuth");
 
-/**
- * =========================
- * ADMIN PRODUCT ROUTES
- * =========================
- */
 router.post("/", adminAuth, addProduct);
 router.delete("/:id", adminAuth, deleteProduct);
 

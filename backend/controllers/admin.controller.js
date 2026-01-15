@@ -21,19 +21,41 @@ exports.login = (req, res) => {
 /* ================= DASHBOARD STATS ================= */
 exports.getStats = async (req, res) => {
   try {
-    const [[p]] = await db.query("SELECT COUNT(*) count FROM products");
-    const [[o]] = await db.query("SELECT COUNT(*) count FROM orders");
-    const [[u]] = await db.query("SELECT COUNT(*) count FROM users");
-    const [[r]] = await db.query(
-      "SELECT IFNULL(SUM(total_amount),0) total FROM orders WHERE status!='cancelled'"
+    const [[products]] = await db.query(
+      "SELECT COUNT(*) AS count FROM products"
     );
 
+    const [[users]] = await db.query(
+      "SELECT COUNT(*) AS count FROM users"
+    );
+
+    // Orders table may not exist yet
+    let ordersCount = 0;
+    let revenueTotal = 0;
+
+    try {
+      const [[orders]] = await db.query(
+        "SELECT COUNT(*) AS count FROM orders"
+      );
+      ordersCount = orders.count;
+
+      const [[revenue]] = await db.query(
+        "SELECT IFNULL(SUM(total_amount),0) AS total FROM orders WHERE status != 'cancelled'"
+      );
+      revenueTotal = revenue.total;
+    } catch (e) {
+      // Orders table not created yet → SAFE FALLBACK
+      ordersCount = 0;
+      revenueTotal = 0;
+    }
+
     res.json({
-      products: p.count,
-      orders: o.count,
-      users: u.count,
-      revenue: r.total
+      products: products.count,
+      orders: ordersCount,
+      users: users.count,
+      revenue: revenueTotal
     });
+
   } catch (err) {
     console.error("STATS ERROR:", err);
     res.status(500).json({ message: "Stats failed" });
@@ -45,8 +67,8 @@ exports.getRecentOrders = async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT 
-        u.name,
-        u.phone,
+        COALESCE(u.name, 'Guest') AS name,
+        COALESCE(u.phone, '-') AS phone,
         o.total_amount AS total,
         o.created_at
       FROM orders o
@@ -57,7 +79,7 @@ exports.getRecentOrders = async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    console.error("RECENT ORDERS ERROR:", err);
-    res.status(500).json({ message: "Failed to load orders" });
+    // Orders table not ready yet
+    res.json([]);
   }
 };
