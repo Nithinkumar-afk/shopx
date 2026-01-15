@@ -78,70 +78,69 @@ button:disabled{opacity:.7}
 <script>
 "use strict";
 
+/* ================= CONFIG ================= */
 const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
-const API = BASE_URL + "/api";
+const LOGIN_API = BASE_URL + "/api/auth/admin/login";
 
-const errorBox = document.getElementById("error");
-const loginBtn = document.getElementById("loginBtn");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
+/* ================= ELEMENTS ================= */
+const usernameInput = document.querySelector("input[type='text']");
+const passwordInput = document.querySelector("input[type='password']");
+const errorText = document.querySelector(".error");
 
-if (localStorage.getItem("adminToken")) {
-  location.replace("admin-dashboard.html");
-}
+/* ================= LOGIN ================= */
+async function login(e) {
+  e.preventDefault();
 
-loginBtn.addEventListener("click", login);
-passwordInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") login();
-});
-
-async function login() {
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
 
-  hideError();
-
   if (!username || !password) {
-    return showError("Username and password are required");
+    showError("Missing credentials");
+    return;
   }
 
-  loginBtn.disabled = true;
-  loginBtn.textContent = "Logging in...";
-
   try {
-    const res = await fetch(API + "/admin/login", {
+    const res = await fetch(LOGIN_API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: username,   // ✅ IMPORTANT FIX
-        password
+        username,   // ✅ MUST BE username
+        password    // ✅ MUST BE password
       })
     });
 
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.message || "Login failed");
+      showError(data.message || "Login failed");
+      return;
     }
 
+    // ✅ SAVE TOKEN
     localStorage.setItem("adminToken", data.token);
+
+    // ✅ REDIRECT
     location.replace("admin-dashboard.html");
 
   } catch (err) {
-    showError(err.message);
-  } finally {
-    loginBtn.disabled = false;
-    loginBtn.textContent = "Login";
+    console.error("Login error:", err);
+    showError("Server not reachable");
   }
 }
 
+/* ================= ERROR UI ================= */
 function showError(msg) {
-  errorBox.textContent = msg;
-  errorBox.style.display = "block";
+  if (errorText) {
+    errorText.textContent = msg;
+    errorText.style.display = "block";
+  } else {
+    alert(msg);
+  }
 }
-function hideError() {
-  errorBox.style.display = "none";
-}
+
+/* ================= EVENT ================= */
+document.querySelector("form")
+  ?.addEventListener("submit", login);
 </script>
 
 </body>
