@@ -114,3 +114,23 @@ exports.getMe = async (req, res) => {
     return res.status(500).json({ message: "Failed to fetch user" });
   }
 };
+exports.adminLogin = async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ message: "Missing credentials" });
+  }
+
+  // HARD-CODED (OR DB)
+  if (username !== "admin" || password !== "admin123") {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
+  const token = jwt.sign(
+    { id: 1, role: "admin" },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+
+  res.json({ token });
+};

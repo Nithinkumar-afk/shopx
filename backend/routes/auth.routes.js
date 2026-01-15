@@ -17,4 +17,11 @@ router.post("/verify-otp", auth.verifyOtp);
 // Get logged-in user
 router.get("/me", userAuth, auth.getMe);
 
+/* ===============================
+   ADMIN AUTH ROUTES ✅ FIX
+================================ */
+
+// ADMIN LOGIN (USERNAME + PASSWORD ONLY)
+router.post("/admin/login", auth.adminLogin);
+
 module.exports = router;
