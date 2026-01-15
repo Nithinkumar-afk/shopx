@@ -7,7 +7,7 @@ const controller = require("../controllers/profile.controller");
 
 /* ================= PROFILE ================= */
 router.get("/", userAuth, controller.getProfile);
-router.put("/", userAuth, controller.updateProfile);
+router.put("/", userAuth, express.json(), controller.updateProfile);
 
 /* ================= PROFILE IMAGE ================= */
 router.post(
@@ -18,7 +18,13 @@ router.post(
 );
 
 /* ================= ADDRESS ================= */
-router.post("/address", userAuth, controller.addAddress);
+router.post(
+  "/address",
+  userAuth,
+  express.json(), // ✅ IMPORTANT FIX
+  controller.addAddress
+);
+
 router.delete("/address/:id", userAuth, controller.deleteAddress);
 
 module.exports = router;
