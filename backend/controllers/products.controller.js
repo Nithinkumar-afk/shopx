@@ -1,13 +1,14 @@
 const db = require("../config/db");
 
 /* =========================
-   CONSTANTS
+   IMAGE URL RULES (STRICT)
 ========================= */
-const FALLBACK_IMAGE =
-  "https://via.placeholder.com/600x400?text=No+Image";
-
 const CLOUDINARY_REGEX = /^https:\/\/res\.cloudinary\.com\//;
 const IMAGEKIT_REGEX   = /^https:\/\/ik\.imagekit\.io\//;
+
+const isValidImageURL = (url) =>
+  typeof url === "string" &&
+  (CLOUDINARY_REGEX.test(url) || IMAGEKIT_REGEX.test(url));
 
 /* =========================
    DB DOWN HANDLER
@@ -16,14 +17,8 @@ const dbDown = (res) =>
   res.status(503).json({ message: "Database unavailable" });
 
 /* =========================
-   IMAGE VALIDATOR
-========================= */
-const isValidImageURL = (url) =>
-  typeof url === "string" &&
-  (CLOUDINARY_REGEX.test(url) || IMAGEKIT_REGEX.test(url));
-
-/* =========================
    NORMALIZE IMAGES (OUTPUT)
+   ✔ No placeholder
 ========================= */
 function normalizeImages(images) {
   try {
@@ -35,13 +30,11 @@ function normalizeImages(images) {
       arr = JSON.parse(images);
     }
 
-    const clean = Array.isArray(arr)
+    return Array.isArray(arr)
       ? arr.filter(isValidImageURL)
       : [];
-
-    return clean.length ? clean : [FALLBACK_IMAGE];
   } catch {
-    return [FALLBACK_IMAGE];
+    return [];
   }
 }
 
@@ -64,7 +57,7 @@ exports.getProducts = async (req, res) => {
       price: Number(p.price),
       category: p.category,
       description: p.description || "",
-      images: normalizeImages(p.images)
+      images: normalizeImages(p.images) // ✅ only cloudinary/imagekit
     }));
 
     res.json(products);
@@ -76,9 +69,10 @@ exports.getProducts = async (req, res) => {
 
 /* =========================
    ADD PRODUCT (ADMIN)
+   ✔ STRICT IMAGE CHECK
 ========================= */
 exports.addProduct = async (req, res) => {
-  if (!db) return res.status(503).json({ message: "Database unavailable" });
+  if (!db) return dbDown(res);
 
   const { name, price, category, description, images } = req.body;
 
@@ -86,20 +80,18 @@ exports.addProduct = async (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  let finalImages = [];
-
-  // ✅ Accept ANY image URLs (array or single string)
-  if (Array.isArray(images)) {
-    finalImages = images.filter(
-      img => typeof img === "string" && img.trim()
-    );
+  if (!Array.isArray(images) || !images.length) {
+    return res.status(400).json({
+      message: "At least one Cloudinary or ImageKit image is required"
+    });
   }
 
-  // ✅ Absolute fallback (NO ERROR)
-  if (!finalImages.length) {
-    finalImages = [
-      "https://via.placeholder.com/600x400?text=No+Image"
-    ];
+  const cleanImages = images.filter(isValidImageURL);
+
+  if (!cleanImages.length) {
+    return res.status(400).json({
+      message: "Only Cloudinary or ImageKit URLs are allowed"
+    });
   }
 
   try {
@@ -113,13 +105,13 @@ exports.addProduct = async (req, res) => {
         Number(price),
         category.trim(),
         description?.trim() || "",
-        JSON.stringify(finalImages)
+        JSON.stringify(cleanImages)
       ]
     );
 
     res.status(201).json({ message: "Product added successfully" });
   } catch (err) {
-    console.error("ADD PRODUCT ERROR:", err);
+    console.error("❌ ADD PRODUCT ERROR:", err);
     res.status(500).json({ message: "Failed to add product" });
   }
 };
