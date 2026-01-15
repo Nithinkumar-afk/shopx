@@ -115,17 +115,57 @@ textarea{grid-column:1/-1}
 <div class="products" id="list"></div>
 
 <script>
+"use strict";
+
 /* ================= CONFIG ================= */
-const API_BASE = "https://shopx-production-b1ad.up.railway.app/api";
-const PUBLIC_PRODUCTS_API = API_BASE + "/products";
-const ADMIN_PRODUCTS_API = API_BASE + "/admin/products";
+const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
+const API = BASE_URL + "/api";
+
+const PUBLIC_PRODUCTS_API = API + "/products";
+const ADMIN_PRODUCTS_API = API + "/admin/products";
+const LOGIN_PAGE = "admin-login.html";
 
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
 
-/* ================= AUTH ================= */
-const token = localStorage.getItem("adminToken");
-if (!token) location.href = "admin-login.html";
+/* ================= AUTH HELPERS ================= */
+function getToken() {
+  return localStorage.getItem("adminToken");
+}
+
+function forceLogout() {
+  localStorage.removeItem("adminToken");
+  location.replace(LOGIN_PAGE);
+}
+
+/* ================= AUTH GUARD ================= */
+if (!getToken()) {
+  forceLogout();
+}
+
+/* ================= AUTH FETCH ================= */
+async function authFetch(url, options = {}) {
+  const token = getToken();
+  if (!token) {
+    forceLogout();
+    throw new Error("No token");
+  }
+
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      Authorization: "Bearer " + token,
+      ...(options.headers || {})
+    }
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    forceLogout();
+    throw new Error("Unauthorized");
+  }
+
+  return res;
+}
 
 /* ================= ELEMENTS ================= */
 const list = document.getElementById("list");
@@ -140,32 +180,41 @@ const img3Input = document.getElementById("img3");
 const descInput = document.getElementById("desc");
 
 /* ================= LOAD PRODUCTS ================= */
-async function loadProducts(){
+async function loadProducts() {
   list.innerHTML = "";
 
-  const res = await fetch(PUBLIC_PRODUCTS_API);
-  const products = await res.json();
+  try {
+    const res = await fetch(PUBLIC_PRODUCTS_API);
+    const products = await res.json();
 
-  if (!Array.isArray(products)) return;
+    if (!Array.isArray(products)) return;
 
-  products.forEach(p=>{
-    const productId = p.id || p._id; // 🔥 FIX
-    const imgSrc = p.images?.[0] || FALLBACK_IMAGE;
+    products.forEach(p => {
+      const productId = p.id || p._id;
+      const imgSrc = p.images?.[0] || FALLBACK_IMAGE;
 
-    const card = document.createElement("div");
-    card.className = "card";
+      const card = document.createElement("div");
+      card.className = "card";
 
-    card.innerHTML = `
-      <img src="${imgSrc}" onerror="this.src='${FALLBACK_IMAGE}'">
-      <strong>${p.name}</strong>
-      <span>₹${p.price}</span>
-      <small>${p.category}</small>
-      <button>Delete</button>
-    `;
+      card.innerHTML = `
+        <img src="${imgSrc}" onerror="this.src='${FALLBACK_IMAGE}'">
+        <strong>${p.name}</strong>
+        <span>₹${p.price}</span>
+        <small>${p.category}</small>
+        <button>Delete</button>
+      `;
 
-    card.querySelector("button").onclick = () => deleteProduct(productId);
-    list.appendChild(card);
-  });
+      card.querySelector("button").onclick =
+        () => deleteProduct(productId);
+
+      list.appendChild(card);
+    });
+
+  } catch (err) {
+    console.error("Load products error:", err);
+    list.innerHTML =
+      "<p style='color:#f87171'>Failed to load products</p>";
+  }
 }
 
 /* ================= ADD PRODUCT ================= */
@@ -194,44 +243,58 @@ addBtn.onclick = async () => {
     return;
   }
 
-  const res = await fetch(ADMIN_PRODUCTS_API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token
-    },
-    body: JSON.stringify(payload)
-  });
+  try {
+    const res = await authFetch(ADMIN_PRODUCTS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
 
-  const data = await res.json();
-  if (!res.ok) return alert(data.message || "Add failed");
+    await res.json();
+    clearForm();
+    loadProducts();
 
-  clearForm();
-  loadProducts();
+  } catch (err) {
+    console.error("Add product error:", err);
+    alert("Add product failed");
+  }
 };
 
-/* ================= DELETE ================= */
-async function deleteProduct(id){
+/* ================= DELETE PRODUCT ================= */
+async function deleteProduct(id) {
   if (!id) return alert("Invalid product ID");
   if (!confirm("Delete product?")) return;
 
-  const res = await fetch(`${ADMIN_PRODUCTS_API}/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: "Bearer " + token }
-  });
+  try {
+    await authFetch(`${ADMIN_PRODUCTS_API}/${id}`, {
+      method: "DELETE"
+    });
 
-  if (!res.ok) alert("Delete failed");
-  loadProducts();
+    loadProducts();
+
+  } catch (err) {
+    console.error("Delete error:", err);
+    alert("Delete failed");
+  }
 }
 
-/* ================= CLEAR ================= */
-function clearForm(){
-  [nameInput,priceInput,categoryInput,img1Input,img2Input,img3Input,descInput]
-    .forEach(i => i.value = "");
+/* ================= CLEAR FORM ================= */
+function clearForm() {
+  [
+    nameInput,
+    priceInput,
+    categoryInput,
+    img1Input,
+    img2Input,
+    img3Input,
+    descInput
+  ].forEach(i => i.value = "");
 }
 
+/* ================= INIT ================= */
 loadProducts();
 </script>
+
 
 </body>
 </html>

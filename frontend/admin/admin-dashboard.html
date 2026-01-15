@@ -124,9 +124,10 @@ header button:hover{background:#dc2626}
    CONFIG
 ====================== */
 const API_BASE = "https://shopx-production-b1ad.up.railway.app";
+const LOGIN_PAGE = "admin-login.html";
 
 /* ======================
-   DOM ELEMENTS (FIX)
+   DOM ELEMENTS
 ====================== */
 const totalProducts = document.getElementById("totalProducts");
 const totalOrders   = document.getElementById("totalOrders");
@@ -135,23 +136,46 @@ const totalRevenue  = document.getElementById("totalRevenue");
 const recentOrders  = document.getElementById("recentOrders");
 
 /* ======================
+   AUTH HELPERS
+====================== */
+function getToken() {
+  return localStorage.getItem("adminToken");
+}
+
+function forceLogout() {
+  localStorage.removeItem("adminToken");
+  location.replace(LOGIN_PAGE);
+}
+
+/* ======================
    AUTH GUARD
 ====================== */
-const token = localStorage.getItem("adminToken");
-if (!token) {
-  location.replace("/admin/admin-login.html");
+if (!getToken()) {
+  forceLogout();
 }
 
 /* ======================
    AUTH FETCH
 ====================== */
 async function authFetch(endpoint) {
-  const res = await fetch(API_BASE + endpoint, {
-    headers: {
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/json"
-    }
-  });
+  const token = getToken();
+
+  if (!token) {
+    forceLogout();
+    throw new Error("No token");
+  }
+
+  let res;
+  try {
+    res = await fetch(API_BASE + endpoint, {
+      headers: {
+        Authorization: "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    });
+  } catch {
+    throw new Error("Network error");
+  }
 
   if (res.status === 401 || res.status === 403) {
     forceLogout();
@@ -182,15 +206,13 @@ function timeAgo(dateString) {
 ====================== */
 (async function loadDashboard() {
   try {
-    /* ---- STATS ---- */
     const stats = await authFetch("/api/admin/stats");
 
-    totalProducts.textContent = stats.products;
-    totalOrders.textContent   = stats.orders;
-    totalUsers.textContent    = stats.users;
-    totalRevenue.textContent  = "₹" + stats.revenue;
+    totalProducts.textContent = stats.products ?? 0;
+    totalOrders.textContent   = stats.orders ?? 0;
+    totalUsers.textContent    = stats.users ?? 0;
+    totalRevenue.textContent  = "₹" + (stats.revenue ?? 0);
 
-    /* ---- RECENT ORDERS ---- */
     const orders = await authFetch("/api/admin/recent-orders");
 
     if (!orders || orders.length === 0) {
@@ -210,7 +232,7 @@ function timeAgo(dateString) {
   } catch (err) {
     console.error(err);
     recentOrders.innerHTML =
-      "<p style='color:#f87171'>Failed to load orders</p>";
+      "<p style='color:#f87171'>Failed to load dashboard</p>";
   }
 })();
 
@@ -220,12 +242,8 @@ function timeAgo(dateString) {
 function logout() {
   forceLogout();
 }
-
-function forceLogout() {
-  localStorage.removeItem("adminToken");
-  location.replace("/admin/admin-login.html");
-}
 </script>
+
 
 </body>
 </html>

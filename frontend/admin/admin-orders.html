@@ -218,11 +218,7 @@ header button:hover{background:#dc2626}
 /* ================= CONFIG ================= */
 const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
 const API = BASE_URL + "/api";
-const token = localStorage.getItem("adminToken");
-
-if (!token) {
-  location.href = "admin-login.html";
-}
+const LOGIN_PAGE = "admin-login.html";
 
 /* ================= STATE ================= */
 let orders = [];
@@ -230,6 +226,21 @@ let filter = "ALL";
 const ordersList = document.getElementById("ordersList");
 
 const STATUSES = ["placed", "shipped", "delivered", "cancelled"];
+
+/* ================= AUTH HELPERS ================= */
+function getToken() {
+  return localStorage.getItem("adminToken");
+}
+
+function forceLogout() {
+  localStorage.removeItem("adminToken");
+  location.replace(LOGIN_PAGE);
+}
+
+/* ================= AUTH GUARD ================= */
+if (!getToken()) {
+  forceLogout();
+}
 
 /* ================= HELPERS ================= */
 function normalizeStatus(status = "") {
@@ -241,19 +252,44 @@ function normalizeStatus(status = "") {
   return status;
 }
 
+/* ================= AUTH FETCH ================= */
+async function authFetch(url, options = {}) {
+  const token = getToken();
+  if (!token) {
+    forceLogout();
+    throw new Error("No token");
+  }
+
+  let res;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: {
+        Authorization: "Bearer " + token,
+        ...(options.headers || {})
+      }
+    });
+  } catch {
+    throw new Error("Network error");
+  }
+
+  if (res.status === 401 || res.status === 403) {
+    forceLogout();
+    throw new Error("Unauthorized");
+  }
+
+  return res;
+}
+
 /* ================= LOAD ORDERS ================= */
 async function loadOrders() {
   try {
-    const res = await fetch(API + "/admin/orders", {
-      headers: {
-        Authorization: "Bearer " + token
-      }
-    });
-
-    if (res.status === 401) return logout();
-
+    const res = await authFetch(API + "/admin/orders");
     const data = await res.json();
-    const rawOrders = Array.isArray(data) ? data : data.orders || [];
+
+    const rawOrders = Array.isArray(data)
+      ? data
+      : data.orders || [];
 
     orders = rawOrders.map(o => ({
       ...o,
@@ -264,6 +300,8 @@ async function loadOrders() {
     render();
   } catch (err) {
     console.error("Load orders error:", err);
+    ordersList.innerHTML =
+      "<p style='color:#f87171'>Failed to load orders</p>";
   }
 }
 
@@ -309,21 +347,25 @@ function render() {
 
     ordersList.innerHTML += `
       <div class="order-card">
-        <b>Order #${o.id}</b>
-
-        <select onchange="updateStatus(${o.id}, this.value)">
-          ${options}
-        </select>
+        <div class="order-header">
+          <b>Order #${o.id}</b>
+          <div class="order-actions">
+            <select class="status-select"
+              onchange="updateStatus(${o.id}, this.value)">
+              ${options}
+            </select>
+            <button class="delete-btn"
+              onclick="deleteOrder(${o.id})">
+              Delete
+            </button>
+          </div>
+        </div>
 
         <div class="items">${itemsHTML}</div>
 
         <div class="total">
           <strong>Total:</strong> ₹${o.total_amount}
         </div>
-
-        <button class="delete-btn" onclick="deleteOrder(${o.id})">
-          Delete
-        </button>
       </div>
     `;
   });
@@ -332,12 +374,9 @@ function render() {
 /* ================= UPDATE STATUS ================= */
 async function updateStatus(id, status) {
   try {
-    await fetch(`${API}/admin/orders/${id}/status`, {
+    await authFetch(`${API}/admin/orders/${id}/status`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status })
     });
 
@@ -352,11 +391,8 @@ async function deleteOrder(id) {
   if (!confirm("Delete this order?")) return;
 
   try {
-    await fetch(`${API}/admin/orders/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: "Bearer " + token
-      }
+    await authFetch(`${API}/admin/orders/${id}`, {
+      method: "DELETE"
     });
 
     loadOrders();
@@ -367,10 +403,10 @@ async function deleteOrder(id) {
 
 /* ================= LOGOUT ================= */
 function logout() {
-  localStorage.removeItem("adminToken");
-  location.replace("admin-login.html");
+  forceLogout();
 }
 
 /* ================= INIT ================= */
 loadOrders();
 </script>
+
