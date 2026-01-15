@@ -28,17 +28,15 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * CORS
+ * CORS (PRODUCTION SAFE)
  *************************************************/
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-app.options("*", cors());
 
 /*************************************************
  * STATIC FILES
@@ -67,7 +65,7 @@ app.use("/api/profile", require("./routes/profile.routes"));
  * HEALTH CHECK
  *************************************************/
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
     status: "ShopX backend running ✅",
     uptime: process.uptime(),
     time: new Date().toISOString(),
@@ -86,7 +84,10 @@ app.use((req, res) => {
  *************************************************/
 app.use((err, req, res, next) => {
   console.error("🔥 ERROR:", err);
-  res.status(500).json({ message: "Internal server error" });
+  res.status(500).json({
+    message: "Internal server error",
+    error: err.message,
+  });
 });
 
 /*************************************************
