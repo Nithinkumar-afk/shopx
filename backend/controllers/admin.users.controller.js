@@ -1,10 +1,8 @@
 const db = require("../config/db");
-const fs = require("fs");
-const path = require("path");
 
-/* ===============================
-   GET ALL USERS (WITH ADDRESSES)
-================================ */
+/* =========================
+   GET USERS
+========================= */
 exports.getUsers = async (req, res) => {
   try {
     const [users] = await db.query(`
@@ -13,133 +11,83 @@ exports.getUsers = async (req, res) => {
       ORDER BY id DESC
     `);
 
-    for (const u of users) {
+    for (let u of users) {
       const [addresses] = await db.query(
-        "SELECT id, address FROM addresses WHERE user_id=? ORDER BY id DESC",
+        "SELECT id, address FROM addresses WHERE user_id=?",
         [u.id]
       );
-      u.addresses = addresses || [];
+      u.addresses = addresses;
     }
 
     res.json(users);
   } catch (err) {
     console.error("ADMIN GET USERS ERROR:", err);
-    res.status(500).json({ message: "Failed to load users" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* ===============================
-   UPDATE USER (NAME + ADDRESSES)
-================================ */
+/* =========================
+   UPDATE USER
+========================= */
 exports.updateUser = async (req, res) => {
   try {
-    const userId = Number(req.params.id);
-    let { name, addresses } = req.body;
+    const { name, addresses } = req.body;
+    const userId = req.params.id;
 
-    if (!userId || !name) {
-      return res.status(400).json({ message: "Invalid data" });
-    }
-
-    const [[exists]] = await db.query(
-      "SELECT id FROM users WHERE id=?",
-      [userId]
-    );
-    if (!exists) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    await db.query(
-      "UPDATE users SET name=? WHERE id=?",
-      [name.trim(), userId]
-    );
+    await db.query("UPDATE users SET name=? WHERE id=?", [
+      name,
+      userId,
+    ]);
 
     if (addresses) {
-      // accept both JSON string & array
-      const list = Array.isArray(addresses)
-        ? addresses
-        : JSON.parse(addresses);
-
       await db.query("DELETE FROM addresses WHERE user_id=?", [userId]);
 
-      for (const addr of list) {
-        if (addr && addr.trim()) {
-          await db.query(
-            "INSERT INTO addresses (user_id, address) VALUES (?,?)",
-            [userId, addr.trim()]
-          );
-        }
+      const list = JSON.parse(addresses);
+      for (let a of list) {
+        await db.query(
+          "INSERT INTO addresses (user_id, address) VALUES (?, ?)",
+          [userId, a]
+        );
       }
     }
 
-    res.json({ message: "User updated successfully" });
+    res.json({ message: "User updated" });
   } catch (err) {
     console.error("ADMIN UPDATE USER ERROR:", err);
-    res.status(500).json({ message: "Update failed" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* ===============================
-   UPDATE USER IMAGE
-================================ */
+/* =========================
+   UPDATE IMAGE
+========================= */
 exports.updateUserImage = async (req, res) => {
   try {
-    const userId = Number(req.params.id);
-    if (!req.file) {
-      return res.status(400).json({ message: "Image required" });
-    }
-
-    const [[old]] = await db.query(
-      "SELECT image FROM users WHERE id=?",
-      [userId]
-    );
-
-    if (old?.image) {
-      const oldPath = path.join(__dirname, "..", old.image);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
-    }
-
-    const imagePath = "/uploads/users/" + req.file.filename;
+    const imagePath = "/uploads/" + req.file.filename;
 
     await db.query(
       "UPDATE users SET image=? WHERE id=?",
-      [imagePath, userId]
+      [imagePath, req.params.id]
     );
 
     res.json({ image: imagePath });
   } catch (err) {
     console.error("ADMIN IMAGE ERROR:", err);
-    res.status(500).json({ message: "Image update failed" });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-/* ===============================
+/* =========================
    DELETE USER
-================================ */
+========================= */
 exports.deleteUser = async (req, res) => {
   try {
-    const userId = Number(req.params.id);
-
-    await db.query("DELETE FROM addresses WHERE user_id=?", [userId]);
-    await db.query("DELETE FROM users WHERE id=?", [userId]);
+    await db.query("DELETE FROM addresses WHERE user_id=?", [req.params.id]);
+    await db.query("DELETE FROM users WHERE id=?", [req.params.id]);
 
     res.json({ message: "User deleted" });
   } catch (err) {
-    console.error("ADMIN DELETE USER ERROR:", err);
-    res.status(500).json({ message: "Delete failed" });
-  }
-};
-
-/* ===============================
-   DELETE SINGLE ADDRESS
-================================ */
-exports.deleteAddress = async (req, res) => {
-  try {
-    const addressId = Number(req.params.id);
-    await db.query("DELETE FROM addresses WHERE id=?", [addressId]);
-    res.json({ message: "Address deleted" });
-  } catch (err) {
-    res.status(500).json({ message: "Delete failed" });
+    console.error("DELETE USER ERROR:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
