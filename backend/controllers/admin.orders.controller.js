@@ -11,18 +11,15 @@ exports.getAllOrders = async (req, res) => {
         o.total_amount,
         o.status,
         o.created_at,
-        u.name,
-        u.email
+        COALESCE(u.name, 'Guest') AS name,
+        COALESCE(u.email, '-') AS email
       FROM orders o
-      JOIN users u ON u.id = o.user_id
+      LEFT JOIN users u ON u.id = o.user_id
       ORDER BY o.created_at DESC
     `);
 
-    if (!orders.length) {
-      return res.json([]);
-    }
+    if (!orders.length) return res.json([]);
 
-    // Normalize status + init items
     orders.forEach(o => {
       o.status = (o.status || "placed").toLowerCase();
       o.items = [];
@@ -30,8 +27,7 @@ exports.getAllOrders = async (req, res) => {
 
     const orderIds = orders.map(o => o.id);
 
-    const [items] = await db.query(
-      `
+    const [items] = await db.query(`
       SELECT
         oi.order_id,
         p.name,
@@ -40,9 +36,7 @@ exports.getAllOrders = async (req, res) => {
       FROM order_items oi
       JOIN products p ON p.id = oi.product_id
       WHERE oi.order_id IN (?)
-      `,
-      [orderIds]
-    );
+    `, [orderIds]);
 
     const map = {};
     orders.forEach(o => (map[o.id] = o));
@@ -65,51 +59,18 @@ exports.getAllOrders = async (req, res) => {
 };
 
 /* =====================================================
-   ADMIN - GET DASHBOARD STATS (🔥 FIXES REVENUE)
-===================================================== */
-exports.getDashboardStats = async (req, res) => {
-  try {
-    const [[stats]] = await db.query(`
-      SELECT
-        COUNT(*) AS totalOrders,
-        COALESCE(SUM(
-          CASE
-            WHEN status = 'delivered' THEN total_amount
-            ELSE 0
-          END
-        ), 0) AS totalRevenue
-      FROM orders
-    `);
-
-    const [[users]] = await db.query(`
-      SELECT COUNT(*) AS totalUsers FROM users
-    `);
-
-    res.json({
-      totalOrders: stats.totalOrders,
-      totalRevenue: Number(stats.totalRevenue),
-      totalUsers: users.totalUsers
-    });
-  } catch (err) {
-    console.error("ADMIN DASHBOARD ERROR:", err.message);
-    res.status(500).json({ message: "Failed to load dashboard stats" });
-  }
-};
-
-/* =====================================================
    ADMIN - UPDATE ORDER STATUS
 ===================================================== */
 exports.updateStatus = async (req, res) => {
   try {
-    const orderId = req.params.id;
+    const { id } = req.params;
     let { status } = req.body;
 
     if (!status) {
-      return res.status(400).json({ message: "Status is required" });
+      return res.status(400).json({ message: "Status required" });
     }
 
     status = status.toLowerCase();
-
     const allowed = ["placed", "shipped", "delivered", "cancelled"];
     if (!allowed.includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
@@ -117,7 +78,7 @@ exports.updateStatus = async (req, res) => {
 
     const [rows] = await db.query(
       "SELECT id FROM orders WHERE id = ?",
-      [orderId]
+      [id]
     );
 
     if (!rows.length) {
@@ -126,27 +87,27 @@ exports.updateStatus = async (req, res) => {
 
     await db.query(
       "UPDATE orders SET status = ? WHERE id = ?",
-      [status, orderId]
+      [status, id]
     );
 
-    res.json({ message: "Order status updated", status });
+    res.json({ message: "Status updated", status });
   } catch (err) {
     console.error("UPDATE STATUS ERROR:", err.message);
-    res.status(500).json({ message: "Failed to update order status" });
+    res.status(500).json({ message: "Failed to update status" });
   }
 };
 
 /* =====================================================
-   ADMIN - DELETE ORDER
+   ADMIN - DELETE ORDER (SAFE)
 ===================================================== */
 exports.deleteOrder = async (req, res) => {
-  const orderId = req.params.id;
-  const connection = await db.getConnection();
+  const { id } = req.params;
+  const conn = await db.getConnection();
 
   try {
-    const [rows] = await connection.query(
+    const [rows] = await conn.query(
       "SELECT status FROM orders WHERE id = ?",
-      [orderId]
+      [id]
     );
 
     if (!rows.length) {
@@ -154,34 +115,33 @@ exports.deleteOrder = async (req, res) => {
     }
 
     if (rows[0].status === "delivered") {
-      return res.status(400).json({
-        message: "Delivered orders cannot be deleted"
-      });
+      return res
+        .status(400)
+        .json({ message: "Delivered orders cannot be deleted" });
     }
 
-    await connection.beginTransaction();
+    await conn.beginTransaction();
 
-    await connection.query(
-      "DELETE FROM order_items WHERE order_id = ?",
-      [orderId]
-    );
-    await connection.query(
-      "DELETE FROM order_addresses WHERE order_id = ?",
-      [orderId]
-    );
-    await connection.query(
-      "DELETE FROM orders WHERE id = ?",
-      [orderId]
-    );
+    await conn.query("DELETE FROM order_items WHERE order_id = ?", [id]);
 
-    await connection.commit();
+    // Optional table → safe delete
+    try {
+      await conn.query(
+        "DELETE FROM order_addresses WHERE order_id = ?",
+        [id]
+      );
+    } catch (_) {}
 
-    res.json({ message: "Order deleted successfully" });
+    await conn.query("DELETE FROM orders WHERE id = ?", [id]);
+
+    await conn.commit();
+
+    res.json({ message: "Order deleted" });
   } catch (err) {
-    await connection.rollback();
+    await conn.rollback();
     console.error("DELETE ORDER ERROR:", err.message);
-    res.status(500).json({ message: "Failed to delete order" });
+    res.status(500).json({ message: "Delete failed" });
   } finally {
-    connection.release();
+    conn.release();
   }
 };

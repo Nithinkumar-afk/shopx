@@ -3,61 +3,81 @@ const jwt = require("jsonwebtoken");
 
 /* ================= ADMIN LOGIN ================= */
 exports.login = (req, res) => {
-  const { username, password } = req.body;
+  try {
+    const { username, password } = req.body;
 
-  if (username !== "admin" || password !== "admin123") {
-    return res.status(401).json({ message: "Invalid credentials" });
+    // Basic validation
+    if (!username || !password) {
+      return res.status(400).json({ message: "Missing credentials" });
+    }
+
+    // Static admin (safe for now)
+    if (username !== "admin" || password !== "admin123") {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: "JWT secret not configured" });
+    }
+
+    const token = jwt.sign(
+      {
+        id: 1,
+        username: "admin",
+        role: "admin"
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      message: "Admin login successful",
+      token
+    });
+
+  } catch (err) {
+    console.error("ADMIN LOGIN ERROR:", err);
+    res.status(500).json({ message: "Login failed" });
   }
-
-  const token = jwt.sign(
-    { id: 1, role: "admin" },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-
-  res.json({ token });
 };
 
 /* ================= DASHBOARD STATS ================= */
 exports.getStats = async (req, res) => {
   try {
-    const [[products]] = await db.query(
-      "SELECT COUNT(*) AS count FROM products"
-    );
-
-    const [[users]] = await db.query(
-      "SELECT COUNT(*) AS count FROM users"
-    );
-
-    // Orders table may not exist yet
-    let ordersCount = 0;
-    let revenueTotal = 0;
+    let products = 0;
+    let users = 0;
+    let orders = 0;
+    let revenue = 0;
 
     try {
-      const [[orders]] = await db.query(
-        "SELECT COUNT(*) AS count FROM orders"
-      );
-      ordersCount = orders.count;
+      const [[p]] = await db.query("SELECT COUNT(*) AS count FROM products");
+      products = p.count;
+    } catch {}
 
-      const [[revenue]] = await db.query(
+    try {
+      const [[u]] = await db.query("SELECT COUNT(*) AS count FROM users");
+      users = u.count;
+    } catch {}
+
+    try {
+      const [[o]] = await db.query("SELECT COUNT(*) AS count FROM orders");
+      orders = o.count;
+
+      const [[r]] = await db.query(
         "SELECT IFNULL(SUM(total_amount),0) AS total FROM orders WHERE status != 'cancelled'"
       );
-      revenueTotal = revenue.total;
-    } catch (e) {
-      // Orders table not created yet → SAFE FALLBACK
-      ordersCount = 0;
-      revenueTotal = 0;
-    }
+      revenue = r.total;
+    } catch {}
 
     res.json({
-      products: products.count,
-      orders: ordersCount,
-      users: users.count,
-      revenue: revenueTotal
+      products,
+      users,
+      orders,
+      revenue
     });
 
   } catch (err) {
-    console.error("STATS ERROR:", err);
+    console.error("ADMIN STATS ERROR:", err);
     res.status(500).json({ message: "Stats failed" });
   }
 };
@@ -78,8 +98,9 @@ exports.getRecentOrders = async (req, res) => {
     `);
 
     res.json(rows);
+
   } catch (err) {
-    // Orders table not ready yet
+    console.warn("RECENT ORDERS TABLE NOT READY");
     res.json([]);
   }
 };

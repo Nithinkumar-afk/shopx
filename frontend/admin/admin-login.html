@@ -80,8 +80,7 @@ button:disabled{opacity:.7}
 
 /* ================= CONFIG ================= */
 const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
-const API_BASE = BASE_URL + "/api";
-const LOGIN_API = API_BASE + "/admin/login";
+const API = BASE_URL + "/api";
 
 /* ================= ELEMENTS ================= */
 const errorBox = document.getElementById("error");
@@ -96,61 +95,48 @@ if (localStorage.getItem("adminToken")) {
 
 /* ================= EVENTS ================= */
 loginBtn.addEventListener("click", login);
-passwordInput.addEventListener("keydown", (e) => {
+passwordInput.addEventListener("keydown", e => {
   if (e.key === "Enter") login();
 });
 
 /* ================= LOGIN ================= */
 async function login() {
-  const email = usernameInput.value.trim().toLowerCase();
+  const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
 
   hideError();
 
-  if (!email || !password) {
-    return showError("Email and password are required");
+  if (!username || !password) {
+    return showError("Username and password are required");
   }
 
   loginBtn.disabled = true;
   loginBtn.textContent = "Logging in...";
 
   try {
-    const res = await fetch(LOGIN_API, {
+    const res = await fetch(API + "/admin/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({ email, password })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
     });
 
-    let data;
-    try {
-      data = await res.json();
-    } catch {
-      throw new Error("Invalid server response");
-    }
+    const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.message || `Login failed (${res.status})`);
+      throw new Error(data.message || "Login failed");
     }
 
     if (!data.token) {
-      throw new Error("Login failed: token missing");
+      throw new Error("Token missing from server");
     }
 
-    /* ================= SUCCESS ================= */
+    /* ✅ SAVE TOKEN (MATCHES admin-orders.html) */
     localStorage.setItem("adminToken", data.token);
 
-    // Hard redirect (prevents back button issues)
     location.replace("admin-dashboard.html");
 
   } catch (err) {
-    showError(
-      err.message.includes("fetch")
-        ? "Server not reachable. Try again."
-        : err.message
-    );
+    showError(err.message);
   } finally {
     loginBtn.disabled = false;
     loginBtn.textContent = "Login";
@@ -158,16 +144,13 @@ async function login() {
 }
 
 /* ================= UI HELPERS ================= */
-function showError(message) {
-  errorBox.textContent = message;
+function showError(msg) {
+  errorBox.textContent = msg;
   errorBox.style.display = "block";
 }
-
 function hideError() {
   errorBox.style.display = "none";
 }
 </script>
-
-
 </body>
 </html>

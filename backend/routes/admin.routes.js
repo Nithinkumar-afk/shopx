@@ -1,7 +1,14 @@
 const express = require("express");
 const router = express.Router();
+
 const adminController = require("../controllers/admin.controller");
 const adminAuth = require("../middleware/adminAuth");
+
+/**
+ * ===============================
+ * ADMIN AUTH ROUTES
+ * ===============================
+ */
 
 /**
  * ADMIN LOGIN
@@ -10,7 +17,13 @@ const adminAuth = require("../middleware/adminAuth");
 router.post("/login", adminController.login);
 
 /**
- * ADMIN DASHBOARD
+ * ===============================
+ * ADMIN PROTECTED ROUTES
+ * ===============================
+ */
+
+/**
+ * ADMIN DASHBOARD STATS
  * GET /api/admin/stats
  */
 router.get("/stats", adminAuth, adminController.getStats);
