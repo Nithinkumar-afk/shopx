@@ -8,10 +8,10 @@ const controller = require("../controllers/admin.users.controller");
 // GET USERS
 router.get("/", adminAuth, controller.getUsers);
 
-// UPDATE USER (NO IMAGE)
+// UPDATE USER
 router.put("/:id", adminAuth, controller.updateUser);
 
-// UPDATE USER IMAGE ✅
+// UPDATE IMAGE ✅ NEW
 router.put(
   "/:id/image",
   adminAuth,
@@ -19,10 +19,10 @@ router.put(
   controller.updateUserImage
 );
 
-// DELETE USER
-router.delete("/:id", adminAuth, controller.deleteUser);
-
 // DELETE ADDRESS
 router.delete("/address/:id", adminAuth, controller.deleteAddress);
+
+// DELETE USER
+router.delete("/:id", adminAuth, controller.deleteUser);
 
 module.exports = router;

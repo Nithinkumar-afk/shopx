@@ -1,30 +1,20 @@
 const express = require("express");
 const router = express.Router();
 
-const userAuth = require("../middleware/userAuth");
+const auth = require("../middleware/userAuth"); // normal user auth
 const upload = require("../middleware/uploadUserImage");
+
 const controller = require("../controllers/profile.controller");
 
-/* ================= PROFILE ================= */
-router.get("/", userAuth, controller.getProfile);
-router.put("/", userAuth, express.json(), controller.updateProfile);
+/* PROFILE */
+router.get("/", auth, controller.getProfile);
+router.put("/", auth, controller.updateProfile);
 
-/* ================= PROFILE IMAGE ================= */
-router.post(
-  "/image",
-  userAuth,
-  upload.single("image"),
-  controller.updateProfileImage
-);
+/* IMAGE */
+router.post("/image", auth, upload.single("image"), controller.updateProfileImage);
 
-/* ================= ADDRESS ================= */
-router.post(
-  "/address",
-  userAuth,
-  express.json(), // ✅ IMPORTANT FIX
-  controller.addAddress
-);
-
-router.delete("/address/:id", userAuth, controller.deleteAddress);
+/* ADDRESS */
+router.post("/address", auth, controller.addAddress);
+router.delete("/address/:id", auth, controller.deleteAddress);
 
 module.exports = router;

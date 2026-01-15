@@ -157,27 +157,43 @@ fetch(API+"/api/profile",{headers:authHeader})
 })
 .catch(()=>alert("Failed to load profile"));
 
-/* SAVE PROFILE */
-saveBtn.onclick=()=>{
-  fetch(API+"/api/profile",{
-    method:"PUT",
-    headers:{...authHeader,"Content-Type":"application/json"},
-    body:JSON.stringify({
-      name:nameInput.value,
-      phone:phoneInput.value,
-      altPhone:altPhoneInput.value
+saveBtn.onclick = async () => {
+  const res = await fetch(API + "/api/profile", {
+    method: "PUT",
+    headers: { ...authHeader, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: nameInput.value.trim(),
+      phone: phoneInput.value.trim(),
+      altPhone: altPhoneInput.value.trim()
     })
-  }).then(()=>alert("Profile updated"));
+  });
+
+  if (!res.ok) {
+    alert("Profile update failed");
+    return;
+  }
+
+  alert("Profile updated successfully");
 };
 
 /* IMAGE UPLOAD */
-imgInput.onchange=()=>{
-  const file=imgInput.files[0];
-  if(!file) return;
-  profileImage.src=URL.createObjectURL(file);
-  const fd=new FormData();
-  fd.append("image",file);
-  fetch(API+"/api/profile/image",{method:"POST",headers:authHeader,body:fd});
+imgInput.onchange = async () => {
+  const file = imgInput.files[0];
+  if (!file) return;
+
+  const fd = new FormData();
+  fd.append("image", file);
+
+  const res = await fetch(API + "/api/profile/image", {
+    method: "POST",
+    headers: authHeader,
+    body: fd
+  });
+
+  const data = await res.json();
+  if (data.image) {
+    profileImage.src = API + data.image;
+  }
 };
 
 /* ADD ADDRESS */
