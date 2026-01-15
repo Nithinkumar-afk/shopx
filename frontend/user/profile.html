@@ -126,14 +126,18 @@ button{
 </div>
 
 <script>
-const API="https://shopx-production-b1ad.up.railway.app";
-const token=localStorage.getItem("token");
+const API = "https://shopx-production-b1ad.up.railway.app";
+
+/* ✅ FIX: read correct token */
+const token =
+  localStorage.getItem("userToken") ||
+  localStorage.getItem("token");
 
 if(!token){
   location.replace("login.html");
 }
 
-const authHeader={ Authorization:"Bearer "+token };
+const authHeader = { Authorization: "Bearer " + token };
 
 const nameInput=document.getElementById("name");
 const phoneInput=document.getElementById("phone");
@@ -148,44 +152,40 @@ const newAddress=document.getElementById("newAddress");
 /* LOAD PROFILE */
 async function loadProfile(){
   try{
-    const res = await fetch(API+"/api/profile",{headers:authHeader});
-    if(!res.ok) throw 0;
+    const res = await fetch(API+"/api/profile",{ headers: authHeader });
+    if(!res.ok) throw new Error();
     const d = await res.json();
 
-    nameInput.value=d.name||"";
-    phoneInput.value=d.phone||"";
-    altPhoneInput.value=d.altPhone||"";
+    nameInput.value = d.name || "";
+    phoneInput.value = d.phone || "";
+    altPhoneInput.value = d.altPhone || "";
 
     if(d.image){
       profileImage.src = d.image.startsWith("http") ? d.image : API + d.image;
     }
 
-    renderAddresses(Array.isArray(d.addresses)?d.addresses:[]);
+    renderAddresses(d.addresses || []);
   }catch{
     alert("Failed to load profile");
   }
 }
 
 saveBtn.onclick = async () => {
-  const res = await fetch(API + "/api/profile", {
-    method: "PUT",
-    headers: { ...authHeader, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: nameInput.value.trim(),
-      phone: phoneInput.value.trim(),
-      altPhone: altPhoneInput.value.trim()
+  const res = await fetch(API+"/api/profile",{
+    method:"PUT",
+    headers:{...authHeader,"Content-Type":"application/json"},
+    body:JSON.stringify({
+      name:nameInput.value.trim(),
+      phone:phoneInput.value.trim(),
+      altPhone:altPhoneInput.value.trim()
     })
   });
 
-  if(!res.ok){
-    alert("Profile update failed");
-    return;
-  }
-
+  if(!res.ok) return alert("Profile update failed");
   alert("Profile updated");
 };
 
-/* IMAGE UPLOAD ✅ FIXED */
+/* IMAGE */
 imgInput.onchange = async () => {
   const file = imgInput.files[0];
   if(!file) return;
@@ -193,21 +193,21 @@ imgInput.onchange = async () => {
   const fd = new FormData();
   fd.append("image", file);
 
-  const res = await fetch(API + "/api/profile/image", {
-    method: "PUT",   // ✅ CORRECT
-    headers: authHeader,
-    body: fd
+  const res = await fetch(API+"/api/profile/image",{
+    method:"PUT",
+    headers:authHeader,
+    body:fd
   });
 
   const d = await res.json();
   if(d.image){
-    profileImage.src = d.image.startsWith("http") ? d.image : API + d.image;
+    profileImage.src = API + d.image;
   }
 };
 
-/* ADD ADDRESS */
-addAddressBtn.onclick=async()=>{
-  const address=newAddress.value.trim();
+/* ADDRESS */
+addAddressBtn.onclick = async () => {
+  const address = newAddress.value.trim();
   if(!address) return;
 
   await fetch(API+"/api/profile/address",{
@@ -220,7 +220,6 @@ addAddressBtn.onclick=async()=>{
   loadProfile();
 };
 
-/* DELETE ADDRESS */
 function removeAddress(id){
   fetch(API+"/api/profile/address/"+id,{
     method:"DELETE",
@@ -228,7 +227,6 @@ function removeAddress(id){
   }).then(loadProfile);
 }
 
-/* RENDER ADDRESSES */
 function renderAddresses(list){
   addressList.innerHTML="";
   if(!list.length){
