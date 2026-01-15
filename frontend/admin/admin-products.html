@@ -105,10 +105,10 @@ textarea{grid-column:1/-1}
   <input id="name" placeholder="Product name">
   <input id="price" type="number" placeholder="Price">
   <input id="category" placeholder="Category">
-  <input id="img1" placeholder="Image URL 1 (required)">
-  <input id="img2" placeholder="Image URL 2 (optional)">
-  <input id="img3" placeholder="Image URL 3 (optional)">
-  <textarea id="desc" rows="3" placeholder="Description (optional)"></textarea>
+  <input id="img1" placeholder="Image URL (required)">
+  <input id="img2" placeholder="Image URL (optional)">
+  <input id="img3" placeholder="Image URL (optional)">
+  <textarea id="desc" rows="3" placeholder="Description"></textarea>
   <button id="addBtn">Add Product</button>
 </div>
 
@@ -146,7 +146,10 @@ async function loadProducts(){
   const res = await fetch(PUBLIC_PRODUCTS_API);
   const products = await res.json();
 
+  if (!Array.isArray(products)) return;
+
   products.forEach(p=>{
+    const productId = p.id || p._id; // 🔥 FIX
     const imgSrc = p.images?.[0] || FALLBACK_IMAGE;
 
     const card = document.createElement("div");
@@ -160,7 +163,7 @@ async function loadProducts(){
       <button>Delete</button>
     `;
 
-    card.querySelector("button").onclick = () => deleteProduct(p.id);
+    card.querySelector("button").onclick = () => deleteProduct(productId);
     list.appendChild(card);
   });
 }
@@ -171,7 +174,7 @@ addBtn.onclick = async () => {
     img1Input.value.trim(),
     img2Input.value.trim(),
     img3Input.value.trim()
-  ].filter(Boolean); // ✅ ONLY remove empty values
+  ].filter(Boolean);
 
   if (!images.length) {
     alert("At least ONE image URL is required");
@@ -201,14 +204,15 @@ addBtn.onclick = async () => {
   });
 
   const data = await res.json();
-  if (!res.ok) return alert(data.message || "Add product failed");
+  if (!res.ok) return alert(data.message || "Add failed");
 
   clearForm();
   loadProducts();
 };
 
-/* ================= DELETE PRODUCT ================= */
+/* ================= DELETE ================= */
 async function deleteProduct(id){
+  if (!id) return alert("Invalid product ID");
   if (!confirm("Delete product?")) return;
 
   const res = await fetch(`${ADMIN_PRODUCTS_API}/${id}`, {
