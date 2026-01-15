@@ -148,33 +148,31 @@ function forceLogout() {
 }
 
 /* ======================
-   AUTH GUARD
+   AUTH GUARD (HARD STOP)
 ====================== */
-if (!getToken()) {
+const token = getToken();
+if (!token) {
   forceLogout();
+  throw new Error("No admin token");
 }
 
 /* ======================
    AUTH FETCH
 ====================== */
 async function authFetch(endpoint) {
-  const token = getToken();
-
-  if (!token) {
-    forceLogout();
-    throw new Error("No token");
-  }
-
   let res;
+
   try {
     res = await fetch(API_BASE + endpoint, {
+      method: "GET",
       headers: {
-        Authorization: "Bearer " + token,
+        "Authorization": "Bearer " + getToken(),
         "Content-Type": "application/json"
       }
     });
-  } catch {
-    throw new Error("Network error");
+  } catch (err) {
+    console.error("Network error");
+    throw err;
   }
 
   if (res.status === 401 || res.status === 403) {
@@ -206,13 +204,15 @@ function timeAgo(dateString) {
 ====================== */
 (async function loadDashboard() {
   try {
+    // ✅ Verify admin + get stats
     const stats = await authFetch("/api/admin/stats");
 
-    totalProducts.textContent = stats.products ?? 0;
-    totalOrders.textContent   = stats.orders ?? 0;
-    totalUsers.textContent    = stats.users ?? 0;
-    totalRevenue.textContent  = "₹" + (stats.revenue ?? 0);
+    totalProducts.textContent = stats.products || 0;
+    totalOrders.textContent   = stats.orders || 0;
+    totalUsers.textContent    = stats.users || 0;
+    totalRevenue.textContent  = "₹" + (stats.revenue || 0);
 
+    // ✅ Recent orders
     const orders = await authFetch("/api/admin/recent-orders");
 
     if (!orders || orders.length === 0) {
@@ -232,7 +232,7 @@ function timeAgo(dateString) {
   } catch (err) {
     console.error(err);
     recentOrders.innerHTML =
-      "<p style='color:#f87171'>Failed to load dashboard</p>";
+      "<p style='color:#f87171'>Session expired. Please login again.</p>";
   }
 })();
 

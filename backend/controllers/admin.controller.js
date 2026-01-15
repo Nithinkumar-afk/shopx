@@ -6,12 +6,12 @@ exports.login = (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Basic validation
+    // Validate
     if (!username || !password) {
       return res.status(400).json({ message: "Missing credentials" });
     }
 
-    // Static admin (safe for now)
+    // Static admin (simple & safe)
     if (username !== "admin" || password !== "admin123") {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -31,7 +31,6 @@ exports.login = (req, res) => {
     );
 
     res.json({
-      message: "Admin login successful",
       token
     });
 
@@ -69,12 +68,7 @@ exports.getStats = async (req, res) => {
       revenue = r.total;
     } catch {}
 
-    res.json({
-      products,
-      users,
-      orders,
-      revenue
-    });
+    res.json({ products, users, orders, revenue });
 
   } catch (err) {
     console.error("ADMIN STATS ERROR:", err);
