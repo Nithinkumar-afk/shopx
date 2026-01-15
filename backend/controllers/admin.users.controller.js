@@ -21,7 +21,7 @@ exports.getUsers = async (req, res) => {
       name: u.name,
       phone: u.phone || null,
       altPhone: u.alt_phone || null,
-      image: u.image || null, // relative path
+      image: u.image || null,
       addresses: addresses
         .filter(a => a.user_id === u.id)
         .map(a => ({
@@ -50,7 +50,7 @@ exports.updateUser = async (req, res) => {
     return res.status(400).json({ message: "Name is required" });
   }
 
-  /* ===== PARSE ADDRESSES SAFELY ===== */
+  // ✅ Parse addresses safely
   if (typeof addresses === "string") {
     try {
       addresses = JSON.parse(addresses);
@@ -68,9 +68,9 @@ exports.updateUser = async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    /* ===== CHECK USER EXISTS ===== */
+    // ✅ Check user exists
     const [[existingUser]] = await conn.query(
-      "SELECT image FROM users WHERE id=?",
+      "SELECT id FROM users WHERE id=?",
       [id]
     );
 
@@ -79,36 +79,13 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    /* ===== IMAGE HANDLING ===== */
-    let imagePath = existingUser.image;
-
-    if (req.file) {
-      imagePath = `/uploads/users/${req.file.filename}`;
-
-      // delete old image safely
-      if (existingUser.image && existingUser.image.startsWith("/uploads/")) {
-        const oldImagePath = path.join(
-          process.cwd(),
-          existingUser.image
-        );
-
-        try {
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
-          }
-        } catch (err) {
-          console.warn("OLD IMAGE DELETE FAILED:", err.message);
-        }
-      }
-    }
-
-    /* ===== UPDATE USER ===== */
+    // ✅ Update user (NO IMAGE HANDLING HERE)
     await conn.query(
-      "UPDATE users SET name=?, image=? WHERE id=?",
-      [name.trim(), imagePath, id]
+      "UPDATE users SET name=? WHERE id=?",
+      [name.trim(), id]
     );
 
-    /* ===== UPDATE ADDRESSES ===== */
+    // ✅ Replace addresses (same logic as profile)
     await conn.query("DELETE FROM addresses WHERE user_id=?", [id]);
 
     for (const addr of addresses) {
@@ -195,7 +172,7 @@ exports.deleteAddress = async (req, res) => {
       [id]
     );
 
-    if (result.affectedRows === 0) {
+    if (!result.affectedRows) {
       return res.status(404).json({ message: "Address not found" });
     }
 
