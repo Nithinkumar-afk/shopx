@@ -22,13 +22,13 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 
 /*************************************************
- * BODY PARSERS (✅ FIXED)
+ * BODY PARSERS
  *************************************************/
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * CORS (Netlify + Admin + Local)
+ * CORS
  *************************************************/
 app.use(
   cors({
@@ -53,20 +53,12 @@ require("./config/db");
 /*************************************************
  * ROUTES
  *************************************************/
-
-/* USER AUTH */
 app.use("/api/auth", require("./routes/auth.routes"));
-
-/* ADMIN */
 app.use("/api/admin", require("./routes/admin.routes"));
 app.use("/api/admin/users", require("./routes/admin.users.routes"));
 app.use("/api/admin/products", require("./routes/admin.products.routes"));
 app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
-
-/* PUBLIC PRODUCTS */
 app.use("/api/products", require("./routes/product.routes"));
-
-/* USER */
 app.use("/api/cart", require("./routes/cart.routes"));
 app.use("/api/orders", require("./routes/orders.routes"));
 app.use("/api/profile", require("./routes/profile.routes"));
