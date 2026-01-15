@@ -5,7 +5,7 @@ const authController = require("../controllers/auth.controller");
 
 /**
  * USER AUTH ROUTES
- * Base: /api/auth
+ * Base path: /api/auth
  */
 
 // REGISTER
@@ -14,4 +14,4 @@ router.post("/register", authController.register);
 // LOGIN
 router.post("/login", authController.login);
 
-module.exports = router; // ✅ MUST EXPORT ROUTER
+module.exports = router;
