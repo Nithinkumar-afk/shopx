@@ -3,18 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JD</title>
+<title>JD Store</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#000;
-  --glass:rgba(255,255,255,0.06);
-  --border:rgba(255,255,255,0.12);
-  --text:#fff;
-  --muted:#9aa0a6;
+  --glass:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.12);
   --primary:#4da3ff;
   --primary2:#2b6df6;
 }
@@ -26,15 +23,13 @@ body{
 }
 header{
   display:flex;
-  align-items:center;
   justify-content:space-between;
+  align-items:center;
   padding:15px 28px;
   border-bottom:1px solid var(--border);
-  background:rgba(0,0,0,.65);
-  backdrop-filter:blur(16px);
+  backdrop-filter:blur(14px);
   position:sticky;
   top:0;
-  z-index:100;
 }
 .logo{font-size:22px;font-weight:600;cursor:pointer}
 .logo span:first-child{color:var(--primary)}
@@ -58,26 +53,20 @@ header{
   background:var(--glass);
   border:1px solid var(--border);
   color:white;
-  cursor:pointer;
 }
 .avatar{
-  width:36px;
-  height:36px;
-  border-radius:50%;
+  width:36px;height:36px;border-radius:50%;
   background:linear-gradient(135deg,var(--primary),var(--primary2));
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:600;
+  display:flex;align-items:center;justify-content:center;font-weight:600;
 }
 .dropdown{
   position:absolute;
-  top:70px;
   right:28px;
-  width:230px;
+  top:70px;
+  width:220px;
   background:#0f0f0f;
   border:1px solid var(--border);
-  border-radius:16px;
+  border-radius:14px;
   display:none;
 }
 .dropdown a{display:block;padding:12px 16px;color:white;text-decoration:none}
@@ -88,7 +77,6 @@ header{
   border:none;
   background:linear-gradient(135deg,var(--primary),var(--primary2));
   color:white;
-  cursor:pointer;
 }
 .container{display:flex;gap:24px;padding:26px}
 .categories{
@@ -103,7 +91,6 @@ header{
   border:1px solid var(--border);
   background:var(--glass);
   color:white;
-  cursor:pointer;
 }
 .categories button.active{
   background:linear-gradient(135deg,var(--primary),var(--primary2));
@@ -126,7 +113,6 @@ header{
   height:200px;
   object-fit:cover;
   border-radius:14px;
-  margin-bottom:12px;
 }
 .cart-btn{
   width:100%;
@@ -136,13 +122,11 @@ header{
   background:linear-gradient(135deg,var(--primary),var(--primary2));
   color:white;
 }
-.wishlist-btn{
-  position:absolute;
-  top:14px;
-  right:14px;
-  border:none;
-  background:none;
-  font-size:18px;
+.empty{
+  text-align:center;
+  grid-column:1/-1;
+  color:#aaa;
+  padding:60px;
 }
 .toast{
   position:fixed;
@@ -191,7 +175,7 @@ header{
   <div class="products" id="products"></div>
 </div>
 
-<div id="toast" class="toast"></div>
+<div class="toast" id="toast"></div>
 
 <script>
 const API = "https://shopx-production-b1ad.up.railway.app/api/products";
@@ -208,112 +192,97 @@ avatar.textContent = (user.name || "U")[0].toUpperCase();
 /* ===== STATE ===== */
 let productsData = [];
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
-let wishlist = JSON.parse(localStorage.getItem("wishlist")) || [];
 let selectedCategory = "all";
 
 cartCount.textContent = cart.length;
 
-/* ===== ELEMENTS ===== */
-const productsContainer = document.getElementById("products");
-const categoriesContainer = document.getElementById("categories");
-
 /* ===== HELPERS ===== */
 const normalize = v => (v || "").toLowerCase().trim();
+const toast = document.getElementById("toast");
 
-function showToast(msg) {
+function showToast(msg){
   toast.textContent = msg;
   toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 2000);
+  setTimeout(()=>toast.classList.remove("show"),2000);
 }
 
-/* ===== PROFILE MENU ===== */
-profileBtn.onclick = e => {
+/* ===== PROFILE ===== */
+profileBtn.onclick = e=>{
   e.stopPropagation();
-  menu.style.display = menu.style.display === "block" ? "none" : "block";
+  menu.style.display = menu.style.display==="block"?"none":"block";
 };
-document.addEventListener("click", () => menu.style.display = "none");
+document.addEventListener("click",()=>menu.style.display="none");
 
-function logout() {
+function logout(){
   localStorage.clear();
-  location.href = "login.html";
+  location.href="login.html";
 }
 
-/* ===== FETCH PRODUCTS ===== */
+/* ===== FETCH ===== */
 fetch(API)
-  .then(res => res.json())
-  .then(data => {
-    productsData = (Array.isArray(data) ? data : []).map(p => ({
-      id: p.id,
-      name: p.name || "Unnamed",
-      price: Number(p.price) || 0,
-      category: normalize(p.category),
-      images: Array.isArray(p.images) && p.images.length
-        ? p.images
-        : [FALLBACK]
-    }));
-
+  .then(r=>r.ok?r.json():[])
+  .then(data=>{
+    productsData = Array.isArray(data)?data.map(p=>({
+      id:p.id,
+      name:p.name||"Unnamed",
+      price:Number(p.price)||0,
+      category:normalize(p.category),
+      images:Array.isArray(p.images)&&p.images.length?p.images:[FALLBACK]
+    })):[];
     renderCategories();
     renderProducts();
   })
-  .catch(err => {
-    console.error(err);
-    showToast("Failed to load products");
-  });
+  .catch(()=>showToast("Failed to load products"));
 
-/* ===== RENDER CATEGORY ===== */
-function renderCategories() {
-  const cats = ["all", ...new Set(productsData.map(p => p.category).filter(Boolean))];
-  categoriesContainer.innerHTML = "";
-
-  cats.forEach(c => {
-    const btn = document.createElement("button");
-    btn.textContent = c === "all" ? "All" : c;
-    if (c === selectedCategory) btn.classList.add("active");
-    btn.onclick = () => {
-      selectedCategory = c;
-      renderCategories();
-      renderProducts();
-    };
-    categoriesContainer.appendChild(btn);
+/* ===== CATEGORIES ===== */
+function renderCategories(){
+  const cats=["all",...new Set(productsData.map(p=>p.category).filter(Boolean))];
+  categories.innerHTML="";
+  cats.forEach(c=>{
+    const b=document.createElement("button");
+    b.textContent=c==="all"?"All":c;
+    if(c===selectedCategory)b.classList.add("active");
+    b.onclick=()=>{selectedCategory=c;renderCategories();renderProducts();}
+    categories.appendChild(b);
   });
 }
 
-/* ===== RENDER PRODUCTS ===== */
-function renderProducts() {
-  const q = normalize(search.value);
-  productsContainer.innerHTML = "";
-
-  productsData.forEach(p => {
-    if (selectedCategory !== "all" && p.category !== selectedCategory) return;
-    if (!normalize(p.name).includes(q)) return;
-
-    const img = p.images[0] || FALLBACK;
-
-    productsContainer.insertAdjacentHTML("beforeend", `
+/* ===== PRODUCTS ===== */
+function renderProducts(){
+  const q=normalize(search.value);
+  products.innerHTML="";
+  const list=productsData.filter(p=>
+    (selectedCategory==="all"||p.category===selectedCategory)&&
+    normalize(p.name).includes(q)
+  );
+  if(!list.length){
+    products.innerHTML=`<div class="empty">No products found</div>`;
+    return;
+  }
+  list.forEach(p=>{
+    products.insertAdjacentHTML("beforeend",`
       <div class="product" onclick="location.href='product.html?id=${p.id}'">
-        <img src="${img}" onerror="this.src='${FALLBACK}'">
+        <img src="${p.images[0]}" onerror="this.src='${FALLBACK}'">
         <h3>${p.name}</h3>
-        <div class="price">₹${p.price}</div>
-        <button class="cart-btn" onclick="event.stopPropagation();addToCart(${p.id})">
-          Add to Cart
-        </button>
+        <p>₹${p.price}</p>
+        <button class="cart-btn" onclick="event.stopPropagation();addToCart(${p.id})">Add to Cart</button>
       </div>
     `);
   });
 }
 
 /* ===== CART ===== */
-function addToCart(id) {
-  if (cart.some(i => i.id === id)) return showToast("Already in cart");
-  const p = productsData.find(p => p.id === id);
-  if (!p) return;
-  cart.push({ ...p, qty: 1 });
-  localStorage.setItem("cart", JSON.stringify(cart));
-  cartCount.textContent = cart.length;
+function addToCart(id){
+  if(cart.some(i=>i.id===id))return showToast("Already in cart");
+  const p=productsData.find(p=>p.id===id);
+  if(!p)return;
+  cart.push({...p,qty:1});
+  localStorage.setItem("cart",JSON.stringify(cart));
+  cartCount.textContent=cart.length;
   showToast("Added to cart 🛒");
 }
 
-search.oninput = renderProducts;
+search.oninput=renderProducts;
 </script>
 
 </body>
