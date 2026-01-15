@@ -14,10 +14,10 @@ exports.sendOtp = async (req, res) => {
   try {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 🔥 Send mail (non-blocking logic)
+    // send email (non-blocking)
     sendOTP(email, otp, name);
 
-    // 🔥 Always store OTP
+    // store / update OTP
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -31,9 +31,8 @@ exports.sendOtp = async (req, res) => {
     );
 
     res.json({ message: "OTP sent successfully" });
-
   } catch (err) {
-    console.error("🔥 SEND OTP ERROR:", err.message);
+    console.error("SEND OTP ERROR:", err);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 };
@@ -65,6 +64,7 @@ exports.verifyOtp = async (req, res) => {
 
     const user = rows[0];
 
+    // clear OTP
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]
@@ -76,7 +76,7 @@ exports.verifyOtp = async (req, res) => {
         email: user.email,
         role: "user",
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "supersecret",
       { expiresIn: "7d" }
     );
 
@@ -89,9 +89,8 @@ exports.verifyOtp = async (req, res) => {
         role: "user",
       },
     });
-
   } catch (err) {
-    console.error("🔥 VERIFY OTP ERROR:", err.message);
+    console.error("VERIFY OTP ERROR:", err);
     res.status(500).json({ message: "Login failed" });
   }
 };
@@ -110,7 +109,7 @@ exports.getMe = async (req, res) => {
 
     res.json(rows[0]);
   } catch (err) {
-    console.error("🔥 GET ME ERROR:", err.message);
+    console.error("GET ME ERROR:", err);
     res.status(500).json({ message: "Failed to fetch user" });
   }
 };
@@ -120,14 +119,58 @@ exports.adminLogin = (req, res) => {
   const { username, password } = req.body;
 
   if (username !== "admin" || password !== "admin123") {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({ message: "Invalid admin credentials" });
   }
 
   const token = jwt.sign(
-    { id: 1, role: "admin" },
-    process.env.JWT_SECRET,
+    { role: "admin", username: "admin" },
+    process.env.JWT_SECRET || "supersecret",
     { expiresIn: "1d" }
   );
 
   res.json({ token });
+};
+
+/* ================= NORMAL REGISTER ================= */
+exports.register = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+
+    res.json({
+      message: "User registered successfully",
+      user: { name, email },
+    });
+  } catch (err) {
+    console.error("REGISTER ERROR:", err);
+    res.status(500).json({ message: "Register failed" });
+  }
+};
+
+/* ================= NORMAL LOGIN ================= */
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Missing credentials" });
+    }
+
+    const token = jwt.sign(
+      { email, role: "user" },
+      process.env.JWT_SECRET || "supersecret",
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
+    });
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ message: "Login failed" });
+  }
 };

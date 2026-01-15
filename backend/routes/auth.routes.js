@@ -3,15 +3,7 @@ const router = express.Router();
 
 const authController = require("../controllers/auth.controller");
 
-/**
- * USER AUTH ROUTES
- * Base path: /api/auth
- */
-
-// REGISTER
 router.post("/register", authController.register);
-
-// LOGIN
 router.post("/login", authController.login);
 
 module.exports = router;
