@@ -1,37 +1,45 @@
 const express = require("express");
 const router = express.Router();
-
-const adminController = require("../controllers/admin.controller");
-const adminAuth = require("../middleware/adminAuth");
-
-/**
- * ===============================
- * ADMIN AUTH ROUTES
- * ===============================
- */
+const jwt = require("jsonwebtoken");
 
 /**
  * ADMIN LOGIN
- * POST /api/admin/login
+ * username: admin
+ * password: admin123
  */
-router.post("/login", adminController.login);
+router.post("/login", (req, res) => {
+  const { username, password } = req.body;
 
-/**
- * ===============================
- * ADMIN PROTECTED ROUTES
- * ===============================
- */
+  // 🔍 DEBUG (Railway logs will show this)
+  console.log("ADMIN LOGIN BODY:", req.body);
 
-/**
- * ADMIN DASHBOARD STATS
- * GET /api/admin/stats
- */
-router.get("/stats", adminAuth, adminController.getStats);
+  if (!username || !password) {
+    return res.status(400).json({
+      message: "Missing credentials"
+    });
+  }
 
-/**
- * RECENT ORDERS
- * GET /api/admin/recent-orders
- */
-router.get("/recent-orders", adminAuth, adminController.getRecentOrders);
+  // ✅ SIMPLE HARD-CODED ADMIN
+  if (username !== "admin" || password !== "admin123") {
+    return res.status(401).json({
+      message: "Invalid admin credentials"
+    });
+  }
+
+  // ✅ CREATE TOKEN
+  const token = jwt.sign(
+    {
+      role: "admin",
+      username: "admin"
+    },
+    process.env.JWT_SECRET || "supersecret",
+    { expiresIn: "1d" }
+  );
+
+  return res.json({
+    message: "Admin login successful",
+    token
+  });
+});
 
 module.exports = router;
