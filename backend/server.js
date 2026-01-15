@@ -36,7 +36,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * MAILER INIT (SAFE)
+ * MAILER INIT
  *************************************************/
 try {
   require("./utils/mailer");
@@ -51,29 +51,29 @@ try {
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * INIT DATABASE
+ * DATABASE INIT
  *************************************************/
 require("./config/db");
 
 /*************************************************
- * ROUTES
+ * ROUTES (✔ CORRECT ORDER)
  *************************************************/
 
 /* AUTH */
 app.use("/api/auth", require("./routes/auth.routes"));
 
-/* PUBLIC */
-app.use("/api/products", require("./routes/product.routes"));
-
-/* USER (protected inside routes) */
-app.use("/api/cart", require("./routes/cart.routes"));
-app.use("/api/orders", require("./routes/orders.routes"));
-
-/* ADMIN (adminAuth inside each route file) */
+/* ADMIN (LOGIN MUST COME FIRST) */
+app.use("/api/admin", require("./routes/admin.routes"));
 app.use("/api/admin/users", require("./routes/admin.users.routes"));
 app.use("/api/admin/products", require("./routes/admin.products.routes"));
 app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
-app.use("/api/admin", require("./routes/admin.routes")); // 🔥 LOGIN + STATS
+
+/* PUBLIC */
+app.use("/api/products", require("./routes/product.routes"));
+
+/* USER */
+app.use("/api/cart", require("./routes/cart.routes"));
+app.use("/api/orders", require("./routes/orders.routes"));
 
 /*************************************************
  * HEALTH CHECK
@@ -88,7 +88,7 @@ app.get("/", (req, res) => {
 });
 
 /*************************************************
- * 404 HANDLER (MUST BE LAST ROUTE)
+ * 404 HANDLER
  *************************************************/
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
