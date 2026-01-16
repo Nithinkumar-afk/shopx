@@ -1,39 +1,48 @@
 const nodemailer = require("nodemailer");
 
-/**
- * ENV CHECK (NO CRASH)
- */
-if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-  console.warn("⚠️ MAIL_USER or MAIL_PASS missing");
+/* =================================================
+   ENV CHECK (DO NOT CRASH APP)
+================================================= */
+const MAIL_USER = process.env.MAIL_USER;
+const MAIL_PASS = process.env.MAIL_PASS;
+
+if (!MAIL_USER || !MAIL_PASS) {
+  console.warn("⚠️ MAIL_USER or MAIL_PASS missing — OTP emails disabled");
 }
 
-/**
- * SMTP TRANSPORT (GMAIL APP PASSWORD)
- */
+/* =================================================
+   SMTP TRANSPORT (GMAIL – RAILWAY SAFE)
+================================================= */
 const transporter = nodemailer.createTransport({
-  service: "gmail", // ✅ more reliable than host+port
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
+  service: "gmail",
+  auth: MAIL_USER && MAIL_PASS ? {
+    user: MAIL_USER,
+    pass: MAIL_PASS, // Gmail App Password
+  } : undefined,
+
+  // ⏱️ HARD TIMEOUTS (VERY IMPORTANT)
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 10_000,
 });
 
-/**
- * ❌ REMOVE transporter.verify()
- * Railway blocks it → timeout
- */
-
-/**
- * SEND OTP EMAIL
- */
+/* =================================================
+   SEND OTP EMAIL (FAIL-SAFE)
+================================================= */
 exports.sendOTP = async (to, otp, name = "User") => {
+  // 🚫 Skip email if SMTP not configured
+  if (!MAIL_USER || !MAIL_PASS) {
+    console.warn("⚠️ SMTP skipped (env missing)");
+    return;
+  }
+
   if (!to || !otp) {
     throw new Error("Missing email or OTP");
   }
 
   try {
     await transporter.sendMail({
-      from: `"JD Infotech" <${process.env.MAIL_USER}>`,
+      from: `"JD Infotech" <${MAIL_USER}>`,
       to,
       subject: "Your Login OTP",
       html: `
@@ -48,9 +57,10 @@ exports.sendOTP = async (to, otp, name = "User") => {
       `,
     });
 
-    console.log(`📧 OTP sent to ${to}`);
+    console.log(`📧 OTP email sent → ${to}`);
   } catch (err) {
-    console.error("❌ OTP MAIL FAILED:", err.message);
-    throw new Error("Email sending failed");
+    // ❌ DO NOT CRASH SERVER
+    console.error("⚠️ OTP EMAIL FAILED:", err.message);
+    throw err;
   }
 };

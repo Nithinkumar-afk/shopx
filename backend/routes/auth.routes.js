@@ -6,7 +6,16 @@ const db = require("../config/db");
 const { sendOTP } = require("../utils/mailer");
 
 /* =========================
-   SEND OTP
+   TEST ROUTE (GET)
+========================= */
+router.get("/send-otp", (req, res) => {
+  res.json({
+    message: "Auth route is working ✅. Use POST to send OTP.",
+  });
+});
+
+/* =========================
+   SEND OTP (POST)
 ========================= */
 router.post("/send-otp", async (req, res) => {
   try {
@@ -20,10 +29,8 @@ router.post("/send-otp", async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // 📧 Send OTP email
     await sendOTP(email, otp, name);
 
-    // 💾 Store OTP in DB
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -77,7 +84,6 @@ router.post("/verify-otp", async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // 🧹 Clear OTP
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]

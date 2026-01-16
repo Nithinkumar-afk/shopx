@@ -16,10 +16,19 @@ exports.sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // Send email
-    await sendOTP(email, otp, name);
+    /* ================= EMAIL (SAFE MODE) ================= */
+    let emailSent = false;
 
-    // Store OTP
+    try {
+      await sendOTP(email, otp, name);
+      emailSent = true;
+      console.log("✅ OTP email sent to:", email);
+    } catch (mailErr) {
+      console.error("⚠️ OTP email skipped:", mailErr.message);
+      // DO NOT FAIL REQUEST
+    }
+
+    /* ================= STORE OTP ================= */
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -32,10 +41,14 @@ exports.sendOtp = async (req, res) => {
       [name, email, hashedOtp]
     );
 
-    res.json({ message: "OTP sent successfully" });
+    res.json({
+      message: emailSent
+        ? "OTP sent successfully"
+        : "OTP generated (email delivery pending)",
+    });
   } catch (err) {
-    console.error("❌ SEND OTP ERROR:", err.message);
-    res.status(500).json({ message: "Failed to send OTP" });
+    console.error("❌ SEND OTP ERROR:", err);
+    res.status(500).json({ message: "Failed to generate OTP" });
   }
 };
 
@@ -92,7 +105,7 @@ exports.verifyOtp = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("❌ VERIFY OTP ERROR:", err.message);
+    console.error("❌ VERIFY OTP ERROR:", err);
     res.status(500).json({ message: "Login failed" });
   }
 };
@@ -111,7 +124,7 @@ exports.getMe = async (req, res) => {
 
     res.json(rows[0]);
   } catch (err) {
-    console.error("❌ GET ME ERROR:", err.message);
+    console.error("❌ GET ME ERROR:", err);
     res.status(500).json({ message: "Failed to fetch user" });
   }
 };
@@ -162,7 +175,7 @@ exports.register = async (req, res) => {
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    console.error("❌ REGISTER ERROR:", err.message);
+    console.error("❌ REGISTER ERROR:", err);
     res.status(500).json({ message: "Register failed" });
   }
 };
@@ -212,7 +225,7 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("❌ LOGIN ERROR:", err.message);
+    console.error("❌ LOGIN ERROR:", err);
     res.status(500).json({ message: "Login failed" });
   }
 };

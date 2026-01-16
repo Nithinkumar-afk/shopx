@@ -17,27 +17,30 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 /*************************************************
- * TRUST PROXY (Railway safe)
+ * TRUST PROXY (Railway / Vercel SAFE)
  *************************************************/
 app.set("trust proxy", 1);
 
 /*************************************************
- * BODY PARSERS (IMPORTANT FOR OTP, JSON)
+ * BODY PARSERS
  *************************************************/
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * CORS (BROWSER + JWT SAFE)
+ * CORS CONFIG
  *************************************************/
 app.use(
   cors({
-    origin: true, // ✅ allows all origins safely
+    origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// 🔥 IMPORTANT FOR PREFLIGHT
+app.options("*", cors());
 
 /*************************************************
  * STATIC FILES
@@ -45,7 +48,7 @@ app.use(
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (LOG SAFE)
+ * DATABASE INIT
  *************************************************/
 try {
   require("./config/db");
@@ -68,7 +71,7 @@ app.use("/api/orders", require("./routes/orders.routes"));
 app.use("/api/profile", require("./routes/profile.routes"));
 
 /*************************************************
- * HEALTH CHECK (RAILWAY / UPTIME)
+ * HEALTH CHECK
  *************************************************/
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -86,14 +89,12 @@ app.use((req, res) => {
 });
 
 /*************************************************
- * GLOBAL ERROR HANDLER (SAFE)
+ * GLOBAL ERROR HANDLER
  *************************************************/
 app.use((err, req, res, next) => {
   console.error("🔥 ERROR:", err.stack || err);
 
-  if (res.headersSent) {
-    return next(err);
-  }
+  if (res.headersSent) return next(err);
 
   res.status(500).json({
     message: "Internal server error",
