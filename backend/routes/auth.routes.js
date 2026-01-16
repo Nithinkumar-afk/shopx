@@ -30,7 +30,7 @@ router.post("/send-otp", async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // 💾 SAVE OTP FIRST (IMPORTANT)
+    // 💾 SAVE OTP FIRST (CRITICAL)
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -43,15 +43,18 @@ router.post("/send-otp", async (req, res) => {
       [name, email, hashedOtp]
     );
 
-    // 📧 TRY TO SEND EMAIL (DO NOT FAIL)
+    // 📧 TRY EMAIL (NON-BLOCKING)
     let emailSent = true;
     try {
       await sendOTP(email, otp, name);
+      console.log("📧 OTP email sent");
     } catch (mailErr) {
       emailSent = false;
       console.warn("⚠️ OTP email failed, OTP still valid");
+      console.log("🔐 OTP (DEBUG ONLY):", otp); // REMOVE AFTER TESTING
     }
 
+    // ✅ ALWAYS SUCCESS RESPONSE
     res.status(200).json({
       message: emailSent
         ? "OTP sent successfully"
@@ -59,9 +62,7 @@ router.post("/send-otp", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ SEND OTP ERROR:", err);
-    res.status(500).json({
-      message: "Failed to generate OTP",
-    });
+    res.status(500).json({ message: "Failed to generate OTP" });
   }
 });
 
