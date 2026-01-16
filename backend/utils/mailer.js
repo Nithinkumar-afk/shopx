@@ -1,13 +1,25 @@
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/**
+ * Gmail SMTP Transporter
+ */
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.MAIL_USER,   // 👈 MENTIONED HERE
+    pass: process.env.MAIL_PASS,
+  },
+});
 
+/**
+ * Send OTP Email
+ */
 exports.sendOTP = async (to, otp, name = "User") => {
   try {
     console.log("📨 Sending OTP to:", to);
 
-    const response = await resend.emails.send({
-      from: "JD <onboarding@resend.dev>",
+    const info = await transporter.sendMail({
+      from: `"JD Security" <${process.env.MAIL_USER}>`, // 👈 AND HERE
       to,
       subject: "Your JD Login OTP",
       html: `
@@ -23,11 +35,11 @@ exports.sendOTP = async (to, otp, name = "User") => {
       `,
     });
 
-    console.log("✅ OTP email sent:", response.id);
+    console.log("✅ OTP email sent:", info.messageId);
     return true;
 
   } catch (error) {
-    console.error("❌ Resend email failed:", error);
+    console.error("❌ Gmail OTP failed:", error);
     throw new Error("Failed to send OTP email");
   }
 };
