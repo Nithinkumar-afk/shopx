@@ -22,18 +22,18 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 
 /*************************************************
- * BODY PARSERS
+ * BODY PARSERS (IMPORTANT FOR OTP)
  *************************************************/
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * CORS (PRODUCTION SAFE)
+ * CORS (SAFE FOR FRONTEND)
  *************************************************/
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -44,7 +44,7 @@ app.use(
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT
+ * DATABASE INIT (MUST LOAD ONCE)
  *************************************************/
 require("./config/db");
 
@@ -62,7 +62,7 @@ app.use("/api/orders", require("./routes/orders.routes"));
 app.use("/api/profile", require("./routes/profile.routes"));
 
 /*************************************************
- * HEALTH CHECK
+ * HEALTH CHECK (VERY IMPORTANT)
  *************************************************/
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -86,7 +86,6 @@ app.use((err, req, res, next) => {
   console.error("🔥 ERROR:", err);
   res.status(500).json({
     message: "Internal server error",
-    error: err.message,
   });
 });
 
