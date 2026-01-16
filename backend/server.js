@@ -17,7 +17,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 /*************************************************
- * TRUST PROXY (RAILWAY SAFE)
+ * TRUST PROXY (Railway SAFE)
  *************************************************/
 app.set("trust proxy", 1);
 
@@ -28,19 +28,18 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 /*************************************************
- * ✅ CORS — FIXED (VERCEL + RAILWAY + LOCAL)
+ * CORS
  *************************************************/
 app.use(
   cors({
     origin: [
       "http://localhost:5500",
       "http://127.0.0.1:5500",
-      "https://frontend-new-liart.vercel.app",
-      "https://shopx-production-b1ad.up.railway.app"
+      "https://frontend-new-liart.vercel.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
+    credentials: true,
   })
 );
 
@@ -53,10 +52,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
  * DATABASE INIT
  *************************************************/
 require("./config/db");
-console.log("✅ Database connected");
+console.log("✅ Database initialized");
 
 /*************************************************
- * ROUTES
+ * ROUTES (FIXED PATHS)
  *************************************************/
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/admin", require("./routes/admin.routes"));
@@ -67,50 +66,35 @@ app.use("/api/products", require("./routes/product.routes"));
 app.use("/api/cart", require("./routes/cart.routes"));
 app.use("/api/orders", require("./routes/orders.routes"));
 app.use("/api/profile", require("./routes/profile.routes"));
-app.use(express.json());
-app.use("/api/auth", require("./routes/authRoutes"));
 
 /*************************************************
  * HEALTH CHECK
  *************************************************/
 app.get("/", (req, res) => {
-  res.status(200).json({
+  res.json({
     status: "ShopX backend running ✅",
-    uptime: process.uptime(),
-    time: new Date().toISOString()
+    time: new Date().toISOString(),
   });
 });
 
 /*************************************************
- * 404 HANDLER
+ * 404
  *************************************************/
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
 /*************************************************
- * GLOBAL ERROR HANDLER
+ * ERROR HANDLER
  *************************************************/
 app.use((err, req, res, next) => {
-  console.error("🔥 ERROR:", err);
-  if (res.headersSent) return next(err);
+  console.error(err);
   res.status(500).json({ message: "Internal server error" });
 });
 
 /*************************************************
  * START SERVER
  *************************************************/
-const server = app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Backend running on port ${PORT}`);
-});
-
-/*************************************************
- * GRACEFUL SHUTDOWN
- *************************************************/
-process.on("SIGTERM", () => {
-  console.log("🛑 SIGTERM received");
-  server.close(() => {
-    console.log("✅ Server closed");
-    process.exit(0);
-  });
 });
