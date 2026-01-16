@@ -166,7 +166,7 @@ const token =
   localStorage.getItem("userToken") ||
   localStorage.getItem("token");
 
-if (!token) location.href = "login.html";
+if (!token) location.href = "/user/login.html";
 
 /* ================= ELEMENTS ================= */
 const ordersDiv = document.getElementById("orders");
@@ -191,7 +191,7 @@ async function loadOrders(){
 
     if(res.status === 401){
       localStorage.clear();
-      location.href="login.html";
+      location.href = "/user/login.html";
       return;
     }
 

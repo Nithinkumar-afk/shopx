@@ -1,3 +1,4 @@
+<!-- frontend/admin/admin-dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,7 +38,9 @@ header button{
   cursor:pointer;font-weight:600;
 }
 header button:hover{background:#dc2626}
+
 .container{max-width:1200px;margin:auto;padding:26px 20px}
+
 .cards{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
@@ -52,6 +55,7 @@ header button:hover{background:#dc2626}
 }
 .card h3{font-size:14px;font-weight:500;color:#cbd5e1}
 .card p{margin-top:12px;font-size:28px;font-weight:600}
+
 .links{
   margin-top:34px;
   display:grid;
@@ -69,8 +73,10 @@ header button:hover{background:#dc2626}
   display:flex;
   justify-content:space-between;
 }
+
 .section{margin-top:40px}
 .section h3{margin-bottom:16px;font-size:18px}
+
 .order{
   background:rgba(255,255,255,.08);
   border:1px solid rgba(255,255,255,.15);
@@ -121,57 +127,45 @@ header button:hover{background:#dc2626}
 <script>
 "use strict";
 
-/* ======================
-   ✅ PRODUCTION CONFIG
-====================== */
 const API_BASE = "https://shopx-production-b1ad.up.railway.app";
 
-/* ======================
-   AUTH GUARD
-====================== */
+/* AUTH GUARD */
 const token = localStorage.getItem("adminToken");
 if (!token) location.replace("admin-login.html");
 
-/* ======================
-   AUTH FETCH
-====================== */
-async function authFetch(endpoint) {
-  const res = await fetch(API_BASE + endpoint, {
-    headers: {
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/json"
+/* AUTH FETCH */
+async function authFetch(endpoint){
+  const res = await fetch(API_BASE + endpoint,{
+    headers:{
+      Authorization:"Bearer " + token,
+      "Content-Type":"application/json"
     }
   });
 
-  if (res.status === 401 || res.status === 403) {
+  if(res.status === 401 || res.status === 403){
     forceLogout();
     throw new Error("Unauthorized");
   }
-
   return res.json();
 }
 
-/* ======================
-   TIME AGO
-====================== */
-function timeAgo(dateString) {
+/* TIME AGO */
+function timeAgo(dateString){
   const now = new Date();
   const date = new Date(dateString);
   const seconds = Math.floor((now - date) / 1000);
 
-  if (seconds < 60) return "Just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hrs ago`;
-  if (seconds < 172800) return "Yesterday";
+  if(seconds < 60) return "Just now";
+  if(seconds < 3600) return Math.floor(seconds/60) + " min ago";
+  if(seconds < 86400) return Math.floor(seconds/3600) + " hrs ago";
+  if(seconds < 172800) return "Yesterday";
 
   return date.toLocaleDateString();
 }
 
-/* ======================
-   LOAD DASHBOARD
-====================== */
-(async () => {
-  try {
+/* LOAD DASHBOARD */
+(async ()=>{
+  try{
     const stats = await authFetch("/api/admin/stats");
     totalProducts.innerText = stats.products;
     totalOrders.innerText = stats.orders;
@@ -181,34 +175,30 @@ function timeAgo(dateString) {
     const orders = await authFetch("/api/admin/recent-orders");
     const recentOrders = document.getElementById("recentOrders");
 
-    if (!orders || orders.length === 0) {
+    if(!orders || orders.length === 0){
       recentOrders.innerHTML = "<p>No recent orders</p>";
       return;
     }
 
-    recentOrders.innerHTML = orders.map(o => `
+    recentOrders.innerHTML = orders.map(o=>`
       <div class="order">
-        <strong>${o.name ?? "Guest"}</strong>
-        <small>
-          ₹${o.total} • ${timeAgo(o.created_at)}
-        </small>
+        <strong>${o.name || "Guest"}</strong>
+        <small>₹${o.total} • ${timeAgo(o.created_at)}</small>
       </div>
     `).join("");
 
-  } catch (err) {
+  }catch(err){
     console.error(err);
     document.getElementById("recentOrders").innerHTML =
       "<p style='color:#f87171'>Failed to load orders</p>";
   }
 })();
 
-/* ======================
-   LOGOUT
-====================== */
-function logout() {
+/* LOGOUT */
+function logout(){
   forceLogout();
 }
-function forceLogout() {
+function forceLogout(){
   localStorage.removeItem("adminToken");
   location.replace("admin-login.html");
 }

@@ -194,7 +194,7 @@ header h2{
 <body>
 
 <header>
-  <a href="index.html">←</a>
+  <a href="../index.html">←</a>
   <h2>My Cart</h2>
 </header>
 
@@ -204,7 +204,7 @@ header h2{
 "use strict";
 
 const token = localStorage.getItem("token");
-if(!token) location.href="login.html";
+if(!token) location.href = "login.html";
 
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 const cartBox = document.getElementById("cartBox");
@@ -273,7 +273,7 @@ function save(){
 
 function checkout(){
   localStorage.setItem("checkout_cart", JSON.stringify(cart));
-  location.href="checkout.html";
+  location.href = "checkout.html";
 }
 
 renderCart();

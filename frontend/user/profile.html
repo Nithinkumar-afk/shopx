@@ -108,13 +108,12 @@ button{
 <body>
 
 <header>
-  <a href="index.html">←</a>
+  <a href="../index.html">←</a>
   <h2>My Profile</h2>
 </header>
 
 <div class="container">
 
-  <!-- PROFILE CARD -->
   <div class="card">
     <div class="profile-top">
       <div class="profile-pic" onclick="imgInput.click()">
@@ -139,14 +138,12 @@ button{
     <button class="primary" id="saveBtn">Save Profile</button>
   </div>
 
-  <!-- ADD ADDRESS -->
   <div class="card">
     <h3>Add Address</h3>
     <textarea id="newAddress" rows="3"></textarea>
     <button class="primary" id="addAddressBtn">Save Address</button>
   </div>
 
-  <!-- ADDRESS LIST -->
   <div class="card">
     <h3>Saved Addresses</h3>
     <div id="addressList"></div>
@@ -157,13 +154,12 @@ button{
 <script>
 const API = "https://shopx-production-b1ad.up.railway.app";
 
-/* TOKEN */
 const token =
   localStorage.getItem("userToken") ||
   localStorage.getItem("token");
 
 if(!token){
-  location.replace("login.html");
+  location.replace("./login.html");
 }
 
 const authHeader = { Authorization: "Bearer " + token };
@@ -179,7 +175,6 @@ const saveBtn=document.getElementById("saveBtn");
 const addAddressBtn=document.getElementById("addAddressBtn");
 const newAddress=document.getElementById("newAddress");
 
-/* LOAD PROFILE */
 async function loadProfile(){
   try{
     const res = await fetch(API+"/api/profile",{ headers: authHeader });
@@ -205,7 +200,6 @@ async function loadProfile(){
   }
 }
 
-/* SAVE PROFILE */
 saveBtn.onclick = async () => {
   const res = await fetch(API+"/api/profile",{
     method:"PUT",
@@ -221,7 +215,6 @@ saveBtn.onclick = async () => {
   alert("Profile updated");
 };
 
-/* IMAGE UPLOAD */
 imgInput.onchange = async () => {
   const file = imgInput.files[0];
   if(!file) return;
@@ -243,7 +236,6 @@ imgInput.onchange = async () => {
   }
 };
 
-/* ADDRESS */
 addAddressBtn.onclick = async () => {
   const address = newAddress.value.trim();
   if(!address) return;

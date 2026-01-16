@@ -1,3 +1,4 @@
+<!-- frontend/admin/admin-login.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,8 +65,8 @@ button:hover{background:#2563eb}
 
   <div class="error" id="error"></div>
 
-  <input id="username" placeholder="Username" />
-  <input id="password" type="password" placeholder="Password" />
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
 
   <button onclick="login()">Login</button>
 </div>
@@ -73,44 +74,36 @@ button:hover{background:#2563eb}
 <script>
 const API = "https://shopx-production-b1ad.up.railway.app";
 
-async function login() {
+async function login(){
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
   const errorBox = document.getElementById("error");
 
   errorBox.textContent = "";
 
-  if (!username || !password) {
+  if(!username || !password){
     errorBox.textContent = "Missing credentials";
     return;
   }
 
-  try {
-    const res = await fetch(API + "/api/admin/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        username,
-        password
-      })
+  try{
+    const res = await fetch(API + "/api/admin/login",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ username, password })
     });
 
     const data = await res.json();
 
-    if (!res.ok) {
+    if(!res.ok){
       errorBox.textContent = data.message || "Login failed";
       return;
     }
 
-    // ✅ SAVE TOKEN
     localStorage.setItem("adminToken", data.token);
-
-    // ✅ REDIRECT
     location.href = "admin-dashboard.html";
 
-  } catch (err) {
+  }catch{
     errorBox.textContent = "Server error";
   }
 }

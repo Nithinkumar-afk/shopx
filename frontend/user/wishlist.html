@@ -164,7 +164,7 @@ header h2{
 <body>
 
 <header>
-  <a href="index.html">←</a>
+  <a href="../index.html">←</a>
   <h2>Wishlist</h2>
 </header>
 
@@ -175,7 +175,7 @@ header h2{
 <script>
 const API = "https://shopx-production-b1ad.up.railway.app";
 const token = localStorage.getItem("token");
-if(!token) location.href="login.html";
+if(!token) location.href="./login.html";
 
 const box = document.getElementById("wishlistBox");
 const FALLBACK_IMG = "https://via.placeholder.com/300x200?text=No+Image";
@@ -224,7 +224,7 @@ function render(wishlist){
 
     card.querySelector(".checkout-btn").onclick=()=>{
       localStorage.setItem("cart",JSON.stringify([{...p,qty:1}]));
-      location.href="checkout.html";
+      location.href="./checkout.html";
     };
 
     card.querySelector(".remove-btn").onclick=async()=>{

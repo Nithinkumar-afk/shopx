@@ -140,8 +140,8 @@ body{
   </div>
 
   <div class="actions">
-    <a href="index.html" class="home">Continue Shopping</a>
-    <a href="orders.html" class="orders">View Orders</a>
+    <a href="../index.html" class="home">Continue Shopping</a>
+    <a href="./orders.html" class="orders">View Orders</a>
   </div>
 </div>
 
@@ -149,7 +149,7 @@ body{
 const API = "https://shopx-production-b1ad.up.railway.app/api";
 const token = localStorage.getItem("token");
 
-if (!token) location.href = "login.html";
+if (!token) location.href = "./login.html";
 
 const money = n => "₹" + Number(n || 0).toLocaleString("en-IN");
 

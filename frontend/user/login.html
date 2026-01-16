@@ -93,7 +93,6 @@ body{
 
     <button id="sendOtpBtn" onclick="sendOTP()">Send OTP</button>
 
-
     <div id="otpBox" class="hidden">
       <input id="otp" type="number" placeholder="Enter OTP">
       <button onclick="verifyOTP()">Verify & Continue</button>
@@ -105,104 +104,93 @@ body{
 </div>
 
 <script>
-/* SPLASH */
+/* Splash */
 window.addEventListener("load", () => {
   setTimeout(() => {
-    const splash = document.getElementById("splash");
-    if (splash) splash.classList.add("hide");
-  }, 2000);
+    document.getElementById("splash").classList.add("hide");
+  }, 1200);
 });
 
-/* ✅ PRODUCTION API */
+/* ✅ RAILWAY BACKEND BASE URL */
 const API_BASE = "https://shopx-production-b1ad.up.railway.app";
-
-/* ✅ AUTO REDIRECT IF LOGGED IN */
-if (localStorage.getItem("token")) {
-  window.location.replace("index.html");
-}
 
 const alertMsg = document.getElementById("alertMsg");
 const otpBox = document.getElementById("otpBox");
 const sendBtn = document.getElementById("sendOtpBtn");
 
-function showAlert(msg, type = "success") {
+function showAlert(msg, type="success"){
   alertMsg.textContent = msg;
   alertMsg.className = `alert-msg alert-${type}`;
   alertMsg.classList.remove("hidden");
 }
 
-function validEmail(email) {
+function validEmail(email){
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 /* SEND OTP */
-async function sendOTP() {
+async function sendOTP(){
   const name = document.getElementById("name").value.trim();
-  const email = document.getElementById("email").value.trim();
+  const email = document.getElementById("email").value.trim().toLowerCase();
 
-  if (!name || !email)
-    return showAlert("Enter name & email", "error");
+  if(!name || !email)
+    return showAlert("Enter name and email", "error");
 
-  if (!validEmail(email))
-    return showAlert("Invalid email address", "error");
+  if(!validEmail(email))
+    return showAlert("Invalid email", "error");
 
-  try {
+  try{
     sendBtn.disabled = true;
     sendBtn.textContent = "Sending OTP...";
 
     const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ name, email })
     });
 
     const data = await res.json();
-
-    if (!res.ok)
-      throw new Error(data.message || "OTP send failed");
+    if(!res.ok) throw new Error(data.message);
 
     otpBox.classList.remove("hidden");
     showAlert("OTP sent successfully");
 
-  } catch (err) {
-    showAlert(err.message || "Server not reachable", "error");
-  } finally {
+  }catch(err){
+    showAlert(err.message || "Backend not reachable", "error");
+  }finally{
     sendBtn.disabled = false;
     sendBtn.textContent = "Send OTP";
   }
 }
 
 /* VERIFY OTP */
-async function verifyOTP() {
-  const email = document.getElementById("email").value.trim();
+async function verifyOTP(){
+  const email = document.getElementById("email").value.trim().toLowerCase();
   const otp = document.getElementById("otp").value.trim();
 
-  if (!otp)
-    return showAlert("Enter OTP", "error");
+  if(!otp) return showAlert("Enter OTP", "error");
 
-  try {
+  try{
     const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ email, otp })
     });
 
     const data = await res.json();
-
-    if (!res.ok)
-      throw new Error(data.message || "OTP invalid");
+    if(!res.ok) throw new Error(data.message);
 
     localStorage.setItem("token", data.token);
     localStorage.setItem("loggedInUser", JSON.stringify(data.user));
 
-    window.location.replace("index.html");
+    /* ✅ Correct redirect for Vercel */
+    window.location.href = "/index.html";
 
-  } catch (err) {
-    showAlert(err.message, "error");
+  }catch(err){
+    showAlert(err.message || "OTP verification failed", "error");
   }
 }
 </script>
-
 
 </body>
 </html>

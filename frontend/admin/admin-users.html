@@ -189,9 +189,6 @@ const imagePreview = document.getElementById("imagePreview");
 let users = [];
 let editUserId = null;
 
-/* =========================
-   LOAD USERS
-========================= */
 async function loadUsers(){
   try{
     const res = await fetch(API,{
@@ -201,38 +198,22 @@ async function loadUsers(){
     if(res.status === 401 || res.status === 403) return logout();
 
     const data = await res.json();
+    if(!Array.isArray(data)) return usersList.innerHTML="No users";
 
-    if(!Array.isArray(data)){
-      usersList.innerHTML = "No users";
-      return;
-    }
-
-    users = data.map(u=>{
-      const image =
-        u.image
-          ? API_BASE + u.image
-          : DEFAULT_IMAGE;
-
-      return { ...u, image };
-    });
+    users = data.map(u=>({
+      ...u,
+      image: u.image ? API_BASE + u.image : DEFAULT_IMAGE
+    }));
 
     renderUsers();
-  }catch(err){
-    console.error(err);
+  }catch{
     usersList.innerHTML="Server error";
   }
 }
 
-/* =========================
-   RENDER USERS
-========================= */
 function renderUsers(){
-  usersList.innerHTML = "";
-
-  if(!users.length){
-    usersList.innerHTML = "No users found";
-    return;
-  }
+  usersList.innerHTML="";
+  if(!users.length) return usersList.innerHTML="No users found";
 
   users.forEach(u=>{
     usersList.innerHTML += `
@@ -245,120 +226,10 @@ function renderUsers(){
             <button class="delete-btn" onclick="deleteUser(${u.id})">Delete</button>
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
   });
 }
 
-/* =========================
-   OPEN EDIT MODAL
-========================= */
-function openEdit(id){
-  const u = users.find(x => x.id == id);
-  if(!u) return;
-
-  editUserId = id;
-  editName.value = u.name || "";
-  editPhone.value = u.phone || "";
-  editAltPhone.value = u.altPhone || "";
-
-  editAddresses.value = Array.isArray(u.addresses)
-    ? u.addresses.map(a => a.address).join("\n")
-    : "";
-
-  imagePreview.src = u.image;
-  editImage.value = "";
-  editModal.style.display = "flex";
-}
-
-/* =========================
-   IMAGE PREVIEW FIX
-========================= */
-editImage.addEventListener("change", () => {
-  const file = editImage.files[0];
-  if(file){
-    imagePreview.src = URL.createObjectURL(file);
-  }
-});
-
-/* =========================
-   CLOSE MODAL
-========================= */
-function closeModal(){
-  editModal.style.display = "none";
-}
-
-/* =========================
-   SAVE USER
-========================= */
-async function saveEdit(){
-  const name = editName.value.trim();
-  if(!name){
-    alert("Name is required");
-    return;
-  }
-
-  const addrList = editAddresses.value
-    .split("\n")
-    .map(a => a.trim())
-    .filter(Boolean);
-
-  const fd = new FormData();
-  fd.append("name", name);
-  fd.append("addresses", JSON.stringify(addrList));
-
-  try{
-    const res = await fetch(API + "/" + editUserId,{
-      method:"PUT",
-      headers:{ Authorization:"Bearer " + token },
-      body: fd
-    });
-
-    if(!res.ok) throw new Error("Update failed");
-
-    if(editImage.files[0]){
-      const imgFd = new FormData();
-      imgFd.append("image", editImage.files[0]);
-
-      const imgRes = await fetch(API + "/" + editUserId + "/image",{
-        method:"PUT",
-        headers:{ Authorization:"Bearer " + token },
-        body: imgFd
-      });
-
-      if(!imgRes.ok) throw new Error("Image upload failed");
-    }
-
-    closeModal();
-    loadUsers();
-  }catch(err){
-    alert(err.message);
-    console.error(err);
-  }
-}
-
-/* =========================
-   DELETE USER
-========================= */
-async function deleteUser(id){
-  if(!confirm("Delete user permanently?")) return;
-
-  try{
-    const res = await fetch(API + "/" + id,{
-      method:"DELETE",
-      headers:{ Authorization:"Bearer " + token }
-    });
-
-    if(!res.ok) throw new Error("Delete failed");
-    loadUsers();
-  }catch(err){
-    alert(err.message);
-  }
-}
-
-/* =========================
-   LOGOUT
-========================= */
 function logout(){
   localStorage.removeItem("adminToken");
   location.replace("admin-login.html");

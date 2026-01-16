@@ -98,6 +98,7 @@ textarea{grid-column:1/-1}
 
 <header>
   <h2>JD Product Management</h2>
+  <!-- ✅ SAME FOLDER -->
   <button onclick="location.href='admin-dashboard.html'">Dashboard</button>
 </header>
 
@@ -123,7 +124,7 @@ const API = BASE_URL + "/api";
 
 const PUBLIC_PRODUCTS_API = API + "/products";
 const ADMIN_PRODUCTS_API = API + "/admin/products";
-const LOGIN_PAGE = "admin-login.html";
+const LOGIN_PAGE = "admin-login.html"; // ✅ same folder
 
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
@@ -294,7 +295,6 @@ function clearForm() {
 /* ================= INIT ================= */
 loadProducts();
 </script>
-
 
 </body>
 </html>
