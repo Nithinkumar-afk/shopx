@@ -29,7 +29,7 @@ exports.sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    /* ===== STORE OTP FIRST (CRITICAL FIX) ===== */
+    // ✅ Store OTP FIRST (critical for reliability)
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -42,14 +42,14 @@ exports.sendOtp = async (req, res) => {
       [name, email, hashedOtp]
     );
 
-    // ✅ Respond immediately (OTP is valid)
-    res.json({
-      message: "OTP generated successfully",
+    // ✅ Respond immediately (fast UX)
+    res.json({ message: "OTP generated successfully" });
+
+    // 📧 Send email in background (NON-BLOCKING)
+    sendOTP(email, otp, name).catch((err) => {
+      console.error("⚠️ OTP email background failure:", err.message);
     });
 
-    // 📧 SEND EMAIL IN BACKGROUND (NON-BLOCKING)
-    sendOTP(email, otp, name).catch(() => {});
-    console.log("🔐 OTP (DEBUG ONLY):", otp);
   } catch (err) {
     console.error("❌ SEND OTP ERROR:", err);
     return res.status(500).json({ message: "Failed to generate OTP" });
@@ -90,7 +90,7 @@ exports.verifyOtp = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // 🔒 Clear OTP after success
+    // 🔒 Clear OTP after successful verification
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]

@@ -1,23 +1,22 @@
 const { Resend } = require("resend");
 
 /**
- * INIT RESEND SAFELY
- * Do NOT create client if key missing
+ * INIT RESEND (SAFE)
  */
-let resend = null;
+let resend;
 
-if (process.env.RESEND_API_KEY) {
+if (!process.env.RESEND_API_KEY) {
+  console.warn("⚠️ RESEND_API_KEY missing — email disabled");
+  resend = null;
+} else {
   resend = new Resend(process.env.RESEND_API_KEY);
   console.log("📧 Resend email service initialized");
-} else {
-  console.warn("⚠️ RESEND_API_KEY missing — email disabled");
 }
 
 /**
- * SEND OTP (FAIL-FAST, NON-BLOCKING SAFE)
+ * SEND OTP EMAIL
  */
 exports.sendOTP = async (to, otp, name = "User") => {
-  // 🚫 Email disabled
   if (!resend) {
     throw new Error("Email service not configured");
   }
@@ -27,16 +26,15 @@ exports.sendOTP = async (to, otp, name = "User") => {
   }
 
   try {
-    // ⏱️ HARD TIMEOUT PROTECTION (5s)
     await Promise.race([
       resend.emails.send({
-        from: process.env.MAIL_FROM || "JD <nithinkumar9489@gmail.com>",
+        from: process.env.MAIL_FROM || "JD <onboarding@resend.dev>",
         to,
         subject: "Your Login OTP",
         html: `
-          <div style="font-family: Arial, sans-serif">
+          <div style="font-family:Arial,sans-serif">
             <h2>Hello ${name},</h2>
-            <p>Your OTP:</p>
+            <p>Your OTP is:</p>
             <h1 style="letter-spacing:4px">${otp}</h1>
             <p><b>Valid for 5 minutes</b></p>
             <hr/>
@@ -50,10 +48,9 @@ exports.sendOTP = async (to, otp, name = "User") => {
       ),
     ]);
 
-    console.log("📧 OTP sent via Resend:", to);
+    console.log("📧 OTP sent successfully:", to);
   } catch (err) {
-    // ❗ NEVER crash backend
-    console.error("❌ Resend email failed:", err.message);
+    console.error("❌ OTP email failed:", err.message);
     throw err;
   }
 };
