@@ -1,57 +1,44 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const axios = require("axios");
+const bcrypt = require("bcryptjs");
+const db = require("../config/db");
+const { sendOTP } = require("../utils/mailer");
 
 /* =========================
-   OTP STORE (IN-MEMORY)
-========================= */
-const otpStore = new Map();
-
-/* =========================
-   SEND OTP (BREVO API)
+   SEND OTP (GMAIL SMTP)
 ========================= */
 router.post("/send-otp", async (req, res) => {
-  const { name, email } = req.body;
+  const name = (req.body.name || "User").trim();
+  const email = req.body.email?.trim().toLowerCase();
 
-  if (!name || !email) {
-    return res.status(400).json({ message: "Name and email required" });
+  if (!email) {
+    return res.status(400).json({ message: "Email required" });
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  otpStore.set(email, {
-    otp,
-    expires: Date.now() + 5 * 60 * 1000,
-    name,
-  });
+  const hashedOtp = await bcrypt.hash(otp, 10);
 
   try {
-    await axios.post(
-      "https://api.brevo.com/v3/smtp/email",
-      {
-        sender: { name: "JD Login", email: "no-reply@jd.com" },
-        to: [{ email }],
-        subject: "Your JD Login OTP",
-        htmlContent: `
-          <h2>JD Login OTP</h2>
-          <p>Hello <b>${name}</b>,</p>
-          <h1>${otp}</h1>
-          <p>Valid for 5 minutes.</p>
-        `,
-      },
-      {
-        headers: {
-          "api-key": process.env.BREVO_API_KEY,
-          "Content-Type": "application/json",
-        },
-      }
+    // 🔐 send mail
+    await sendOTP(email, otp, name);
+
+    // 🔐 store hashed otp in DB
+    await db.query(
+      `
+      INSERT INTO users (name, email, otp, otp_expiry)
+      VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))
+      ON DUPLICATE KEY UPDATE
+        name = VALUES(name),
+        otp = VALUES(otp),
+        otp_expiry = DATE_ADD(NOW(), INTERVAL 5 MINUTE)
+      `,
+      [name, email, hashedOtp]
     );
 
     res.json({ message: "OTP sent successfully" });
-
   } catch (err) {
-    console.error("❌ Brevo error:", err.response?.data || err.message);
+    console.error("SEND OTP ERROR:", err.message);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 });
@@ -59,28 +46,61 @@ router.post("/send-otp", async (req, res) => {
 /* =========================
    VERIFY OTP
 ========================= */
-router.post("/verify-otp", (req, res) => {
-  const { email, otp } = req.body;
+router.post("/verify-otp", async (req, res) => {
+  const email = req.body.email?.trim().toLowerCase();
+  const otp = req.body.otp?.trim();
 
-  const record = otpStore.get(email);
-
-  if (!record) return res.status(400).json({ message: "OTP not found" });
-  if (record.expires < Date.now()) {
-    otpStore.delete(email);
-    return res.status(400).json({ message: "OTP expired" });
+  if (!email || !otp) {
+    return res.status(400).json({ message: "Email & OTP required" });
   }
-  if (record.otp !== otp)
-    return res.status(400).json({ message: "Invalid OTP" });
 
-  otpStore.delete(email);
+  try {
+    const [rows] = await db.query(
+      `
+      SELECT id, name, email, otp
+      FROM users
+      WHERE email = ?
+        AND otp_expiry > NOW()
+      `,
+      [email]
+    );
 
-  const user = { name: record.name, email, role: "user" };
+    if (!rows.length) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
 
-  const token = jwt.sign(user, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
+    const user = rows[0];
+    const valid = await bcrypt.compare(otp, user.otp);
 
-  res.json({ token, user });
+    if (!valid) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // 🔐 clear otp
+    await db.query(
+      "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
+      [user.id]
+    );
+
+    const token = jwt.sign(
+      { id: user.id, role: "user" },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: "user",
+      },
+    });
+  } catch (err) {
+    console.error("VERIFY OTP ERROR:", err.message);
+    res.status(500).json({ message: "Login failed" });
+  }
 });
 
 module.exports = router;

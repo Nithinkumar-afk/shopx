@@ -5,21 +5,21 @@ const { sendOTP } = require("../utils/mailer");
 
 /* ================= SEND OTP ================= */
 exports.sendOtp = async (req, res) => {
-  const name = (req.body.name || "User").trim();
-  const email = req.body.email?.trim().toLowerCase();
-
-  if (!email) {
-    return res.status(400).json({ message: "Email required" });
-  }
-
   try {
+    const name = (req.body.name || "User").trim();
+    const email = req.body.email?.trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ message: "Email required" });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // ✅ SEND EMAIL
+    // SEND EMAIL
     await sendOTP(email, otp, name);
 
-    // ✅ STORE HASHED OTP
+    // STORE OTP
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -34,21 +34,21 @@ exports.sendOtp = async (req, res) => {
 
     res.json({ message: "OTP sent successfully" });
   } catch (err) {
-    console.error("SEND OTP ERROR:", err.message);
+    console.error("SEND OTP ERROR:", err);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 };
 
 /* ================= VERIFY OTP ================= */
 exports.verifyOtp = async (req, res) => {
-  const email = req.body.email?.trim().toLowerCase();
-  const otp = req.body.otp?.trim();
-
-  if (!email || !otp) {
-    return res.status(400).json({ message: "Email & OTP required" });
-  }
-
   try {
+    const email = req.body.email?.trim().toLowerCase();
+    const otp = req.body.otp?.trim();
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email & OTP required" });
+    }
+
     const [rows] = await db.query(
       `
       SELECT id, name, email, otp
@@ -65,13 +65,12 @@ exports.verifyOtp = async (req, res) => {
     }
 
     const user = rows[0];
-    const isValid = await bcrypt.compare(otp, user.otp);
+    const valid = await bcrypt.compare(otp, user.otp);
 
-    if (!isValid) {
+    if (!valid) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // ✅ CLEAR OTP
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]
@@ -93,7 +92,7 @@ exports.verifyOtp = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("VERIFY OTP ERROR:", err.message);
+    console.error("VERIFY OTP ERROR:", err);
     res.status(500).json({ message: "Login failed" });
   }
 };
@@ -112,7 +111,7 @@ exports.getMe = async (req, res) => {
 
     res.json(rows[0]);
   } catch (err) {
-    console.error("GET ME ERROR:", err.message);
+    console.error("GET ME ERROR:", err);
     res.status(500).json({ message: "Failed to fetch user" });
   }
 };
@@ -134,7 +133,7 @@ exports.adminLogin = (req, res) => {
   res.json({ token });
 };
 
-/* ================= NORMAL REGISTER ================= */
+/* ================= REGISTER ================= */
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -152,21 +151,21 @@ exports.register = async (req, res) => {
       return res.status(409).json({ message: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashed = await bcrypt.hash(password, 10);
 
     await db.query(
       "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-      [name, email.toLowerCase(), hashedPassword]
+      [name, email.toLowerCase(), hashed]
     );
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    console.error("REGISTER ERROR:", err.message);
+    console.error("REGISTER ERROR:", err);
     res.status(500).json({ message: "Register failed" });
   }
 };
 
-/* ================= NORMAL LOGIN ================= */
+/* ================= LOGIN ================= */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -210,7 +209,7 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("LOGIN ERROR:", err.message);
+    console.error("LOGIN ERROR:", err);
     res.status(500).json({ message: "Login failed" });
   }
 };
