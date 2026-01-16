@@ -1,35 +1,27 @@
 const nodemailer = require("nodemailer");
 
 /**
- * REQUIRED ENV CHECK
+ * ENV CHECK (NO CRASH)
  */
 if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-  console.warn("⚠️ MAIL_USER or MAIL_PASS missing in environment");
+  console.warn("⚠️ MAIL_USER or MAIL_PASS missing");
 }
 
 /**
- * SMTP TRANSPORT (GMAIL)
+ * SMTP TRANSPORT (GMAIL APP PASSWORD)
  */
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // TLS
+  service: "gmail", // ✅ more reliable than host+port
   auth: {
     user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS, // Gmail App Password
+    pass: process.env.MAIL_PASS,
   },
 });
 
 /**
- * VERIFY SMTP (NON-BLOCKING)
+ * ❌ REMOVE transporter.verify()
+ * Railway blocks it → timeout
  */
-transporter.verify()
-  .then(() => {
-    console.log("✅ SMTP ready (Gmail)");
-  })
-  .catch((err) => {
-    console.error("❌ SMTP VERIFY FAILED:", err.message);
-  });
 
 /**
  * SEND OTP EMAIL
@@ -58,7 +50,7 @@ exports.sendOTP = async (to, otp, name = "User") => {
 
     console.log(`📧 OTP sent to ${to}`);
   } catch (err) {
-    console.error("❌ OTP MAIL FAILED:", err);
+    console.error("❌ OTP MAIL FAILED:", err.message);
     throw new Error("Email sending failed");
   }
 };
