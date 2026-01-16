@@ -17,7 +17,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 /*************************************************
- * TRUST PROXY (Railway SAFE)
+ * TRUST PROXY (RAILWAY SAFE)
  *************************************************/
 app.set("trust proxy", 1);
 
@@ -28,18 +28,19 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 /*************************************************
- * ✅ CORS — FIXED FOR VERCEL + LOCAL
+ * ✅ CORS — FIXED (VERCEL + RAILWAY + LOCAL)
  *************************************************/
 app.use(
   cors({
     origin: [
       "http://localhost:5500",
       "http://127.0.0.1:5500",
-      "https://frontend-new-liart.vercel.app" // ✅ YOUR VERCEL FRONTEND
+      "https://frontend-new-liart.vercel.app",
+      "https://shopx-production-b1ad.up.railway.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    credentials: true
   })
 );
 
@@ -52,7 +53,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
  * DATABASE INIT
  *************************************************/
 require("./config/db");
-console.log("✅ Database initialized");
+console.log("✅ Database connected");
 
 /*************************************************
  * ROUTES
@@ -74,7 +75,7 @@ app.get("/", (req, res) => {
   res.status(200).json({
     status: "ShopX backend running ✅",
     uptime: process.uptime(),
-    time: new Date().toISOString(),
+    time: new Date().toISOString()
   });
 });
 
@@ -105,9 +106,9 @@ const server = app.listen(PORT, "0.0.0.0", () => {
  * GRACEFUL SHUTDOWN
  *************************************************/
 process.on("SIGTERM", () => {
-  console.log("🛑 SIGTERM received. Shutting down...");
+  console.log("🛑 SIGTERM received");
   server.close(() => {
-    console.log("✅ Server closed cleanly");
+    console.log("✅ Server closed");
     process.exit(0);
   });
 });

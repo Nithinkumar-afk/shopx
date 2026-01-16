@@ -1,24 +1,24 @@
 const express = require("express");
 const router = express.Router();
-const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 const { sendMagicLink } = require("../utils/mailer");
 
-/* =========================
+/* =====================================================
    SEND MAGIC LINK
-========================= */
-router.post("/magic-link", async (req, res) => {
+===================================================== */
+router.post("/send-magic", async (req, res) => {
   try {
     const { name, email } = req.body;
 
-    if (!process.env.JWT_SECRET || !process.env.FRONTEND_URL) {
-      console.error("❌ ENV missing");
-      return res.status(500).json({ message: "Server configuration error" });
-    }
-
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
+    }
+
+    if (!process.env.JWT_SECRET || !process.env.FRONTEND_URL) {
+      console.error("❌ ENV missing");
+      return res.status(500).json({ message: "Server misconfigured" });
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -52,26 +52,26 @@ router.post("/magic-link", async (req, res) => {
 
     await sendMagicLink(cleanEmail, link, cleanName);
 
-    return res.status(200).json({
+    return res.json({
       success: true,
-      message: "Magic login link sent to email",
+      message: "Magic login link sent"
     });
 
   } catch (err) {
     console.error("🔥 MAGIC LINK ERROR:", err);
-    return res.status(500).json({ message: "Failed to send magic link" });
+    res.status(500).json({ message: "Failed to send magic link" });
   }
 });
 
-/* =========================
+/* =====================================================
    VERIFY MAGIC LINK
-========================= */
+===================================================== */
 router.post("/verify-magic", async (req, res) => {
   try {
-    const { email, token } = req.body;
+    const { token, email } = req.body;
 
-    if (!email || !token) {
-      return res.status(400).json({ message: "Email and token required" });
+    if (!token || !email) {
+      return res.status(400).json({ message: "Invalid request" });
     }
 
     const hashedToken = crypto
@@ -90,7 +90,7 @@ router.post("/verify-magic", async (req, res) => {
       [email.toLowerCase(), hashedToken]
     );
 
-    if (!rows || rows.length === 0) {
+    if (!rows.length) {
       return res.status(400).json({ message: "Invalid or expired magic link" });
     }
 
@@ -107,15 +107,15 @@ router.post("/verify-magic", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    return res.status(200).json({
+    res.json({
       success: true,
       token: jwtToken,
-      user,
+      user
     });
 
   } catch (err) {
     console.error("🔥 VERIFY ERROR:", err);
-    return res.status(500).json({ message: "Login failed" });
+    res.status(500).json({ message: "Login failed" });
   }
 });
 
