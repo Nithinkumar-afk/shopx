@@ -26,17 +26,37 @@ router.get("/send-otp", (req, res) => {
    SEND OTP
 ========================= */
 router.post("/send-otp", async (req, res) => {
+  console.log("🟡 /send-otp API hit");
+
   try {
     const name = String(req.body.name || "User").trim();
     const email = String(req.body.email || "").trim().toLowerCase();
 
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
+    // ✅ Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return res.status(400).json({ message: "Valid email is required" });
     }
 
-    // 🔐 Generate 6-digit OTP
+    // ⏱️ Prevent OTP spam (30s cooldown)
+    const [existing] = await db.query(
+      `SELECT otp_expiry FROM users WHERE email = ?`,
+      [email]
+    );
+
+    if (
+      existing.length &&
+      existing[0].otp_expiry &&
+      new Date(existing[0].otp_expiry) > new Date()
+    ) {
+      return res.status(429).json({
+        message: "Please wait before requesting another OTP",
+      });
+    }
+
+    // 🔐 Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedOtp = await bcrypt.hash(otp, 8); // ⚡ faster for OTP
+    const hashedOtp = await bcrypt.hash(otp, 8);
 
     // 💾 Save OTP
     await db.query(
@@ -51,14 +71,9 @@ router.post("/send-otp", async (req, res) => {
       [name, email, hashedOtp]
     );
 
-    // 📧 Send Email
-    try {
-      await sendOTP(email, otp, name);
-      console.log("📧 OTP email sent to:", email);
-    } catch (mailErr) {
-      console.error("⚠️ Email failed:", mailErr.message);
-      console.log("🔐 OTP (DEV ONLY):", otp); // REMOVE IN PROD
-    }
+    // 📧 Send Email (MANDATORY SUCCESS)
+    await sendOTP(email, otp, name);
+    console.log("📧 OTP email sent to:", email);
 
     return res.status(200).json({
       message: "OTP sent successfully",
@@ -76,6 +91,8 @@ router.post("/send-otp", async (req, res) => {
    VERIFY OTP
 ========================= */
 router.post("/verify-otp", async (req, res) => {
+  console.log("🟡 /verify-otp API hit");
+
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
     const otp = String(req.body.otp || "").trim();
@@ -118,7 +135,7 @@ router.post("/verify-otp", async (req, res) => {
       [user.id]
     );
 
-    // 🔑 Create JWT
+    // 🔑 JWT
     const token = jwt.sign(
       { id: user.id, role: "user" },
       process.env.JWT_SECRET,
