@@ -2,6 +2,7 @@ const { Resend } = require("resend");
 
 /**
  * INIT RESEND SAFELY
+ * Do NOT create client if key missing
  */
 let resend = null;
 
@@ -13,25 +14,20 @@ if (process.env.RESEND_API_KEY) {
 }
 
 /**
- * SEND OTP EMAIL
- * ✔ NEVER crashes backend
- * ✔ OTP still valid if email fails
+ * SEND OTP (FAIL-FAST, NON-BLOCKING SAFE)
  */
 exports.sendOTP = async (to, otp, name = "User") => {
-  // ❌ Email disabled
+  // 🚫 Email disabled
   if (!resend) {
-    console.warn("⚠️ Email skipped (Resend not configured)");
-    return false;
+    throw new Error("Email service not configured");
   }
 
-  // ❌ Invalid input
   if (!to || !otp) {
-    console.warn("⚠️ Email skipped (missing email or OTP)");
-    return false;
+    throw new Error("Missing email or OTP");
   }
 
   try {
-    // ⏱️ HARD TIMEOUT (5 seconds max)
+    // ⏱️ HARD TIMEOUT PROTECTION (5s)
     await Promise.race([
       resend.emails.send({
         from: process.env.MAIL_FROM || "JD <onboarding@resend.dev>",
@@ -54,12 +50,10 @@ exports.sendOTP = async (to, otp, name = "User") => {
       ),
     ]);
 
-    console.log("📧 OTP sent successfully to:", to);
-    return true;
+    console.log("📧 OTP sent via Resend:", to);
   } catch (err) {
-    // ❗ DO NOT THROW (IMPORTANT)
-    console.error("❌ OTP MAIL FAILED:", err.message);
-    console.warn("⚠️ OTP email failed, OTP still valid");
-    return false;
+    // ❗ NEVER crash backend
+    console.error("❌ Resend email failed:", err.message);
+    throw err;
   }
 };
