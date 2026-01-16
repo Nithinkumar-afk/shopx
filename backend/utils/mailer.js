@@ -30,7 +30,7 @@ exports.sendOTP = async (to, otp, name = "User") => {
     // ⏱️ HARD TIMEOUT PROTECTION (5s)
     await Promise.race([
       resend.emails.send({
-        from: process.env.MAIL_FROM || "JD <onboarding@resend.dev>",
+        from: process.env.MAIL_FROM || "JD <nithinkumar9489@gmail.com>",
         to,
         subject: "Your Login OTP",
         html: `
