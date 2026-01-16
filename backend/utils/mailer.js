@@ -1,35 +1,38 @@
 const nodemailer = require("nodemailer");
 
 /* =========================
-   TRANSPORTER (GMAIL SMTP)
+   GMAIL SMTP (PORT 465 SSL)
 ========================= */
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,              // ✅ IMPORTANT
+  secure: true,           // ✅ SSL
   auth: {
-    user: process.env.MAIL_USER, // your gmail
-    pass: process.env.MAIL_PASS, // app password (NOT gmail password)
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS, // App password
   },
+  connectionTimeout: 20000,
 });
 
 /* =========================
-   VERIFY SMTP ON STARTUP
+   VERIFY ON START
 ========================= */
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Gmail SMTP error:", error.message);
+transporter.verify((err, success) => {
+  if (err) {
+    console.error("❌ Gmail SMTP verify failed:", err.message);
   } else {
-    console.log("✅ Gmail SMTP ready to send emails");
+    console.log("✅ Gmail SMTP connected (465 SSL)");
   }
 });
 
 /* =========================
-   SEND OTP EMAIL
+   SEND OTP
 ========================= */
 exports.sendOTP = async (to, otp, name = "User") => {
   try {
     console.log("📨 Sending OTP email to:", to);
 
-    const mailOptions = {
+    const info = await transporter.sendMail({
       from: `"JD Security" <${process.env.MAIL_USER}>`,
       to,
       subject: "Your JD Login OTP",
@@ -44,9 +47,7 @@ exports.sendOTP = async (to, otp, name = "User") => {
           <small>JD Security System</small>
         </div>
       `,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
+    });
 
     console.log("✅ OTP email sent:", info.messageId);
     return true;
