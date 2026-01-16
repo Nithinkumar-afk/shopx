@@ -67,6 +67,8 @@ app.use("/api/products", require("./routes/product.routes"));
 app.use("/api/cart", require("./routes/cart.routes"));
 app.use("/api/orders", require("./routes/orders.routes"));
 app.use("/api/profile", require("./routes/profile.routes"));
+app.use(express.json());
+app.use("/api/auth", require("./routes/authRoutes"));
 
 /*************************************************
  * HEALTH CHECK
