@@ -39,7 +39,7 @@ app.use(
   })
 );
 
-// 🔥 IMPORTANT FOR PREFLIGHT
+// ✅ Important for preflight
 app.options("*", cors());
 
 /*************************************************
@@ -93,12 +93,8 @@ app.use((req, res) => {
  *************************************************/
 app.use((err, req, res, next) => {
   console.error("🔥 ERROR:", err.stack || err);
-
   if (res.headersSent) return next(err);
-
-  res.status(500).json({
-    message: "Internal server error",
-  });
+  res.status(500).json({ message: "Internal server error" });
 });
 
 /*************************************************

@@ -6,7 +6,7 @@ const db = require("../config/db");
 const { sendOTP } = require("../utils/mailer");
 
 /* =========================
-   TEST ROUTE (GET)
+   TEST ROUTE
 ========================= */
 router.get("/send-otp", (req, res) => {
   res.json({
@@ -15,7 +15,7 @@ router.get("/send-otp", (req, res) => {
 });
 
 /* =========================
-   SEND OTP (POST)
+   SEND OTP
 ========================= */
 router.post("/send-otp", async (req, res) => {
   try {
