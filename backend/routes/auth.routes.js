@@ -1,149 +1,162 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const db = require("../config/db");
-const { sendOTP } = require("../utils/mailer");
+const { sendMagicLink } = require("../utils/mailer");
 
 /* =========================
-   ENV CHECK
+   SAFE ENV CHECK
 ========================= */
 if (!process.env.JWT_SECRET) {
-  console.error("❌ JWT_SECRET missing in .env");
-  process.exit(1);
+  console.error("❌ JWT_SECRET missing — auth disabled");
 }
 
 /* =========================
    TEST ROUTE
 ========================= */
-router.get("/send-otp", (req, res) => {
+router.get("/magic-link", (req, res) => {
   res.json({
-    message: "Auth route working ✅ Use POST /send-otp",
+    message: "Auth route working ✅ Use POST /magic-link",
   });
 });
 
 /* =========================
-   SEND OTP
+   SEND MAGIC LINK
 ========================= */
-router.post("/send-otp", async (req, res) => {
-  console.log("🟡 /send-otp API hit");
+router.post("/magic-link", async (req, res) => {
+  console.log("🟡 /magic-link API hit");
 
   try {
+    if (!process.env.JWT_SECRET || !process.env.FRONTEND_URL) {
+      return res.status(500).json({
+        message: "Login service unavailable",
+      });
+    }
+
     const name = String(req.body.name || "User").trim();
     const email = String(req.body.email || "").trim().toLowerCase();
 
     // ✅ Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
-      return res.status(400).json({ message: "Valid email is required" });
+      return res.status(200).json({
+        message: "If the email exists, a login link has been sent",
+      });
     }
 
-    // ⏱️ Prevent OTP spam (30s cooldown)
+    // ⏱️ Prevent spam (existing valid token)
     const [existing] = await db.query(
-      `SELECT otp_expiry FROM users WHERE email = ?`,
+      `SELECT magic_expiry FROM users WHERE email = ?`,
       [email]
     );
 
     if (
       existing.length &&
-      existing[0].otp_expiry &&
-      new Date(existing[0].otp_expiry) > new Date()
+      existing[0].magic_expiry &&
+      new Date(existing[0].magic_expiry) > new Date()
     ) {
-      return res.status(429).json({
-        message: "Please wait before requesting another OTP",
+      return res.status(200).json({
+        message: "If the email exists, a login link has been sent",
       });
     }
 
-    // 🔐 Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedOtp = await bcrypt.hash(otp, 8);
+    // 🔐 Generate token
+    const token = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
 
-    // 💾 Save OTP
+    // 💾 Store token
     await db.query(
       `
-      INSERT INTO users (name, email, otp, otp_expiry)
-      VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))
+      INSERT INTO users (name, email, magic_token, magic_expiry)
+      VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))
       ON DUPLICATE KEY UPDATE
         name = VALUES(name),
-        otp = VALUES(otp),
-        otp_expiry = DATE_ADD(NOW(), INTERVAL 5 MINUTE)
+        magic_token = VALUES(magic_token),
+        magic_expiry = DATE_ADD(NOW(), INTERVAL 10 MINUTE)
       `,
-      [name, email, hashedOtp]
+      [name, email, hashedToken]
     );
 
-    // 📧 Send Email (MANDATORY SUCCESS)
-    await sendOTP(email, otp, name);
-    console.log("📧 OTP email sent to:", email);
+    // 🔗 Magic link
+    const link = `${process.env.FRONTEND_URL}/magic-login.html?token=${token}&email=${encodeURIComponent(email)}`;
 
+    // 📧 Send mail
+    await sendMagicLink(email, link, name);
+
+    console.log("📧 Magic link sent to:", email);
+
+    // ✅ SAME RESPONSE ALWAYS (SECURITY)
     return res.status(200).json({
-      message: "OTP sent successfully",
+      message: "If the email exists, a login link has been sent",
     });
 
   } catch (err) {
-    console.error("❌ SEND OTP ERROR:", err);
+    console.error("❌ MAGIC LINK ERROR:", err);
     return res.status(500).json({
-      message: "Failed to send OTP",
+      message: "Login service error",
     });
   }
 });
 
 /* =========================
-   VERIFY OTP
+   VERIFY MAGIC LINK
 ========================= */
-router.post("/verify-otp", async (req, res) => {
-  console.log("🟡 /verify-otp API hit");
+router.post("/verify-magic", async (req, res) => {
+  console.log("🟡 /verify-magic API hit");
 
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
-    const otp = String(req.body.otp || "").trim();
+    const token = String(req.body.token || "").trim();
 
-    if (!email || !otp) {
+    if (!email || !token) {
       return res.status(400).json({
-        message: "Email and OTP are required",
+        message: "Invalid or expired login link",
       });
     }
 
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
     const [rows] = await db.query(
       `
-      SELECT id, name, email, otp
+      SELECT id, name, email
       FROM users
       WHERE email = ?
-        AND otp IS NOT NULL
-        AND otp_expiry > NOW()
+        AND magic_token = ?
+        AND magic_expiry > NOW()
       `,
-      [email]
+      [email, hashedToken]
     );
 
     if (!rows.length) {
       return res.status(400).json({
-        message: "Invalid or expired OTP",
+        message: "Invalid or expired login link",
       });
     }
 
     const user = rows[0];
-    const isMatch = await bcrypt.compare(otp, user.otp);
 
-    if (!isMatch) {
-      return res.status(400).json({
-        message: "Invalid or expired OTP",
-      });
-    }
-
-    // 🧹 Clear OTP
+    // 🧹 Invalidate token
     await db.query(
-      `UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?`,
+      `UPDATE users SET magic_token = NULL, magic_expiry = NULL WHERE id = ?`,
       [user.id]
     );
 
     // 🔑 JWT
-    const token = jwt.sign(
+    const jwtToken = jwt.sign(
       { id: user.id, role: "user" },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
     return res.status(200).json({
-      token,
+      token: jwtToken,
       user: {
         id: user.id,
         name: user.name,
@@ -152,9 +165,9 @@ router.post("/verify-otp", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("❌ VERIFY OTP ERROR:", err);
+    console.error("❌ VERIFY MAGIC ERROR:", err);
     return res.status(500).json({
-      message: "OTP verification failed",
+      message: "Login failed",
     });
   }
 });

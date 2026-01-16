@@ -1,61 +1,87 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-/* =========================
-   BREVO SMTP CONFIG
-========================= */
-const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,          // MUST be smtp-relay.brevo.com
-  port: Number(process.env.MAIL_PORT),  // 587
-  secure: false,                        // STARTTLS
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false, // Railway safe
-  },
-  connectionTimeout: 20000,
-});
+/* ===============================
+   ENV CHECK (NON-FATAL)
+================================ */
+if (!process.env.RESEND_API_KEY) {
+  console.error("❌ RESEND_API_KEY missing — emails will NOT be sent");
+}
 
-/* =========================
-   VERIFY SMTP
-========================= */
-transporter.verify((err) => {
-  if (err) {
-    console.error("❌ Brevo SMTP verify failed:", err.message);
-  } else {
-    console.log("✅ Brevo SMTP connected");
+/* ===============================
+   RESEND INIT
+================================ */
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
+
+/* ===============================
+   SEND MAGIC LINK EMAIL
+================================ */
+exports.sendMagicLink = async (email, link, name = "User") => {
+  if (!resend) {
+    throw new Error("Email service not configured");
   }
-});
 
-/* =========================
-   SEND OTP
-========================= */
-exports.sendOTP = async (to, otp, name = "User") => {
   try {
-    console.log("📨 Sending OTP email to:", to);
+    console.log("📨 Sending magic link to:", email);
 
-    const info = await transporter.sendMail({
-      from: process.env.MAIL_FROM,
-      to,
-      subject: "Your JD Login OTP",
+    const response = await resend.emails.send({
+      from: "JD Security <login@yourdomain.com>", // 🔥 replace with domain email
+      to: email,
+      subject: "Login to JD – Secure Magic Link",
+
+      // ✅ TEXT FALLBACK (IMPORTANT)
+      text: `
+Hello ${name},
+
+Use the link below to securely log in:
+
+${link}
+
+This link is valid for 10 minutes.
+If you did not request this, ignore this email.
+
+— JD Security Team
+      `,
+
+      // ✅ HTML VERSION
       html: `
-        <div style="font-family:Arial,sans-serif">
-          <h2>Hello ${name},</h2>
-          <p>Your OTP is:</p>
-          <h1 style="letter-spacing:4px">${otp}</h1>
-          <p>Valid for 5 minutes.</p>
-          <hr/>
-          <small>JD Security System</small>
-        </div>
+<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111">
+  <h2>Hello ${name},</h2>
+
+  <p>Click the button below to securely log in to <b>JD</b>:</p>
+
+  <a href="${link}"
+     style="
+       display:inline-block;
+       padding:12px 22px;
+       background:#111;
+       color:#fff;
+       text-decoration:none;
+       border-radius:6px;
+       margin:14px 0;
+       font-weight:bold;
+     ">
+    Login Securely
+  </a>
+
+  <p>This link is valid for <b>10 minutes</b>.</p>
+
+  <p style="color:#555;font-size:14px">
+    If you did not request this login, you can safely ignore this email.
+  </p>
+
+  <hr />
+  <small>JD Security System</small>
+</div>
       `,
     });
 
-    console.log("✅ OTP email sent:", info.messageId);
+    console.log("✅ Magic link email sent:", response.id);
     return true;
 
-  } catch (err) {
-    console.error("❌ Brevo send failed:", err.message);
-    throw new Error("Failed to send OTP email");
+  } catch (error) {
+    console.error("❌ Magic link email failed:", error);
+    throw new Error("Failed to send magic link email");
   }
 };
