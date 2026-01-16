@@ -17,7 +17,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 /*************************************************
- * TRUST PROXY (Railway / Vercel SAFE)
+ * TRUST PROXY (Railway SAFE)
  *************************************************/
 app.set("trust proxy", 1);
 
@@ -28,28 +28,17 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 /*************************************************
- * CORS CONFIG (SAFE + FLEXIBLE)
+ * ✅ SIMPLE & SAFE CORS (FIXED)
  *************************************************/
-const allowedOrigins = (
-  process.env.CORS_ORIGIN || ""
-).split(",").map(o => o.trim()).filter(Boolean);
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // mobile apps / curl
-      if (!allowedOrigins.length || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
+    origin: "*", // 🔥 allow browser, Netlify, local
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Preflight support
+// Preflight
 app.options("*", cors());
 
 /*************************************************
@@ -58,7 +47,7 @@ app.options("*", cors());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (FAIL-FAST INSIDE db.js)
+ * DATABASE INIT
  *************************************************/
 require("./config/db");
 console.log("✅ Database initialized");
@@ -98,7 +87,7 @@ app.use((req, res) => {
  * GLOBAL ERROR HANDLER
  *************************************************/
 app.use((err, req, res, next) => {
-  console.error("🔥 ERROR:", err.stack || err);
+  console.error("🔥 ERROR:", err);
   if (res.headersSent) return next(err);
   res.status(500).json({ message: "Internal server error" });
 });
@@ -111,7 +100,7 @@ const server = app.listen(PORT, "0.0.0.0", () => {
 });
 
 /*************************************************
- * GRACEFUL SHUTDOWN (Railway Safe)
+ * GRACEFUL SHUTDOWN
  *************************************************/
 process.on("SIGTERM", () => {
   console.log("🛑 SIGTERM received. Shutting down...");
