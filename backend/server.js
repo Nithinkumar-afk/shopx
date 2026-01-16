@@ -25,19 +25,32 @@ app.set("trust proxy", 1);
  * BODY PARSERS
  *************************************************/
 app.use(express.json({ limit: "5mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 /*************************************************
- * CORS CONFIG (RAILWAY SAFE)
+ * CORS CONFIG (SAFE + FLEXIBLE)
  *************************************************/
+const allowedOrigins = (
+  process.env.CORS_ORIGIN || ""
+).split(",").map(o => o.trim()).filter(Boolean);
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // mobile apps / curl
+      if (!allowedOrigins.length || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Preflight support
+app.options("*", cors());
 
 /*************************************************
  * STATIC FILES
@@ -45,7 +58,7 @@ app.use(
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (FAIL-FAST HANDLED INSIDE db.js)
+ * DATABASE INIT (FAIL-FAST INSIDE db.js)
  *************************************************/
 require("./config/db");
 console.log("✅ Database initialized");
@@ -93,6 +106,17 @@ app.use((err, req, res, next) => {
 /*************************************************
  * START SERVER
  *************************************************/
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Backend running on port ${PORT}`);
+});
+
+/*************************************************
+ * GRACEFUL SHUTDOWN (Railway Safe)
+ *************************************************/
+process.on("SIGTERM", () => {
+  console.log("🛑 SIGTERM received. Shutting down...");
+  server.close(() => {
+    console.log("✅ Server closed cleanly");
+    process.exit(0);
+  });
 });

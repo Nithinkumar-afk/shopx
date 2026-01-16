@@ -29,18 +29,7 @@ exports.sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    let emailSent = false;
-
-    /* ===== SEND EMAIL (NON-BLOCKING) ===== */
-    try {
-      await sendOTP(email, otp, name);
-      emailSent = true;
-      console.log("✅ OTP email sent:", email);
-    } catch (mailErr) {
-      console.error("⚠️ OTP email failed:", mailErr.message);
-    }
-
-    /* ===== STORE OTP (invalidate old OTP) ===== */
+    /* ===== STORE OTP FIRST (CRITICAL FIX) ===== */
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -53,14 +42,17 @@ exports.sendOtp = async (req, res) => {
       [name, email, hashedOtp]
     );
 
-    return res.json({
-      message: emailSent
-        ? "OTP sent successfully"
-        : "OTP generated, email delivery pending",
+    // ✅ Respond immediately (OTP is valid)
+    res.json({
+      message: "OTP generated successfully",
     });
+
+    // 📧 SEND EMAIL IN BACKGROUND (NON-BLOCKING)
+    sendOTP(email, otp, name).catch(() => {});
+    console.log("🔐 OTP (DEBUG ONLY):", otp);
   } catch (err) {
     console.error("❌ SEND OTP ERROR:", err);
-    return res.status(500).json({ message: "Failed to send OTP" });
+    return res.status(500).json({ message: "Failed to generate OTP" });
   }
 };
 
@@ -156,7 +148,6 @@ exports.adminLogin = (req, res) => {
   }
 
   const token = signToken({ id: 0, role: "admin" }, "1d");
-
   return res.json({ token });
 };
 
