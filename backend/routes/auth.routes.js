@@ -6,16 +6,16 @@ const db = require("../config/db");
 const { sendOTP } = require("../utils/mailer");
 
 /* =========================
-   TEST ROUTE (GET)
+   TEST ROUTE
 ========================= */
 router.get("/send-otp", (req, res) => {
   res.json({
-    message: "Auth route is working ✅. Use POST to send OTP.",
+    message: "Auth route is working ✅. Use POST /send-otp",
   });
 });
 
 /* =========================
-   SEND OTP (POST)
+   SEND OTP (FAIL-SAFE)
 ========================= */
 router.post("/send-otp", async (req, res) => {
   try {
@@ -30,10 +30,7 @@ router.post("/send-otp", async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // 📧 Send OTP email
-    await sendOTP(email, otp, name);
-
-    // 💾 Save / Update OTP in DB
+    // 💾 SAVE OTP FIRST (IMPORTANT)
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -46,15 +43,30 @@ router.post("/send-otp", async (req, res) => {
       [name, email, hashedOtp]
     );
 
-    res.status(200).json({ message: "OTP sent successfully" });
+    // 📧 TRY TO SEND EMAIL (DO NOT FAIL)
+    let emailSent = true;
+    try {
+      await sendOTP(email, otp, name);
+    } catch (mailErr) {
+      emailSent = false;
+      console.warn("⚠️ OTP email failed, OTP still valid");
+    }
+
+    res.status(200).json({
+      message: emailSent
+        ? "OTP sent successfully"
+        : "OTP generated (email delivery pending)",
+    });
   } catch (err) {
     console.error("❌ SEND OTP ERROR:", err);
-    res.status(500).json({ message: "Failed to send OTP" });
+    res.status(500).json({
+      message: "Failed to generate OTP",
+    });
   }
 });
 
 /* =========================
-   VERIFY OTP (POST)
+   VERIFY OTP
 ========================= */
 router.post("/verify-otp", async (req, res) => {
   try {
@@ -62,7 +74,9 @@ router.post("/verify-otp", async (req, res) => {
     const otp = String(req.body.otp || "").trim();
 
     if (!email || !otp) {
-      return res.status(400).json({ message: "Email and OTP are required" });
+      return res.status(400).json({
+        message: "Email and OTP are required",
+      });
     }
 
     const [rows] = await db.query(
@@ -77,24 +91,28 @@ router.post("/verify-otp", async (req, res) => {
     );
 
     if (!rows.length) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+      return res.status(400).json({
+        message: "Invalid or expired OTP",
+      });
     }
 
     const user = rows[0];
 
-    // 🔍 Compare OTP
-    const isValid = await bcrypt.compare(otp, user.otp);
-    if (!isValid) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+    // 🔍 Verify OTP
+    const isMatch = await bcrypt.compare(otp, user.otp);
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Invalid or expired OTP",
+      });
     }
 
     // 🧹 Clear OTP after success
     await db.query(
-      "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
+      `UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?`,
       [user.id]
     );
 
-    // 🔑 Create JWT
+    // 🔑 Generate JWT
     const token = jwt.sign(
       { id: user.id, role: "user" },
       process.env.JWT_SECRET,
@@ -111,7 +129,9 @@ router.post("/verify-otp", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ VERIFY OTP ERROR:", err);
-    res.status(500).json({ message: "Login failed" });
+    res.status(500).json({
+      message: "Login failed",
+    });
   }
 });
 

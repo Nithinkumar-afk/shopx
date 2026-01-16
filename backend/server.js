@@ -28,7 +28,7 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * CORS CONFIG
+ * CORS CONFIG (RAILWAY SAFE)
  *************************************************/
 app.use(
   cors({
@@ -39,23 +39,16 @@ app.use(
   })
 );
 
-// ✅ Important for preflight
-app.options("*", cors());
-
 /*************************************************
  * STATIC FILES
  *************************************************/
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT
+ * DATABASE INIT (FAIL-FAST HANDLED INSIDE db.js)
  *************************************************/
-try {
-  require("./config/db");
-  console.log("✅ Database initialized");
-} catch (err) {
-  console.error("❌ Database init failed:", err.message);
-}
+require("./config/db");
+console.log("✅ Database initialized");
 
 /*************************************************
  * ROUTES

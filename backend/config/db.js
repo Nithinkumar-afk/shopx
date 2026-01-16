@@ -25,7 +25,7 @@ if (
 
     charset: "utf8mb4",
 
-    /* ✅ REQUIRED FOR RAILWAY */
+    // ✅ REQUIRED FOR RAILWAY / CLOUD MYSQL
     ssl: {
       rejectUnauthorized: false,
     },
@@ -63,12 +63,12 @@ else {
  *************************************************/
 (async () => {
   try {
-    const conn = await pool.getConnection();
-    console.log("✅ MySQL connected");
-    conn.release();
+    const connection = await pool.getConnection();
+    console.log("✅ MySQL connected successfully");
+    connection.release();
   } catch (err) {
     console.error("❌ MySQL connection failed:", err.message);
-    process.exit(1); // 🚨 Railway must crash if DB fails
+    process.exit(1); // 🚨 Crash app if DB fails
   }
 })();
 
