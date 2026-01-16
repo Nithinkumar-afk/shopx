@@ -12,12 +12,14 @@ exports.sendOtp = async (req, res) => {
     return res.status(400).json({ message: "Email required" });
   }
 
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = await bcrypt.hash(otp, 10);
+
   try {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // ✅ SEND MAIL (MUST AWAIT)
+    await sendOTP(email, otp, name);
 
-    // send email (non-blocking)
-    sendOTP(email, otp, name);
-
+    // ✅ SAVE ONLY HASHED OTP
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -27,12 +29,12 @@ exports.sendOtp = async (req, res) => {
         otp = VALUES(otp),
         otp_expiry = DATE_ADD(NOW(), INTERVAL 5 MINUTE)
       `,
-      [name, email, otp]
+      [name, email, hashedOtp]
     );
 
     res.json({ message: "OTP sent successfully" });
   } catch (err) {
-    console.error("SEND OTP ERROR:", err);
+    console.error("SEND OTP ERROR:", err.message);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 };
@@ -49,13 +51,12 @@ exports.verifyOtp = async (req, res) => {
   try {
     const [rows] = await db.query(
       `
-      SELECT id, name, email
+      SELECT id, name, email, otp
       FROM users
       WHERE email = ?
-        AND otp = ?
         AND otp_expiry > NOW()
       `,
-      [email, otp]
+      [email]
     );
 
     if (!rows.length) {
@@ -64,6 +65,12 @@ exports.verifyOtp = async (req, res) => {
 
     const user = rows[0];
 
+    const isValidOtp = await bcrypt.compare(otp, user.otp);
+    if (!isValidOtp) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // ✅ CLEAR OTP AFTER SUCCESS
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]
@@ -71,7 +78,7 @@ exports.verifyOtp = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, role: "user" },
-      process.env.JWT_SECRET || "supersecret",
+      process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
@@ -85,7 +92,7 @@ exports.verifyOtp = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("VERIFY OTP ERROR:", err);
+    console.error("VERIFY OTP ERROR:", err.message);
     res.status(500).json({ message: "Login failed" });
   }
 };
@@ -104,7 +111,7 @@ exports.getMe = async (req, res) => {
 
     res.json(rows[0]);
   } catch (err) {
-    console.error("GET ME ERROR:", err);
+    console.error("GET ME ERROR:", err.message);
     res.status(500).json({ message: "Failed to fetch user" });
   }
 };
@@ -119,7 +126,7 @@ exports.adminLogin = (req, res) => {
 
   const token = jwt.sign(
     { role: "admin" },
-    process.env.JWT_SECRET || "supersecret",
+    process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
 
@@ -137,7 +144,7 @@ exports.register = async (req, res) => {
 
     const [exists] = await db.query(
       "SELECT id FROM users WHERE email = ?",
-      [email]
+      [email.toLowerCase()]
     );
 
     if (exists.length) {
@@ -151,11 +158,9 @@ exports.register = async (req, res) => {
       [name, email.toLowerCase(), hashedPassword]
     );
 
-    res.status(201).json({
-      message: "User registered successfully",
-    });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
+    console.error("REGISTER ERROR:", err.message);
     res.status(500).json({ message: "Register failed" });
   }
 };
@@ -179,15 +184,19 @@ exports.login = async (req, res) => {
     }
 
     const user = rows[0];
-    const match = await bcrypt.compare(password, user.password);
 
+    if (!user.password) {
+      return res.status(400).json({ message: "Use OTP login" });
+    }
+
+    const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const token = jwt.sign(
       { id: user.id, role: "user" },
-      process.env.JWT_SECRET || "supersecret",
+      process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
@@ -201,7 +210,7 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
+    console.error("LOGIN ERROR:", err.message);
     res.status(500).json({ message: "Login failed" });
   }
 };
