@@ -11,6 +11,19 @@ const cors = require("cors");
 const path = require("path");
 
 /*************************************************
+ * ROUTES IMPORT
+ *************************************************/
+const authRoutes = require("./routes/auth.routes");
+const adminRoutes = require("./routes/admin.routes");
+const adminUsersRoutes = require("./routes/admin.users.routes");
+const adminProductsRoutes = require("./routes/admin.products.routes");
+const adminOrdersRoutes = require("./routes/admin.orders.routes");
+const productRoutes = require("./routes/product.routes");
+const cartRoutes = require("./routes/cart.routes");
+const orderRoutes = require("./routes/orders.routes");
+const profileRoutes = require("./routes/profile.routes");
+
+/*************************************************
  * APP INIT
  *************************************************/
 const app = express();
@@ -55,30 +68,30 @@ require("./config/db");
 console.log("✅ Database initialized");
 
 /*************************************************
- * ROUTES (FIXED PATHS)
+ * ROUTES
  *************************************************/
-app.use("/api/auth", require("./routes/auth.routes"));
-app.use("/api/admin", require("./routes/admin.routes"));
-app.use("/api/admin/users", require("./routes/admin.users.routes"));
-app.use("/api/admin/products", require("./routes/admin.products.routes"));
-app.use("/api/admin/orders", require("./routes/admin.orders.routes"));
-app.use("/api/products", require("./routes/product.routes"));
-app.use("/api/cart", require("./routes/cart.routes"));
-app.use("/api/orders", require("./routes/orders.routes"));
-app.use("/api/profile", require("./routes/profile.routes"));
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/admin/users", adminUsersRoutes);
+app.use("/api/admin/products", adminProductsRoutes);
+app.use("/api/admin/orders", adminOrdersRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/profile", profileRoutes);
 
 /*************************************************
  * HEALTH CHECK
  *************************************************/
 app.get("/", (req, res) => {
   res.json({
-    status: "ShopX backend running ✅",
+    status: "JD / ShopX Backend Running ✅",
     time: new Date().toISOString(),
   });
 });
 
 /*************************************************
- * 404
+ * 404 HANDLER
  *************************************************/
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
@@ -88,7 +101,7 @@ app.use((req, res) => {
  * ERROR HANDLER
  *************************************************/
 app.use((err, req, res, next) => {
-  console.error(err);
+  console.error("🔥 Error:", err);
   res.status(500).json({ message: "Internal server error" });
 });
 
@@ -96,5 +109,5 @@ app.use((err, req, res, next) => {
  * START SERVER
  *************************************************/
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Backend running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

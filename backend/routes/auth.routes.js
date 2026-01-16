@@ -1,28 +1,17 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
-const checkEnv = require("../utils/envCheck");
 
 const router = express.Router();
 
+/* ===============================
+   MAGIC LINK SEND
+================================ */
 router.post("/magic-login", async (req, res) => {
   const { name, email } = req.body;
 
   if (!name || !email) {
     return res.status(400).json({ message: "Missing name or email" });
-  }
-
-  const ok = checkEnv([
-    "JWT_SECRET",
-    "SMTP_HOST",
-    "SMTP_PORT",
-    "SMTP_USER",
-    "SMTP_PASS",
-    "FRONTEND_URL",
-  ]);
-
-  if (!ok) {
-    return res.status(500).json({ message: "Server misconfigured" });
   }
 
   try {
@@ -32,11 +21,11 @@ router.post("/magic-login", async (req, res) => {
       { expiresIn: "15m" }
     );
 
-    const link = `${process.env.FRONTEND_URL}/magic-login.html?token=${token}`;
+    const link = `${process.env.FRONTEND_URL}/verify.html?token=${token}`;
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
+      port: Number(process.env.SMTP_PORT),
       secure: false,
       auth: {
         user: process.env.SMTP_USER,
@@ -49,17 +38,48 @@ router.post("/magic-login", async (req, res) => {
       to: email,
       subject: "Your JD Magic Login Link",
       html: `
-        <h2>Hello ${name}</h2>
-        <p>Click below to login:</p>
+        <h3>Hello ${name}</h3>
+        <p>Click the link below to login:</p>
         <a href="${link}">${link}</a>
-        <p>This link expires in 15 minutes.</p>
+        <p><strong>Valid for 15 minutes</strong></p>
       `,
     });
 
-    res.json({ message: "Magic link sent" });
+    res.json({ message: "Magic link sent successfully" });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Email failed" });
+    console.error("🔥 Magic link error:", err);
+    res.status(500).json({ message: "Failed to send email" });
+  }
+});
+
+/* ===============================
+   VERIFY TOKEN
+================================ */
+router.get("/verify", (req, res) => {
+  const { token } = req.query;
+
+  if (!token) {
+    return res.status(400).json({ message: "Token missing" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const loginToken = jwt.sign(
+      { email: decoded.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      token: loginToken,
+      user: decoded,
+    });
+
+  } catch (err) {
+    console.error("🔥 Token verify error:", err);
+    res.status(401).json({ message: "Invalid or expired token" });
   }
 });
 
