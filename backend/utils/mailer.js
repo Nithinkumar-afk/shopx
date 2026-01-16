@@ -1,21 +1,24 @@
 const nodemailer = require("nodemailer");
 
 /* =========================
-   BREVO SMTP (RAILWAY SAFE)
+   BREVO SMTP CONFIG
 ========================= */
 const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: Number(process.env.MAIL_PORT),
-  secure: false, // STARTTLS
+  host: process.env.MAIL_HOST,          // MUST be smtp-relay.brevo.com
+  port: Number(process.env.MAIL_PORT),  // 587
+  secure: false,                        // STARTTLS
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false, // Railway safe
   },
   connectionTimeout: 20000,
 });
 
 /* =========================
-   VERIFY SMTP ON START
+   VERIFY SMTP
 ========================= */
 transporter.verify((err) => {
   if (err) {
