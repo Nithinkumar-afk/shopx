@@ -3,7 +3,19 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { sendOTP } = require("../utils/mailer");
 
-/* ================= SEND OTP ================= */
+/* ===============================
+   HELPER: JWT SIGN
+================================ */
+function signToken(payload, expiresIn = "7d") {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET missing in ENV");
+  }
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
+}
+
+/* ===============================
+   SEND OTP
+================================ */
 exports.sendOtp = async (req, res) => {
   try {
     const name = String(req.body.name || "User").trim();
@@ -13,22 +25,22 @@ exports.sendOtp = async (req, res) => {
       return res.status(400).json({ message: "Email required" });
     }
 
+    // 🔐 Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    /* ================= EMAIL (SAFE MODE) ================= */
     let emailSent = false;
 
+    /* ===== SEND EMAIL (NON-BLOCKING) ===== */
     try {
       await sendOTP(email, otp, name);
       emailSent = true;
-      console.log("✅ OTP email sent to:", email);
+      console.log("✅ OTP email sent:", email);
     } catch (mailErr) {
-      console.error("⚠️ OTP email skipped:", mailErr.message);
-      // DO NOT FAIL REQUEST
+      console.error("⚠️ OTP email failed:", mailErr.message);
     }
 
-    /* ================= STORE OTP ================= */
+    /* ===== STORE OTP (invalidate old OTP) ===== */
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -41,18 +53,20 @@ exports.sendOtp = async (req, res) => {
       [name, email, hashedOtp]
     );
 
-    res.json({
+    return res.json({
       message: emailSent
         ? "OTP sent successfully"
-        : "OTP generated (email delivery pending)",
+        : "OTP generated, email delivery pending",
     });
   } catch (err) {
     console.error("❌ SEND OTP ERROR:", err);
-    res.status(500).json({ message: "Failed to generate OTP" });
+    return res.status(500).json({ message: "Failed to send OTP" });
   }
 };
 
-/* ================= VERIFY OTP ================= */
+/* ===============================
+   VERIFY OTP
+================================ */
 exports.verifyOtp = async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -78,24 +92,21 @@ exports.verifyOtp = async (req, res) => {
     }
 
     const user = rows[0];
-    const valid = await bcrypt.compare(otp, user.otp);
+    const isValid = await bcrypt.compare(otp, user.otp);
 
-    if (!valid) {
+    if (!isValid) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
+    // 🔒 Clear OTP after success
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]
     );
 
-    const token = jwt.sign(
-      { id: user.id, role: "user" },
-      process.env.JWT_SECRET || "fallback_secret",
-      { expiresIn: "7d" }
-    );
+    const token = signToken({ id: user.id, role: "user" });
 
-    res.json({
+    return res.json({
       token,
       user: {
         id: user.id,
@@ -106,11 +117,13 @@ exports.verifyOtp = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ VERIFY OTP ERROR:", err);
-    res.status(500).json({ message: "Login failed" });
+    return res.status(500).json({ message: "OTP verification failed" });
   }
 };
 
-/* ================= GET ME ================= */
+/* ===============================
+   GET CURRENT USER
+================================ */
 exports.getMe = async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -122,31 +135,34 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.json(rows[0]);
+    return res.json(rows[0]);
   } catch (err) {
     console.error("❌ GET ME ERROR:", err);
-    res.status(500).json({ message: "Failed to fetch user" });
+    return res.status(500).json({ message: "Failed to fetch user" });
   }
 };
 
-/* ================= ADMIN LOGIN ================= */
+/* ===============================
+   ADMIN LOGIN
+================================ */
 exports.adminLogin = (req, res) => {
   const { username, password } = req.body;
 
-  if (username !== "admin" || password !== "admin123") {
+  if (
+    username !== process.env.ADMIN_USER ||
+    password !== process.env.ADMIN_PASS
+  ) {
     return res.status(401).json({ message: "Invalid admin credentials" });
   }
 
-  const token = jwt.sign(
-    { role: "admin" },
-    process.env.JWT_SECRET || "fallback_secret",
-    { expiresIn: "1d" }
-  );
+  const token = signToken({ id: 0, role: "admin" }, "1d");
 
-  res.json({ token });
+  return res.json({ token });
 };
 
-/* ================= REGISTER ================= */
+/* ===============================
+   REGISTER (PASSWORD)
+================================ */
 exports.register = async (req, res) => {
   try {
     const name = String(req.body.name || "").trim();
@@ -173,14 +189,16 @@ exports.register = async (req, res) => {
       [name, email, hashed]
     );
 
-    res.status(201).json({ message: "User registered successfully" });
+    return res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
     console.error("❌ REGISTER ERROR:", err);
-    res.status(500).json({ message: "Register failed" });
+    return res.status(500).json({ message: "Register failed" });
   }
 };
 
-/* ================= LOGIN ================= */
+/* ===============================
+   LOGIN (PASSWORD)
+================================ */
 exports.login = async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -210,13 +228,9 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { id: user.id, role: "user" },
-      process.env.JWT_SECRET || "fallback_secret",
-      { expiresIn: "7d" }
-    );
+    const token = signToken({ id: user.id, role: "user" });
 
-    res.json({
+    return res.json({
       token,
       user: {
         id: user.id,
@@ -226,6 +240,6 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ LOGIN ERROR:", err);
-    res.status(500).json({ message: "Login failed" });
+    return res.status(500).json({ message: "Login failed" });
   }
 };

@@ -3,7 +3,7 @@ const mysql = require("mysql2/promise");
 let pool;
 
 /*************************************************
- * RAILWAY MYSQL (PRIMARY)
+ * RAILWAY MYSQL (PRODUCTION)
  *************************************************/
 if (
   process.env.MYSQLHOST &&
@@ -18,10 +18,17 @@ if (
     password: process.env.MYSQLPASSWORD || "",
     database: process.env.MYSQLDATABASE,
     port: Number(process.env.MYSQLPORT || 3306),
+
     waitForConnections: true,
     connectionLimit: 10,
+    queueLimit: 0,
+
     charset: "utf8mb4",
-    timezone: "Z",
+
+    /* ✅ REQUIRED FOR RAILWAY */
+    ssl: {
+      rejectUnauthorized: false,
+    },
   });
 }
 
@@ -42,10 +49,12 @@ else {
     password: process.env.DB_PASSWORD || "",
     database: process.env.DB_NAME,
     port: Number(process.env.DB_PORT || 3306),
+
     waitForConnections: true,
     connectionLimit: 10,
+    queueLimit: 0,
+
     charset: "utf8mb4",
-    timezone: "Z",
   });
 }
 
@@ -59,7 +68,7 @@ else {
     conn.release();
   } catch (err) {
     console.error("❌ MySQL connection failed:", err.message);
-    process.exit(1); // 🚨 important for Railway
+    process.exit(1); // 🚨 Railway must crash if DB fails
   }
 })();
 
