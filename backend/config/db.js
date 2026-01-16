@@ -3,7 +3,7 @@ const mysql = require("mysql2/promise");
 let pool;
 
 /*************************************************
- * RAILWAY MYSQL (AUTO DETECT)
+ * RAILWAY MYSQL (PRIMARY)
  *************************************************/
 if (
   process.env.MYSQLHOST &&
@@ -20,27 +20,21 @@ if (
     port: Number(process.env.MYSQLPORT || 3306),
     waitForConnections: true,
     connectionLimit: 10,
+    charset: "utf8mb4",
+    timezone: "Z",
   });
 }
 
 /*************************************************
- * MYSQL_URL SUPPORT
- *************************************************/
-else if (process.env.MYSQL_URL) {
-  console.log("🔗 Using MYSQL_URL");
-
-  pool = mysql.createPool({
-    uri: process.env.MYSQL_URL,
-    waitForConnections: true,
-    connectionLimit: 10,
-  });
-}
-
-/*************************************************
- * LOCALHOST FALLBACK
+ * LOCAL MYSQL (DEVELOPMENT)
  *************************************************/
 else {
   console.log("💻 Using Local MySQL");
+
+  if (!process.env.DB_NAME) {
+    console.error("❌ DB_NAME missing in environment");
+    process.exit(1);
+  }
 
   pool = mysql.createPool({
     host: process.env.DB_HOST || "127.0.0.1",
@@ -50,11 +44,13 @@ else {
     port: Number(process.env.DB_PORT || 3306),
     waitForConnections: true,
     connectionLimit: 10,
+    charset: "utf8mb4",
+    timezone: "Z",
   });
 }
 
 /*************************************************
- * VERIFY CONNECTION
+ * VERIFY CONNECTION (FAIL FAST)
  *************************************************/
 (async () => {
   try {
@@ -63,6 +59,7 @@ else {
     conn.release();
   } catch (err) {
     console.error("❌ MySQL connection failed:", err.message);
+    process.exit(1); // 🚨 important for Railway
   }
 })();
 

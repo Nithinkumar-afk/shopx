@@ -6,24 +6,24 @@ const db = require("../config/db");
 const { sendOTP } = require("../utils/mailer");
 
 /* =========================
-   SEND OTP (GMAIL SMTP)
+   SEND OTP
 ========================= */
 router.post("/send-otp", async (req, res) => {
-  const name = (req.body.name || "User").trim();
-  const email = req.body.email?.trim().toLowerCase();
-
-  if (!email) {
-    return res.status(400).json({ message: "Email required" });
-  }
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const hashedOtp = await bcrypt.hash(otp, 10);
-
   try {
-    // 🔐 send mail
+    const name = String(req.body.name || "User").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ message: "Email required" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    // 📧 Send OTP email
     await sendOTP(email, otp, name);
 
-    // 🔐 store hashed otp in DB
+    // 💾 Store OTP in DB
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -38,7 +38,7 @@ router.post("/send-otp", async (req, res) => {
 
     res.json({ message: "OTP sent successfully" });
   } catch (err) {
-    console.error("SEND OTP ERROR:", err.message);
+    console.error("❌ SEND OTP ERROR:", err.message);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 });
@@ -47,19 +47,20 @@ router.post("/send-otp", async (req, res) => {
    VERIFY OTP
 ========================= */
 router.post("/verify-otp", async (req, res) => {
-  const email = req.body.email?.trim().toLowerCase();
-  const otp = req.body.otp?.trim();
-
-  if (!email || !otp) {
-    return res.status(400).json({ message: "Email & OTP required" });
-  }
-
   try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const otp = String(req.body.otp || "").trim();
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email & OTP required" });
+    }
+
     const [rows] = await db.query(
       `
       SELECT id, name, email, otp
       FROM users
       WHERE email = ?
+        AND otp IS NOT NULL
         AND otp_expiry > NOW()
       `,
       [email]
@@ -76,7 +77,7 @@ router.post("/verify-otp", async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // 🔐 clear otp
+    // 🧹 Clear OTP
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]
@@ -84,7 +85,7 @@ router.post("/verify-otp", async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, role: "user" },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "fallback_secret",
       { expiresIn: "7d" }
     );
 
@@ -98,7 +99,7 @@ router.post("/verify-otp", async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("VERIFY OTP ERROR:", err.message);
+    console.error("❌ VERIFY OTP ERROR:", err.message);
     res.status(500).json({ message: "Login failed" });
   }
 });

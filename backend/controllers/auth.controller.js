@@ -6,8 +6,8 @@ const { sendOTP } = require("../utils/mailer");
 /* ================= SEND OTP ================= */
 exports.sendOtp = async (req, res) => {
   try {
-    const name = (req.body.name || "User").trim();
-    const email = req.body.email?.trim().toLowerCase();
+    const name = String(req.body.name || "User").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
 
     if (!email) {
       return res.status(400).json({ message: "Email required" });
@@ -16,10 +16,10 @@ exports.sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // SEND EMAIL
+    // Send email
     await sendOTP(email, otp, name);
 
-    // STORE OTP
+    // Store OTP
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -34,7 +34,7 @@ exports.sendOtp = async (req, res) => {
 
     res.json({ message: "OTP sent successfully" });
   } catch (err) {
-    console.error("SEND OTP ERROR:", err);
+    console.error("❌ SEND OTP ERROR:", err.message);
     res.status(500).json({ message: "Failed to send OTP" });
   }
 };
@@ -42,8 +42,8 @@ exports.sendOtp = async (req, res) => {
 /* ================= VERIFY OTP ================= */
 exports.verifyOtp = async (req, res) => {
   try {
-    const email = req.body.email?.trim().toLowerCase();
-    const otp = req.body.otp?.trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const otp = String(req.body.otp || "").trim();
 
     if (!email || !otp) {
       return res.status(400).json({ message: "Email & OTP required" });
@@ -92,7 +92,7 @@ exports.verifyOtp = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("VERIFY OTP ERROR:", err);
+    console.error("❌ VERIFY OTP ERROR:", err.message);
     res.status(500).json({ message: "Login failed" });
   }
 };
@@ -111,7 +111,7 @@ exports.getMe = async (req, res) => {
 
     res.json(rows[0]);
   } catch (err) {
-    console.error("GET ME ERROR:", err);
+    console.error("❌ GET ME ERROR:", err.message);
     res.status(500).json({ message: "Failed to fetch user" });
   }
 };
@@ -136,7 +136,9 @@ exports.adminLogin = (req, res) => {
 /* ================= REGISTER ================= */
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const name = String(req.body.name || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields required" });
@@ -144,7 +146,7 @@ exports.register = async (req, res) => {
 
     const [exists] = await db.query(
       "SELECT id FROM users WHERE email = ?",
-      [email.toLowerCase()]
+      [email]
     );
 
     if (exists.length) {
@@ -155,12 +157,12 @@ exports.register = async (req, res) => {
 
     await db.query(
       "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-      [name, email.toLowerCase(), hashed]
+      [name, email, hashed]
     );
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
+    console.error("❌ REGISTER ERROR:", err.message);
     res.status(500).json({ message: "Register failed" });
   }
 };
@@ -168,7 +170,8 @@ exports.register = async (req, res) => {
 /* ================= LOGIN ================= */
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
 
     if (!email || !password) {
       return res.status(400).json({ message: "Missing credentials" });
@@ -176,7 +179,7 @@ exports.login = async (req, res) => {
 
     const [rows] = await db.query(
       "SELECT * FROM users WHERE email = ?",
-      [email.toLowerCase()]
+      [email]
     );
 
     if (!rows.length) {
@@ -209,7 +212,7 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
+    console.error("❌ LOGIN ERROR:", err.message);
     res.status(500).json({ message: "Login failed" });
   }
 };
