@@ -25,9 +25,10 @@ if (
 
     charset: "utf8mb4",
 
-    // ✅ REQUIRED FOR RAILWAY / CLOUD MYSQL
+    connectTimeout: 20000, // ✅ VERY IMPORTANT
+
     ssl: {
-      rejectUnauthorized: false,
+      rejectUnauthorized: false, // ✅ Railway safe
     },
   });
 }
@@ -38,16 +39,11 @@ if (
 else {
   console.log("💻 Using Local MySQL");
 
-  if (!process.env.DB_NAME) {
-    console.error("❌ DB_NAME missing in environment");
-    process.exit(1);
-  }
-
   pool = mysql.createPool({
     host: process.env.DB_HOST || "127.0.0.1",
     user: process.env.DB_USER || "root",
     password: process.env.DB_PASSWORD || "",
-    database: process.env.DB_NAME,
+    database: process.env.DB_NAME || "test",
     port: Number(process.env.DB_PORT || 3306),
 
     waitForConnections: true,
@@ -55,20 +51,21 @@ else {
     queueLimit: 0,
 
     charset: "utf8mb4",
+    connectTimeout: 20000,
   });
 }
 
 /*************************************************
- * VERIFY CONNECTION (FAIL FAST)
+ * SAFE VERIFY (NO CRASH)
  *************************************************/
 (async () => {
   try {
-    const connection = await pool.getConnection();
-    console.log("✅ MySQL connected successfully");
-    connection.release();
+    const conn = await pool.getConnection();
+    console.log("✅ MySQL connected");
+    conn.release();
   } catch (err) {
     console.error("❌ MySQL connection failed:", err.message);
-    process.exit(1); // 🚨 Crash app if DB fails
+    // ❌ DO NOT EXIT — Railway will kill container
   }
 })();
 
