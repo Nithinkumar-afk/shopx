@@ -1,27 +1,27 @@
 const nodemailer = require("nodemailer");
 
 /* =========================
-   GMAIL SMTP (PORT 465 SSL)
+   BREVO SMTP (RAILWAY SAFE)
 ========================= */
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,              // ✅ IMPORTANT
-  secure: true,           // ✅ SSL
+  host: process.env.MAIL_HOST,
+  port: Number(process.env.MAIL_PORT),
+  secure: false, // STARTTLS
   auth: {
     user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS, // App password
+    pass: process.env.MAIL_PASS,
   },
   connectionTimeout: 20000,
 });
 
 /* =========================
-   VERIFY ON START
+   VERIFY SMTP ON START
 ========================= */
-transporter.verify((err, success) => {
+transporter.verify((err) => {
   if (err) {
-    console.error("❌ Gmail SMTP verify failed:", err.message);
+    console.error("❌ Brevo SMTP verify failed:", err.message);
   } else {
-    console.log("✅ Gmail SMTP connected (465 SSL)");
+    console.log("✅ Brevo SMTP connected");
   }
 });
 
@@ -33,16 +33,15 @@ exports.sendOTP = async (to, otp, name = "User") => {
     console.log("📨 Sending OTP email to:", to);
 
     const info = await transporter.sendMail({
-      from: `"JD Security" <${process.env.MAIL_USER}>`,
+      from: process.env.MAIL_FROM,
       to,
       subject: "Your JD Login OTP",
       html: `
-        <div style="font-family:Arial,sans-serif;line-height:1.6">
+        <div style="font-family:Arial,sans-serif">
           <h2>Hello ${name},</h2>
-          <p>Your login OTP is:</p>
+          <p>Your OTP is:</p>
           <h1 style="letter-spacing:4px">${otp}</h1>
-          <p>This OTP is valid for <b>5 minutes</b>.</p>
-          <p>If you didn’t request this, ignore this email.</p>
+          <p>Valid for 5 minutes.</p>
           <hr/>
           <small>JD Security System</small>
         </div>
@@ -52,8 +51,8 @@ exports.sendOTP = async (to, otp, name = "User") => {
     console.log("✅ OTP email sent:", info.messageId);
     return true;
 
-  } catch (error) {
-    console.error("❌ Gmail send failed:", error.message);
+  } catch (err) {
+    console.error("❌ Brevo send failed:", err.message);
     throw new Error("Failed to send OTP email");
   }
 };
