@@ -1,28 +1,31 @@
 const nodemailer = require("nodemailer");
 
 /* =================================================
-   ENV CHECK (NO CRASH)
+   ENV CHECK (DO NOT CRASH APP)
 ================================================= */
 if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
   console.warn("⚠️ MAIL_USER or MAIL_PASS missing (email disabled)");
 }
 
 /* =================================================
-   RAILWAY + GMAIL SAFE SMTP
-   ✅ Port 465 (SSL)
-   ✅ No verify()
-   ✅ No service auto-detection
+   RAILWAY + GMAIL SAFE SMTP (RECOMMENDED)
+   ✅ Port 587 (STARTTLS)
+   ✅ secure = false
+   ✅ Longer timeouts
 ================================================= */
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // ✅ REQUIRED for 465
+  port: 587,          // ✅ FIXED
+  secure: false,      // ✅ MUST be false for 587
   auth: {
     user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS, // Gmail App Password
+    pass: process.env.MAIL_PASS, // Gmail App Password ONLY
   },
-  connectionTimeout: 20000,
-  socketTimeout: 20000,
+  connectionTimeout: 30000,
+  socketTimeout: 30000,
+  tls: {
+    rejectUnauthorized: false, // ✅ Railway-safe
+  },
 });
 
 /* =================================================
@@ -52,7 +55,7 @@ exports.sendOTP = async (to, otp, name = "User") => {
 
     console.log(`📧 OTP sent successfully to ${to}`);
   } catch (err) {
-    console.error("❌ OTP MAIL FAILED:", err.message);
-    throw new Error("Email sending failed");
+    console.error("❌ OTP MAIL FAILED:", err); // FULL ERROR
+    throw err; // Let route handle fallback
   }
 };
