@@ -12,14 +12,14 @@ exports.sendOtp = async (req, res) => {
     return res.status(400).json({ message: "Email required" });
   }
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const hashedOtp = await bcrypt.hash(otp, 10);
-
   try {
-    // ✅ SEND MAIL (MUST AWAIT)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    // ✅ SEND EMAIL
     await sendOTP(email, otp, name);
 
-    // ✅ SAVE ONLY HASHED OTP
+    // ✅ STORE HASHED OTP
     await db.query(
       `
       INSERT INTO users (name, email, otp, otp_expiry)
@@ -54,6 +54,7 @@ exports.verifyOtp = async (req, res) => {
       SELECT id, name, email, otp
       FROM users
       WHERE email = ?
+        AND otp IS NOT NULL
         AND otp_expiry > NOW()
       `,
       [email]
@@ -64,13 +65,13 @@ exports.verifyOtp = async (req, res) => {
     }
 
     const user = rows[0];
+    const isValid = await bcrypt.compare(otp, user.otp);
 
-    const isValidOtp = await bcrypt.compare(otp, user.otp);
-    if (!isValidOtp) {
+    if (!isValid) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // ✅ CLEAR OTP AFTER SUCCESS
+    // ✅ CLEAR OTP
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]
@@ -78,7 +79,7 @@ exports.verifyOtp = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, role: "user" },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "fallback_secret",
       { expiresIn: "7d" }
     );
 
@@ -126,7 +127,7 @@ exports.adminLogin = (req, res) => {
 
   const token = jwt.sign(
     { role: "admin" },
-    process.env.JWT_SECRET,
+    process.env.JWT_SECRET || "fallback_secret",
     { expiresIn: "1d" }
   );
 
@@ -196,12 +197,11 @@ exports.login = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, role: "user" },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "fallback_secret",
       { expiresIn: "7d" }
     );
 
     res.json({
-      message: "Login successful",
       token,
       user: {
         id: user.id,
