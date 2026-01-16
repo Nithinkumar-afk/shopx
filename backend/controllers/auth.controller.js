@@ -29,30 +29,44 @@ exports.sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // ✅ Store OTP FIRST (critical for reliability)
-    await db.query(
-      `
-      INSERT INTO users (name, email, otp, otp_expiry)
-      VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))
-      ON DUPLICATE KEY UPDATE
-        name = VALUES(name),
-        otp = VALUES(otp),
-        otp_expiry = DATE_ADD(NOW(), INTERVAL 5 MINUTE)
-      `,
-      [name, email, hashedOtp]
+    // 🔎 Check if user exists
+    const [rows] = await db.query(
+      "SELECT id FROM users WHERE email = ?",
+      [email]
     );
 
-    // ✅ Respond immediately (fast UX)
-    res.json({ message: "OTP generated successfully" });
+    if (rows.length) {
+      // ✅ Existing user → update OTP
+      await db.query(
+        `
+        UPDATE users
+        SET otp = ?, otp_expiry = DATE_ADD(NOW(), INTERVAL 5 MINUTE)
+        WHERE email = ?
+        `,
+        [hashedOtp, email]
+      );
+    } else {
+      // ✅ New user → insert
+      await db.query(
+        `
+        INSERT INTO users (name, email, otp, otp_expiry)
+        VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 5 MINUTE))
+        `,
+        [name, email, hashedOtp]
+      );
+    }
 
-    // 📧 Send email in background (NON-BLOCKING)
+    // ✅ Respond immediately
+    res.json({ message: "OTP sent successfully" });
+
+    // 📧 Send email in background
     sendOTP(email, otp, name).catch((err) => {
-      console.error("⚠️ OTP email background failure:", err.message);
+      console.error("⚠️ OTP email failed:", err.message);
     });
 
   } catch (err) {
     console.error("❌ SEND OTP ERROR:", err);
-    return res.status(500).json({ message: "Failed to generate OTP" });
+    res.status(500).json({ message: "Failed to send OTP" });
   }
 };
 
@@ -84,13 +98,13 @@ exports.verifyOtp = async (req, res) => {
     }
 
     const user = rows[0];
-    const isValid = await bcrypt.compare(otp, user.otp);
+    const valid = await bcrypt.compare(otp, user.otp);
 
-    if (!isValid) {
+    if (!valid) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // 🔒 Clear OTP after successful verification
+    // 🔒 Clear OTP
     await db.query(
       "UPDATE users SET otp = NULL, otp_expiry = NULL WHERE id = ?",
       [user.id]
@@ -98,7 +112,7 @@ exports.verifyOtp = async (req, res) => {
 
     const token = signToken({ id: user.id, role: "user" });
 
-    return res.json({
+    res.json({
       token,
       user: {
         id: user.id,
@@ -109,7 +123,7 @@ exports.verifyOtp = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ VERIFY OTP ERROR:", err);
-    return res.status(500).json({ message: "OTP verification failed" });
+    res.status(500).json({ message: "OTP verification failed" });
   }
 };
 
@@ -127,10 +141,10 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    return res.json(rows[0]);
+    res.json(rows[0]);
   } catch (err) {
     console.error("❌ GET ME ERROR:", err);
-    return res.status(500).json({ message: "Failed to fetch user" });
+    res.status(500).json({ message: "Failed to fetch user" });
   }
 };
 
@@ -148,7 +162,7 @@ exports.adminLogin = (req, res) => {
   }
 
   const token = signToken({ id: 0, role: "admin" }, "1d");
-  return res.json({ token });
+  res.json({ token });
 };
 
 /* ===============================
@@ -180,10 +194,10 @@ exports.register = async (req, res) => {
       [name, email, hashed]
     );
 
-    return res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
     console.error("❌ REGISTER ERROR:", err);
-    return res.status(500).json({ message: "Register failed" });
+    res.status(500).json({ message: "Register failed" });
   }
 };
 
@@ -221,7 +235,7 @@ exports.login = async (req, res) => {
 
     const token = signToken({ id: user.id, role: "user" });
 
-    return res.json({
+    res.json({
       token,
       user: {
         id: user.id,
@@ -231,6 +245,6 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ LOGIN ERROR:", err);
-    return res.status(500).json({ message: "Login failed" });
+    res.status(500).json({ message: "Login failed" });
   }
 };

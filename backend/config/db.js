@@ -5,11 +5,12 @@ let pool;
 /*************************************************
  * RAILWAY MYSQL (PRODUCTION)
  *************************************************/
-if (
+const isRailway =
   process.env.MYSQLHOST &&
   process.env.MYSQLUSER &&
-  process.env.MYSQLDATABASE
-) {
+  process.env.MYSQLDATABASE;
+
+if (isRailway) {
   console.log("🚄 Using Railway MySQL");
 
   pool = mysql.createPool({
@@ -24,11 +25,10 @@ if (
     queueLimit: 0,
 
     charset: "utf8mb4",
-
-    connectTimeout: 20000, // ✅ VERY IMPORTANT
+    connectTimeout: 20000,
 
     ssl: {
-      rejectUnauthorized: false, // ✅ Railway safe
+      rejectUnauthorized: false, // ✅ Required for Railway
     },
   });
 }
@@ -61,11 +61,11 @@ else {
 (async () => {
   try {
     const conn = await pool.getConnection();
-    console.log("✅ MySQL connected");
+    console.log("✅ MySQL connected successfully");
     conn.release();
   } catch (err) {
     console.error("❌ MySQL connection failed:", err.message);
-    // ❌ DO NOT EXIT — Railway will kill container
+    // ❌ DO NOT EXIT — Railway restarts automatically
   }
 })();
 
