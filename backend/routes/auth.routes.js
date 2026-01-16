@@ -4,15 +4,17 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 
 /* =========================
-   TEMP OTP STORE (IN-MEMORY)
+   OTP STORE (IN-MEMORY)
 ========================= */
 const otpStore = new Map();
 
 /* =========================
-   EMAIL TRANSPORT (GMAIL)
+   EMAIL TRANSPORT (PRODUCTION SAFE)
 ========================= */
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -20,8 +22,18 @@ const transporter = nodemailer.createTransport({
 });
 
 /* =========================
+   VERIFY EMAIL CONFIG ON START
+========================= */
+transporter.verify((err, success) => {
+  if (err) {
+    console.error("❌ Email config error:", err.message);
+  } else {
+    console.log("✅ Email server ready");
+  }
+});
+
+/* =========================
    SEND OTP
-   POST /api/auth/send-otp
 ========================= */
 router.post("/send-otp", async (req, res) => {
   const { name, email } = req.body;
@@ -47,28 +59,28 @@ router.post("/send-otp", async (req, res) => {
         <div style="font-family:Arial">
           <h2>JD Login OTP</h2>
           <p>Hello <b>${name}</b>,</p>
-          <p>Your OTP is:</p>
           <h1 style="letter-spacing:4px">${otp}</h1>
           <p>This OTP is valid for 5 minutes.</p>
         </div>
       `,
     });
 
-    res.json({ message: "OTP sent successfully" });
+    return res.json({ message: "OTP sent successfully" });
+
   } catch (error) {
-    console.error("Email error:", error);
-    res.status(500).json({ message: "Failed to send OTP" });
+    console.error("❌ Email send failed:", error.message);
+    return res.status(500).json({ message: "Failed to send OTP" });
   }
 });
 
 /* =========================
    VERIFY OTP
-   POST /api/auth/verify-otp
 ========================= */
 router.post("/verify-otp", (req, res) => {
   const { email, otp } = req.body;
 
   const record = otpStore.get(email);
+
   if (!record) {
     return res.status(400).json({ message: "OTP not found" });
   }
