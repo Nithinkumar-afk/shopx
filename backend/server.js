@@ -22,17 +22,18 @@ const PORT = process.env.PORT || 8080;
 app.set("trust proxy", 1);
 
 /*************************************************
- * BODY PARSERS (IMPORTANT FOR OTP)
+ * BODY PARSERS (IMPORTANT FOR OTP, JSON)
  *************************************************/
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /*************************************************
- * CORS (SAFE FOR FRONTEND)
+ * CORS (BROWSER + JWT SAFE)
  *************************************************/
 app.use(
   cors({
-    origin: "*",
+    origin: true, // ✅ allows all origins safely
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -44,9 +45,14 @@ app.use(
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
- * DATABASE INIT (MUST LOAD ONCE)
+ * DATABASE INIT (LOG SAFE)
  *************************************************/
-require("./config/db");
+try {
+  require("./config/db");
+  console.log("✅ Database initialized");
+} catch (err) {
+  console.error("❌ Database init failed:", err.message);
+}
 
 /*************************************************
  * ROUTES
@@ -62,7 +68,7 @@ app.use("/api/orders", require("./routes/orders.routes"));
 app.use("/api/profile", require("./routes/profile.routes"));
 
 /*************************************************
- * HEALTH CHECK (VERY IMPORTANT)
+ * HEALTH CHECK (RAILWAY / UPTIME)
  *************************************************/
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -80,10 +86,15 @@ app.use((req, res) => {
 });
 
 /*************************************************
- * GLOBAL ERROR HANDLER
+ * GLOBAL ERROR HANDLER (SAFE)
  *************************************************/
 app.use((err, req, res, next) => {
-  console.error("🔥 ERROR:", err);
+  console.error("🔥 ERROR:", err.stack || err);
+
+  if (res.headersSent) {
+    return next(err);
+  }
+
   res.status(500).json({
     message: "Internal server error",
   });
