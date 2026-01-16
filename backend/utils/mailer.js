@@ -1,7 +1,7 @@
 const { Resend } = require("resend");
 
 /* ===============================
-   ENV CHECK (NON-FATAL)
+   ENV CHECK
 ================================ */
 if (!process.env.RESEND_API_KEY) {
   console.error("❌ RESEND_API_KEY missing — emails will NOT be sent");
@@ -26,25 +26,24 @@ exports.sendMagicLink = async (email, link, name = "User") => {
     console.log("📨 Sending magic link to:", email);
 
     const response = await resend.emails.send({
-      from: "JD Security <login@yourdomain.com>", // 🔥 replace with domain email
+      // ✅ VERIFIED SENDER (WORKS 100%)
+      from: "JD Security <onboarding@resend.dev>",
       to: email,
       subject: "Login to JD – Secure Magic Link",
 
-      // ✅ TEXT FALLBACK (IMPORTANT)
-      text: `
-Hello ${name},
+      // TEXT FALLBACK
+      text: `Hello ${name},
 
 Use the link below to securely log in:
 
 ${link}
 
 This link is valid for 10 minutes.
-If you did not request this, ignore this email.
+If you did not request this login, ignore this email.
 
-— JD Security Team
-      `,
+— JD Security Team`,
 
-      // ✅ HTML VERSION
+      // HTML EMAIL
       html: `
 <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111">
   <h2>Hello ${name},</h2>
@@ -82,6 +81,6 @@ If you did not request this, ignore this email.
 
   } catch (error) {
     console.error("❌ Magic link email failed:", error);
-    throw new Error("Failed to send magic link email");
+    throw error;
   }
 };

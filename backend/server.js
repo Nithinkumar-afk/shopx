@@ -28,17 +28,18 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 /*************************************************
- * ✅ SAFE CORS (OTP + JWT FRIENDLY)
+ * ✅ CORS — FIXED FOR VERCEL + LOCAL
  *************************************************/
 app.use(
   cors({
     origin: [
       "http://localhost:5500",
       "http://127.0.0.1:5500",
-      "https://your-netlify-site.netlify.app" // 🔴 change this
+      "https://frontend-new-liart.vercel.app" // ✅ YOUR VERCEL FRONTEND
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 

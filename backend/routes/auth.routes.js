@@ -18,18 +18,18 @@ router.post("/magic-link", async (req, res) => {
     }
 
     if (!email) {
-      return res.status(400).json({ message: "Email required" });
+      return res.status(400).json({ message: "Email is required" });
     }
 
-    const cleanEmail = String(email).trim().toLowerCase();
-    const cleanName = String(name || "User").trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = (name || "User").trim();
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail)) {
-      return res.json({ message: "If the email exists, a link was sent" });
+      return res.status(400).json({ message: "Invalid email format" });
     }
 
-    // Generate token
+    // 🔐 Generate token
     const token = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto
       .createHash("sha256")
@@ -52,7 +52,10 @@ router.post("/magic-link", async (req, res) => {
 
     await sendMagicLink(cleanEmail, link, cleanName);
 
-    return res.json({ message: "Magic link sent" });
+    return res.status(200).json({
+      success: true,
+      message: "Magic login link sent to email",
+    });
 
   } catch (err) {
     console.error("🔥 MAGIC LINK ERROR:", err);
@@ -68,7 +71,7 @@ router.post("/verify-magic", async (req, res) => {
     const { email, token } = req.body;
 
     if (!email || !token) {
-      return res.status(400).json({ message: "Invalid request" });
+      return res.status(400).json({ message: "Email and token required" });
     }
 
     const hashedToken = crypto
@@ -87,8 +90,8 @@ router.post("/verify-magic", async (req, res) => {
       [email.toLowerCase(), hashedToken]
     );
 
-    if (!rows.length) {
-      return res.status(400).json({ message: "Invalid or expired link" });
+    if (!rows || rows.length === 0) {
+      return res.status(400).json({ message: "Invalid or expired magic link" });
     }
 
     const user = rows[0];
@@ -104,7 +107,11 @@ router.post("/verify-magic", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    return res.json({ token: jwtToken, user });
+    return res.status(200).json({
+      success: true,
+      token: jwtToken,
+      user,
+    });
 
   } catch (err) {
     console.error("🔥 VERIFY ERROR:", err);
