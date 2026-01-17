@@ -6,18 +6,15 @@ const {
   deleteProduct
 } = require("../controllers/admin.products.controller");
 
-const adminAuth = require("../middleware/adminAuth");
+/* =================================================
+   ADMIN PRODUCT ROUTES (NO LOGIN)
+   Base Path: /api/admin/products
+================================================= */
 
-/*
-|--------------------------------------------------------------------------
-| ADMIN PRODUCT ROUTES
-|--------------------------------------------------------------------------
-| Base: /api/admin/products
-| Auth: Admin JWT required
-|--------------------------------------------------------------------------
-*/
+// ADD PRODUCT
+router.post("/", addProduct);
 
-router.post("/", adminAuth, addProduct);
-router.delete("/:id", adminAuth, deleteProduct);
+// DELETE PRODUCT
+router.delete("/:id", deleteProduct);
 
 module.exports = router;

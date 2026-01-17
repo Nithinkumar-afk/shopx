@@ -10,6 +10,7 @@ const {
 } = require("../controllers/cart.controller");
 
 /* ================= CART ROUTES (NO AUTH) ================= */
+
 router.get("/", getCart);
 router.post("/", addToCart);
 router.put("/:productId", updateQty);

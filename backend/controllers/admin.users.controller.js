@@ -54,7 +54,6 @@ exports.updateUser = async (req, res) => {
     );
 
     if (addresses) {
-      // accept both JSON string & array
       const list = Array.isArray(addresses)
         ? addresses
         : JSON.parse(addresses);
@@ -84,6 +83,7 @@ exports.updateUser = async (req, res) => {
 exports.updateUserImage = async (req, res) => {
   try {
     const userId = Number(req.params.id);
+
     if (!req.file) {
       return res.status(400).json({ message: "Image required" });
     }
@@ -95,9 +95,7 @@ exports.updateUserImage = async (req, res) => {
 
     if (old?.image) {
       const oldPath = path.join(__dirname, "..", old.image);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
 
     const imagePath = "/uploads/users/" + req.file.filename;

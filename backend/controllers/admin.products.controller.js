@@ -7,96 +7,115 @@ const FALLBACK_IMAGE =
   "https://via.placeholder.com/600x400?text=No+Image";
 
 /* =========================
-   ADD PRODUCT (ADMIN ONLY)
+   ADD PRODUCT (NO LOGIN)
 ========================= */
 exports.addProduct = async (req, res) => {
-  if (!db) {
-    return res.status(503).json({ message: "Database unavailable" });
-  }
-
-  const { name, price, category, description, images } = req.body;
-
-  // ✅ Validate required fields
-  if (!name || price === undefined || !category) {
-    return res.status(400).json({
-      message: "Name, price and category are required"
-    });
-  }
-
-  // ✅ Normalize images
-  let finalImages = [];
-
-  if (Array.isArray(images)) {
-    finalImages = images
-      .map(i => String(i).trim())
-      .filter(Boolean);
-  }
-
-  if (!finalImages.length) {
-    finalImages = [FALLBACK_IMAGE];
-  }
-
   try {
+    if (!db) {
+      return res.status(503).json({
+        message: "Database unavailable"
+      });
+    }
+
+    const {
+      name,
+      price,
+      category,
+      description = "",
+      images
+    } = req.body;
+
+    /* ---------- VALIDATION ---------- */
+    if (!name || price === undefined || !category) {
+      return res.status(400).json({
+        message: "Name, price and category are required"
+      });
+    }
+
+    if (isNaN(price)) {
+      return res.status(400).json({
+        message: "Price must be a number"
+      });
+    }
+
+    /* ---------- NORMALIZE IMAGES ---------- */
+    let finalImages = [];
+
+    if (Array.isArray(images)) {
+      finalImages = images
+        .map(img => String(img).trim())
+        .filter(Boolean);
+    }
+
+    if (!finalImages.length) {
+      finalImages = [FALLBACK_IMAGE];
+    }
+
+    /* ---------- INSERT PRODUCT ---------- */
     await db.query(
       `
       INSERT INTO products
-      (name, price, category, description, images)
+        (name, price, category, description, images)
       VALUES (?, ?, ?, ?, ?)
       `,
       [
         name.trim(),
         Number(price),
         category.trim(),
-        description?.trim() || "",
+        description.trim(),
         JSON.stringify(finalImages)
       ]
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Product added successfully"
     });
 
   } catch (err) {
     console.error("❌ ADD PRODUCT ERROR:", err);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to add product"
     });
   }
 };
 
 /* =========================
-   DELETE PRODUCT (ADMIN ONLY)
+   DELETE PRODUCT (NO LOGIN)
 ========================= */
 exports.deleteProduct = async (req, res) => {
-  if (!db) {
-    return res.status(503).json({ message: "Database unavailable" });
-  }
-
-  const id = Number(req.params.id);
-
-  if (!id) {
-    return res.status(400).json({ message: "Invalid product ID" });
-  }
-
   try {
+    if (!db) {
+      return res.status(503).json({
+        message: "Database unavailable"
+      });
+    }
+
+    const productId = Number(req.params.id);
+
+    if (!productId) {
+      return res.status(400).json({
+        message: "Invalid product ID"
+      });
+    }
+
     const [result] = await db.query(
       "DELETE FROM products WHERE id = ?",
-      [id]
+      [productId]
     );
 
-    if (!result.affectedRows) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({
         message: "Product not found"
       });
     }
 
-    res.json({
+    return res.json({
       message: "Product deleted successfully"
     });
 
   } catch (err) {
     console.error("❌ DELETE PRODUCT ERROR:", err);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to delete product"
     });
   }

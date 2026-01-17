@@ -1,28 +1,31 @@
 const express = require("express");
 const router = express.Router();
 
-const adminAuth = require("../middleware/adminAuth");
 const upload = require("../middleware/uploadUserImage");
 const controller = require("../controllers/admin.users.controller");
 
-// GET USERS
-router.get("/", adminAuth, controller.getUsers);
+/* ===============================
+   ADMIN USERS ROUTES (NO LOGIN)
+   Base: /api/admin/users
+================================ */
 
-// UPDATE USER
-router.put("/:id", adminAuth, controller.updateUser);
+// GET ALL USERS
+router.get("/", controller.getUsers);
 
-// UPDATE IMAGE ✅ NEW
+// UPDATE USER (name + addresses)
+router.put("/:id", controller.updateUser);
+
+// UPDATE USER IMAGE
 router.put(
   "/:id/image",
-  adminAuth,
   upload.single("image"),
   controller.updateUserImage
 );
 
-// DELETE ADDRESS
-router.delete("/address/:id", adminAuth, controller.deleteAddress);
+// DELETE SINGLE ADDRESS
+router.delete("/address/:id", controller.deleteAddress);
 
 // DELETE USER
-router.delete("/:id", adminAuth, controller.deleteUser);
+router.delete("/:id", controller.deleteUser);
 
 module.exports = router;
