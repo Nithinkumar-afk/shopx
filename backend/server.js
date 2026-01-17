@@ -11,8 +11,7 @@ const cors = require("cors");
 const path = require("path");
 
 /*************************************************
- * ROUTES IMPORT
- * (NO AUTH ROUTES)
+ * ROUTES IMPORT (NO AUTH)
  *************************************************/
 const adminRoutes = require("./routes/admin.routes");
 const adminUsersRoutes = require("./routes/admin.users.routes");
@@ -22,7 +21,6 @@ const adminOrdersRoutes = require("./routes/admin.orders.routes");
 const productRoutes = require("./routes/product.routes");
 const cartRoutes = require("./routes/cart.routes");
 const orderRoutes = require("./routes/orders.routes");
-const profileRoutes = require("./routes/profile.routes");
 
 /*************************************************
  * APP INIT
@@ -31,7 +29,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 /*************************************************
- * TRUST PROXY
+ * TRUST PROXY (VERCEL SAFE)
  *************************************************/
 app.set("trust proxy", 1);
 
@@ -42,15 +40,11 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 
 /*************************************************
- * CORS (INDEX.HTML + VERCEL SAFE)
+ * CORS (INDEX.HTML + VERCEL)
  *************************************************/
 app.use(
   cors({
-    origin: [
-      "http://localhost:5500",
-      "http://127.0.0.1:5500",
-      "https://frontend-new-liart.vercel.app",
-    ],
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type"],
   })
@@ -62,34 +56,42 @@ app.use(
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /*************************************************
+ * SERVE FRONTEND (index.html)
+ *************************************************/
+app.use(express.static(path.join(__dirname, "frontend")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "index.html"));
+});
+
+/*************************************************
  * DATABASE INIT
  *************************************************/
 require("./config/db");
 console.log("✅ Database initialized");
 
 /*************************************************
- * ROUTES (NO LOGIN / NO AUTH)
+ * ADMIN ROUTES (NO LOGIN)
  *************************************************/
-
-// ADMIN ROUTES (PUBLIC / INTERNAL USE)
 app.use("/api/admin", adminRoutes);
 app.use("/api/admin/users", adminUsersRoutes);
 app.use("/api/admin/products", adminProductsRoutes);
 app.use("/api/admin/orders", adminOrdersRoutes);
 
-// USER / STORE ROUTES
+/*************************************************
+ * STORE ROUTES (NO LOGIN)
+ *************************************************/
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/profile", profileRoutes);
 
 /*************************************************
- * HEALTH CHECK
+ * API HEALTH CHECK
  *************************************************/
-app.get("/", (req, res) => {
+app.get("/api/health", (req, res) => {
   res.json({
     status: "JD Backend Running ✅",
-    mode: "Admin enabled | No login",
+    auth: "Disabled",
     time: new Date().toISOString(),
   });
 });
@@ -112,6 +114,6 @@ app.use((err, req, res, next) => {
 /*************************************************
  * START SERVER
  *************************************************/
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
