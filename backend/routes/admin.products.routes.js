@@ -2,20 +2,21 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  getAllProducts,
-  getProductById
-} = require("../controllers/product.controller");
+  addProduct,
+  deleteProduct
+} = require("../controllers/admin.products.controller");
 
-/* ===============================
-   PRODUCT ROUTES (PUBLIC)
-   Base: /api/products
-   NO AUTH / NO LOGIN
-================================ */
+/*
+|------------------------------------------------------------------
+| ADMIN PRODUCT ROUTES (NO LOGIN)
+| Base: /api/admin/products
+|------------------------------------------------------------------
+*/
 
-// GET ALL PRODUCTS
-router.get("/", getAllProducts);
+// ADD PRODUCT
+router.post("/", addProduct);
 
-// GET SINGLE PRODUCT
-router.get("/:id", getProductById);
+// DELETE PRODUCT
+router.delete("/:id", deleteProduct);
 
 module.exports = router;
