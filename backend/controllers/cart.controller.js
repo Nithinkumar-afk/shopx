@@ -1,7 +1,17 @@
 const db = require("../config/db");
 
+/**
+ * Generate cart key (guest-based)
+ * Uses IP address (simple & effective)
+ */
+function getCartKey(req) {
+  return req.ip;
+}
+
 /* ================= GET CART ================= */
 exports.getCart = async (req, res) => {
+  const cartKey = getCartKey(req);
+
   try {
     const [rows] = await db.query(
       `
@@ -13,9 +23,9 @@ exports.getCart = async (req, res) => {
         p.images
       FROM cart c
       JOIN products p ON p.id = c.product_id
-      WHERE c.user_id = ?
+      WHERE c.cart_key = ?
       `,
-      [req.user.id]
+      [cartKey]
     );
 
     const cart = rows.map(item => ({
@@ -28,13 +38,15 @@ exports.getCart = async (req, res) => {
 
     res.json(cart);
   } catch (err) {
-    console.error("GET CART ERROR:", err);
+    console.error("GET CART ERROR:", err.message);
     res.status(500).json({ message: "Failed to load cart" });
   }
 };
 
 /* ================= ADD TO CART ================= */
 exports.addToCart = async (req, res) => {
+  const cartKey = getCartKey(req);
+
   try {
     const productId = Number(req.body.productId);
     const qty = Number(req.body.qty || 1);
@@ -45,22 +57,24 @@ exports.addToCart = async (req, res) => {
 
     await db.query(
       `
-      INSERT INTO cart (user_id, product_id, qty)
+      INSERT INTO cart (cart_key, product_id, qty)
       VALUES (?, ?, ?)
       ON DUPLICATE KEY UPDATE qty = qty + ?
       `,
-      [req.user.id, productId, qty, qty]
+      [cartKey, productId, qty, qty]
     );
 
     res.json({ message: "Added to cart" });
   } catch (err) {
-    console.error("ADD CART ERROR:", err);
+    console.error("ADD CART ERROR:", err.message);
     res.status(500).json({ message: "Failed to add to cart" });
   }
 };
 
 /* ================= UPDATE QTY ================= */
 exports.updateQty = async (req, res) => {
+  const cartKey = getCartKey(req);
+
   try {
     const productId = Number(req.params.productId);
     const qty = Number(req.body.qty);
@@ -70,8 +84,12 @@ exports.updateQty = async (req, res) => {
     }
 
     const [result] = await db.query(
-      `UPDATE cart SET qty=? WHERE user_id=? AND product_id=?`,
-      [qty, req.user.id, productId]
+      `
+      UPDATE cart 
+      SET qty = ? 
+      WHERE cart_key = ? AND product_id = ?
+      `,
+      [qty, cartKey, productId]
     );
 
     if (!result.affectedRows) {
@@ -80,13 +98,15 @@ exports.updateQty = async (req, res) => {
 
     res.json({ message: "Quantity updated" });
   } catch (err) {
-    console.error("UPDATE CART ERROR:", err);
+    console.error("UPDATE CART ERROR:", err.message);
     res.status(500).json({ message: "Update failed" });
   }
 };
 
 /* ================= REMOVE ITEM ================= */
 exports.removeItem = async (req, res) => {
+  const cartKey = getCartKey(req);
+
   try {
     const productId = Number(req.params.productId);
 
@@ -95,8 +115,11 @@ exports.removeItem = async (req, res) => {
     }
 
     const [result] = await db.query(
-      `DELETE FROM cart WHERE user_id=? AND product_id=?`,
-      [req.user.id, productId]
+      `
+      DELETE FROM cart 
+      WHERE cart_key = ? AND product_id = ?
+      `,
+      [cartKey, productId]
     );
 
     if (!result.affectedRows) {
@@ -105,18 +128,24 @@ exports.removeItem = async (req, res) => {
 
     res.json({ message: "Item removed" });
   } catch (err) {
-    console.error("REMOVE CART ERROR:", err);
+    console.error("REMOVE CART ERROR:", err.message);
     res.status(500).json({ message: "Remove failed" });
   }
 };
 
 /* ================= CLEAR CART ================= */
 exports.clearCart = async (req, res) => {
+  const cartKey = getCartKey(req);
+
   try {
-    await db.query(`DELETE FROM cart WHERE user_id=?`, [req.user.id]);
+    await db.query(
+      `DELETE FROM cart WHERE cart_key = ?`,
+      [cartKey]
+    );
+
     res.json({ message: "Cart cleared" });
   } catch (err) {
-    console.error("CLEAR CART ERROR:", err);
+    console.error("CLEAR CART ERROR:", err.message);
     res.status(500).json({ message: "Clear failed" });
   }
 };

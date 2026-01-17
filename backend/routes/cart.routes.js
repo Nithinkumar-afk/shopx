@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 
-const auth = require("../middleware/auth.middleware");
 const {
   getCart,
   addToCart,
@@ -10,11 +9,11 @@ const {
   clearCart
 } = require("../controllers/cart.controller");
 
-/* ================= CART ROUTES ================= */
-router.get("/", auth, getCart);
-router.post("/", auth, addToCart);
-router.put("/:productId", auth, updateQty);
-router.delete("/:productId", auth, removeItem);
-router.delete("/", auth, clearCart);
+/* ================= CART ROUTES (NO AUTH) ================= */
+router.get("/", getCart);
+router.post("/", addToCart);
+router.put("/:productId", updateQty);
+router.delete("/:productId", removeItem);
+router.delete("/", clearCart);
 
 module.exports = router;
