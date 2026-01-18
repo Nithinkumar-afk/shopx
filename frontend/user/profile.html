@@ -5,103 +5,224 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Profile – JD</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box
+}
+
 body{
   font-family:Poppins,sans-serif;
   background:black;
   color:white;
-  min-height:100vh;
+  min-height:100vh
 }
+
+/* ===============================
+   HEADER
+================================ */
 header{
-  position:sticky;top:0;z-index:10;
-  background:rgba(0,0,0,.85);
-  backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(255,255,255,.15);
   padding:18px 22px;
+  border-bottom:1px solid #333;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px
+}
+
+header a{
+  color:#4fb6e8;
+  text-decoration:none;
+  font-size:22px;
+  font-weight:600
+}
+
+header div{
   display:flex;
   align-items:center;
-  gap:14px;
+  gap:12px;
+  font-weight:500
 }
-header a{color:#4fb6e8;font-size:22px;text-decoration:none}
-.container{max-width:920px;margin:auto;padding:28px 20px}
+
+/* ===============================
+   LAYOUT
+================================ */
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:28px
+}
 
 .card{
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(18px);
-  border-radius:24px;
-  padding:28px;
-  border:1px solid rgba(255,255,255,.15);
-  box-shadow:0 30px 80px rgba(0,0,0,.85);
-  margin-bottom:24px;
+  background:#0f172a;
+  border-radius:22px;
+  padding:24px;
+  box-shadow:0 20px 40px rgba(0,0,0,.4)
 }
 
-.profile-top{display:flex;gap:28px;align-items:center}
+/* ===============================
+   PROFILE TOP
+================================ */
+.profile-top{
+  display:flex;
+  gap:24px;
+  align-items:center;
+  flex-wrap:wrap
+}
 
 .profile-pic{
-  width:130px;height:130px;border-radius:50%;
-  background:linear-gradient(135deg,#4fb6e8,#2563eb);
-  padding:5px;cursor:pointer;
-}
-
-.profile-pic img,
-.emoji-avatar{
-  width:100%;
-  height:100%;
+  width:130px;
+  height:130px;
   border-radius:50%;
-  object-fit:cover;
-  background:black;
-  border:3px solid rgba(255,255,255,.8);
-}
-
-.emoji-avatar{
+  background:#1e293b;
   display:flex;
   align-items:center;
   justify-content:center;
   font-size:56px;
+  cursor:pointer;
+  overflow:hidden;
+  flex-shrink:0;
+  transition:.25s
 }
 
+.profile-pic:hover{
+  transform:scale(1.04)
+}
+
+.profile-pic img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:50%
+}
+
+/* ===============================
+   FORM
+================================ */
 label{
-  font-size:13px;font-weight:600;color:#cbd5e1;
-  margin-top:12px;display:block
+  font-size:13px;
+  color:#cbd5e1;
+  margin-top:12px;
+  display:block
 }
 
-input,textarea{
-  width:100%;margin-top:6px;
-  padding:14px 16px;border-radius:14px;
-  border:1px solid rgba(255,255,255,.25);
-  background:rgba(0,0,0,.4);
-  color:white;font-family:Poppins,sans-serif
+input, textarea{
+  width:100%;
+  margin-top:6px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid #334155;
+  background:#020617;
+  color:white;
+  outline:none;
+  transition:.2s
 }
 
+input:focus,
+textarea:focus{
+  border-color:#38bdf8
+}
+
+textarea{
+  resize:none;
+  height:90px
+}
+
+/* ===============================
+   BUTTONS
+================================ */
 button{
-  margin-top:16px;padding:14px 22px;
-  border:none;border-radius:14px;
-  font-weight:600;cursor:pointer
+  margin-top:18px;
+  padding:14px;
+  border-radius:16px;
+  background:linear-gradient(135deg,#38bdf8,#2563eb);
+  color:white;
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+  transition:.25s
 }
 
-.primary{
-  background:linear-gradient(135deg,#4fb6e8,#2563eb);
-  color:white
+button:hover{
+  transform:translateY(-1px);
+  opacity:.95
 }
 
-.address-card{
-  border:1px solid rgba(255,255,255,.2);
-  border-radius:18px;
-  padding:16px;margin-top:14px;
-  display:flex;justify-content:space-between;
-  background:rgba(0,0,0,.35)
+.logout{
+  background:#dc2626;
+  padding:8px 14px;
+  border-radius:12px;
+  font-size:13px
 }
 
-.delete-btn{
-  background:#ef4444;color:white;
-  padding:8px 14px;border-radius:10px;
-  font-size:13px;border:none
+/* ===============================
+   RESPONSIVE DESIGN
+================================ */
+
+/* Mobile */
+@media (max-width:600px){
+  header{
+    padding:14px 16px
+  }
+
+  header a{
+    font-size:20px
+  }
+
+  .container{
+    padding:18px
+  }
+
+  .card{
+    padding:18px
+  }
+
+  .profile-top{
+    flex-direction:column;
+    align-items:center;
+    text-align:center
+  }
+
+  .profile-pic{
+    width:110px;
+    height:110px;
+    font-size:46px
+  }
+
+  button{
+    width:100%
+  }
+
+  .logout{
+    padding:6px 10px
+  }
 }
 
-.empty{color:#94a3b8;font-size:14px;margin-top:10px}
+/* Tablet */
+@media (min-width:601px) and (max-width:900px){
+  .container{
+    padding:22px
+  }
+
+  .profile-top{
+    gap:18px
+  }
+
+  .profile-pic{
+    width:120px;
+    height:120px
+  }
+}
+
+/* Large screens */
+@media (min-width:1200px){
+  .container{
+    max-width:1000px
+  }
+}
 </style>
 </head>
 
@@ -109,174 +230,144 @@ button{
 
 <header>
   <a href="../index.html">←</a>
-  <h2>My Profile</h2>
+  <div>
+    My Profile
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
 </header>
 
 <div class="container">
+<div class="card">
 
-  <div class="card">
-    <div class="profile-top">
-      <div class="profile-pic" onclick="imgInput.click()">
-        <div id="avatar" class="emoji-avatar">👤</div>
-        <img id="profileImage" hidden>
-      </div>
-
-      <div style="flex:1">
-        <label>Full Name</label>
-        <input id="name">
-
-        <label>Primary Phone</label>
-        <input id="phone">
-
-        <label>Alternative Phone</label>
-        <input id="altPhone">
-
-        <input type="file" accept="image/*" hidden id="imgInput">
-      </div>
+  <div class="profile-top">
+    <div class="profile-pic" id="picBox">
+      <span id="avatar">👤</span>
+      <img id="profileImage" hidden>
     </div>
 
-    <button class="primary" id="saveBtn">Save Profile</button>
+    <div style="flex:1;width:100%">
+      <label>Full Name</label>
+      <input id="name">
+
+      <label>Phone</label>
+      <input id="phone" maxlength="10">
+
+      <label>Alternate Phone</label>
+      <input id="altPhone" maxlength="10">
+    </div>
   </div>
 
-  <div class="card">
-    <h3>Add Address</h3>
-    <textarea id="newAddress" rows="3"></textarea>
-    <button class="primary" id="addAddressBtn">Save Address</button>
-  </div>
+  <label>Address</label>
+  <textarea id="address"></textarea>
 
-  <div class="card">
-    <h3>Saved Addresses</h3>
-    <div id="addressList"></div>
-  </div>
+  <input type="file" accept="image/*" hidden id="fileInput">
+  <button id="saveBtn">Save Profile</button>
 
+</div>
 </div>
 
 <script>
-const API = "https://shopx-production-b1ad.up.railway.app";
+const API = "http://localhost:5000";
 
-const token =
-  localStorage.getItem("userToken") ||
-  localStorage.getItem("token");
+/* USER SESSION */
+let userId = localStorage.getItem("userId");
 
-if(!token){
-  location.replace("./login.html");
+async function initUser(){
+  if(!userId){
+    const res = await fetch(API + "/api/user/init",{method:"POST"});
+    const data = await res.json();
+    localStorage.setItem("userId",data.userId);
+    userId = data.userId;
+  }
 }
 
-const authHeader = { Authorization: "Bearer " + token };
+/* ELEMENTS */
+const nameI = document.getElementById("name");
+const phoneI = document.getElementById("phone");
+const altPhoneI = document.getElementById("altPhone");
+const addressI = document.getElementById("address");
+const avatar = document.getElementById("avatar");
+const img = document.getElementById("profileImage");
+const fileInput = document.getElementById("fileInput");
+const picBox = document.getElementById("picBox");
+const saveBtn = document.getElementById("saveBtn");
 
-const nameInput=document.getElementById("name");
-const phoneInput=document.getElementById("phone");
-const altPhoneInput=document.getElementById("altPhone");
-const profileImage=document.getElementById("profileImage");
-const avatar=document.getElementById("avatar");
-const imgInput=document.getElementById("imgInput");
-const addressList=document.getElementById("addressList");
-const saveBtn=document.getElementById("saveBtn");
-const addAddressBtn=document.getElementById("addAddressBtn");
-const newAddress=document.getElementById("newAddress");
+let selectedFile = null;
 
+/* IMAGE */
+picBox.onclick = ()=>fileInput.click();
+
+fileInput.onchange = ()=>{
+  selectedFile = fileInput.files[0];
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    img.src = reader.result;
+    img.hidden = false;
+    avatar.hidden = true;
+  };
+  reader.readAsDataURL(selectedFile);
+};
+
+/* LOAD PROFILE */
 async function loadProfile(){
-  try{
-    const res = await fetch(API+"/api/profile",{ headers: authHeader });
-    if(!res.ok) throw new Error();
-    const d = await res.json();
+  const res = await fetch(API + "/api/profile",{
+    headers:{ "x-user-id": userId }
+  });
+  const d = await res.json();
 
-    nameInput.value = d.name || "";
-    phoneInput.value = d.phone || "";
-    altPhoneInput.value = d.altPhone || "";
+  nameI.value = d.name || "";
+  phoneI.value = d.phone || "";
+  altPhoneI.value = d.alt_phone || "";
+  addressI.value = d.address_line || "";
 
-    if(d.image){
-      profileImage.src = d.image.startsWith("http") ? d.image : API + d.image;
-      profileImage.hidden = false;
-      avatar.style.display = "none";
-    }else{
-      profileImage.hidden = true;
-      avatar.style.display = "flex";
-    }
-
-    renderAddresses(d.addresses || []);
-  }catch{
-    alert("Failed to load profile");
+  if(d.image){
+    img.src = API + d.image;
+    img.hidden = false;
+    avatar.hidden = true;
+  }else{
+    avatar.hidden = false;
+    img.hidden = true;
   }
 }
 
-saveBtn.onclick = async () => {
-  const res = await fetch(API+"/api/profile",{
-    method:"PUT",
-    headers:{...authHeader,"Content-Type":"application/json"},
-    body:JSON.stringify({
-      name:nameInput.value.trim(),
-      phone:phoneInput.value.trim(),
-      altPhone:altPhoneInput.value.trim()
-    })
-  });
+/* SAVE PROFILE */
+saveBtn.onclick = async ()=>{
+  const form = new FormData();
+  form.append("name",nameI.value);
+  form.append("phone",phoneI.value);
+  form.append("altPhone",altPhoneI.value);
+  if(selectedFile) form.append("image",selectedFile);
 
-  if(!res.ok) return alert("Profile update failed");
-  alert("Profile updated");
-};
-
-imgInput.onchange = async () => {
-  const file = imgInput.files[0];
-  if(!file) return;
-
-  const fd = new FormData();
-  fd.append("image", file);
-
-  const res = await fetch(API+"/api/profile/image",{
-    method:"PUT",
-    headers:authHeader,
-    body:fd
-  });
-
-  if(res.ok){
-    const d = await res.json();
-    profileImage.src = API + d.image;
-    profileImage.hidden = false;
-    avatar.style.display = "none";
-  }
-};
-
-addAddressBtn.onclick = async () => {
-  const address = newAddress.value.trim();
-  if(!address) return;
-
-  await fetch(API+"/api/profile/address",{
+  await fetch(API + "/api/profile",{
     method:"POST",
-    headers:{...authHeader,"Content-Type":"application/json"},
-    body:JSON.stringify({address})
+    headers:{ "x-user-id": userId },
+    body:form
   });
 
-  newAddress.value="";
+  await fetch(API + "/api/profile/address",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "x-user-id": userId
+    },
+    body:JSON.stringify({ address_line: addressI.value })
+  });
+
+  alert("Profile saved ✅");
   loadProfile();
 };
 
-function removeAddress(id){
-  fetch(API+"/api/profile/address/"+id,{
-    method:"DELETE",
-    headers:authHeader
-  }).then(loadProfile);
+/* LOGOUT */
+function logout(){
+  localStorage.removeItem("userId");
+  window.location.href="../index.html";
 }
 
-function renderAddresses(list){
-  addressList.innerHTML="";
-  if(!list.length){
-    addressList.innerHTML='<p class="empty">No saved addresses</p>';
-    return;
-  }
-
-  list.forEach(a=>{
-    const div=document.createElement("div");
-    div.className="address-card";
-    div.innerHTML=`
-      <div>${a.address}</div>
-      <button class="delete-btn">Delete</button>
-    `;
-    div.querySelector("button").onclick=()=>removeAddress(a.id);
-    addressList.appendChild(div);
-  });
-}
-
-loadProfile();
+/* INIT */
+(async ()=>{
+  await initUser();
+  await loadProfile();
+})();
 </script>
 
 </body>

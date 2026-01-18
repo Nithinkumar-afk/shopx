@@ -1,286 +1,300 @@
-<!-- frontend/admin/admin-orders.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<title>JD Admin – Orders</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Orders | JD</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:Poppins,sans-serif;
-  background:black;
-  color:white;
-  min-height:100vh;
+:root {
+  --bg:#000;
+  --card:#111;
+  --border:#222;
+  --text:#fff;
+  --muted:#cbd5f5;
+  --accent:orange;
 }
 
-/* HEADER */
-header{
-  position:sticky;
-  top:0;
-  z-index:10;
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(18px);
-  border-bottom:1px solid rgba(255,255,255,.15);
-  padding:16px 22px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+* {
+  box-sizing:border-box;
 }
-header h2{font-size:18px;font-weight:600}
-header button{
-  background:#ef4444;
-  color:white;
-  border:none;
-  padding:10px 16px;
-  border-radius:14px;
-  cursor:pointer;
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:Poppins;
+  margin:0;
+}
+
+/* ================= HEADER ================= */
+header {
+  padding:18px 20px;
+  font-size:24px;
   font-weight:600;
+  border-bottom:1px solid var(--border);
 }
-header button:hover{background:#dc2626}
 
-/* NAV */
-.nav{
+/* ================= FILTERS ================= */
+.filters {
   display:flex;
-  gap:12px;
+  gap:10px;
   padding:16px 20px;
-}
-.nav a{
-  flex:1;
-  text-align:center;
-  text-decoration:none;
-  color:white;
-  padding:14px;
-  border-radius:16px;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
-  font-weight:500;
+  flex-wrap:wrap;
 }
 
-/* SECTION */
-.section{
-  padding:24px 20px;
+.filters button {
+  padding:10px 16px;
+  border:none;
+  border-radius:999px;
+  background:var(--card);
+  color:var(--text);
+  cursor:pointer;
+  font-size:14px;
+  white-space:nowrap;
+}
+
+.filters button.active {
+  background:var(--accent);
+  color:#000;
+}
+
+/* ================= CONTAINER ================= */
+.container {
+  padding:20px;
   max-width:1200px;
   margin:auto;
 }
-.section h3{
-  font-size:20px;
-  font-weight:600;
+
+/* ================= ORDER CARD ================= */
+.order {
+  background:var(--card);
+  padding:16px;
+  border-radius:16px;
   margin-bottom:16px;
+  border:1px solid var(--border);
 }
 
-/* FILTERS */
-.filters{
-  display:flex;
-  gap:10px;
-  margin-bottom:20px;
-  flex-wrap:wrap;
-}
-.filters button{
-  border:none;
-  padding:10px 18px;
-  border-radius:14px;
-  background:rgba(255,255,255,.08);
-  color:white;
-  font-weight:600;
-  cursor:pointer;
-  border:1px solid rgba(255,255,255,.15);
-}
-.filters button.active{
-  background:linear-gradient(135deg,#4fb6e8,#2563eb);
-}
-
-/* ORDER CARD */
-.order-card{
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:18px;
-  padding:18px;
-  margin-bottom:18px;
-}
-.order-header{
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  flex-wrap:wrap;
-}
-.order-actions{
-  display:flex;
-  gap:8px;
-}
-
-/* STATUS */
-.status-select{
-  padding:6px 10px;
-  border-radius:10px;
-  background:black;
-  color:white;
+.order b {
   font-weight:600;
 }
 
-/* DELETE */
-.delete-btn{
-  background:#ef4444;
-  color:white;
-  border:none;
-  padding:6px 10px;
-  border-radius:10px;
-  cursor:pointer;
-}
-.delete-btn:hover{background:#dc2626}
-
-/* ITEMS */
-.items{
-  margin-top:12px;
-  padding:14px;
-  border-radius:14px;
-  background:rgba(0,0,0,.4);
-}
-.item{
-  display:flex;
-  justify-content:space-between;
-  font-size:14px;
-  margin-bottom:6px;
+/* ================= STATUS ================= */
+.status {
+  font-weight:600;
+  margin-top:6px;
 }
 
-/* TOTAL */
-.total{
+.PLACED { color:orange }
+.SHIPPED { color:#38bdf8 }
+.DELIVERED { color:#22c55e }
+.CANCELLED { color:#ef4444 }
+
+/* ================= ITEMS ================= */
+.items {
   margin-top:10px;
-  text-align:right;
-  font-weight:600;
-  color:#cbd5e1;
+  font-size:14px;
+  color:var(--muted);
+  line-height:1.6;
+}
+
+/* ================= ACTIONS ================= */
+.actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:14px;
+}
+
+.actions button {
+  padding:8px 16px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:14px;
+}
+
+.ship { background:#0ea5e9; color:#000 }
+.deliver { background:#22c55e; color:#000 }
+.cancel { background:#ef4444; color:#000 }
+.delete { background:#6b7280; color:#000 }
+
+button:disabled {
+  opacity:.5;
+  cursor:not-allowed;
+}
+
+/* ================= MOBILE ================= */
+@media (max-width: 600px) {
+  header {
+    font-size:20px;
+    text-align:center;
+  }
+
+  .filters {
+    overflow-x:auto;
+    flex-wrap:nowrap;
+    padding-bottom:10px;
+  }
+
+  .filters::-webkit-scrollbar {
+    display:none;
+  }
+
+  .container {
+    padding:14px;
+  }
+
+  .order {
+    padding:14px;
+  }
+
+  .actions button {
+    width:100%;
+  }
+}
+
+/* ================= TABLET ================= */
+@media (min-width: 601px) and (max-width: 1024px) {
+  header {
+    font-size:22px;
+  }
+
+  .actions button {
+    flex:1;
+  }
+}
+
+/* ================= LARGE SCREENS ================= */
+@media (min-width: 1400px) {
+  .container {
+    max-width:1400px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<header>
-  <h2>JD Admin</h2>
-  <button onclick="logout()">Logout</button>
-</header>
+<header>JD Admin – Orders</header>
 
-<div class="nav">
-  <a href="admin-dashboard.html">🏠 Dashboard</a>
-  <a href="admin-products.html">📦 Products</a>
-  <a href="admin-orders.html">🧾 Orders</a>
+<div class="filters">
+  <button class="active" onclick="setFilter('ALL',this)">All</button>
+  <button onclick="setFilter('PLACED',this)">Placed</button>
+  <button onclick="setFilter('SHIPPED',this)">Shipped</button>
+  <button onclick="setFilter('DELIVERED',this)">Delivered</button>
+  <button onclick="setFilter('CANCELLED',this)">Cancelled</button>
 </div>
 
-<div class="section">
-  <h3>All Orders</h3>
-
-  <div class="filters">
-    <button class="active" onclick="setFilter('ALL',this)">All</button>
-    <button onclick="setFilter('placed',this)">Placed</button>
-    <button onclick="setFilter('shipped',this)">Shipped</button>
-    <button onclick="setFilter('delivered',this)">Delivered</button>
-    <button onclick="setFilter('cancelled',this)">Cancelled</button>
-  </div>
-
-  <div id="ordersList"></div>
-</div>
+<div class="container" id="orders">Loading...</div>
 
 <script>
-const API = "https://shopx-production-b1ad.up.railway.app/api";
-const LOGIN = "admin-login.html";
-let orders = [];
-let filter = "ALL";
+const API = "http://localhost:5000/api";
+let allOrders = [];
+let currentFilter = "ALL";
 
-const token = localStorage.getItem("adminToken");
-if(!token) location.replace(LOGIN);
-
-function logout(){
-  localStorage.removeItem("adminToken");
-  location.replace(LOGIN);
+/* =========================
+   LOAD ORDERS
+========================= */
+async function loadOrders() {
+  try {
+    const res = await fetch(API + "/orders");
+    allOrders = await res.json();
+    renderOrders();
+  } catch {
+    document.getElementById("orders").innerHTML =
+      "<p style='color:#ef4444'>Failed to load orders</p>";
+  }
 }
 
-async function authFetch(url, options={}){
-  const res = await fetch(url,{
-    ...options,
-    headers:{
-      Authorization:"Bearer "+token,
-      ...(options.headers||{})
-    }
-  });
-  if(res.status===401||res.status===403) logout();
-  return res;
-}
-
-function setFilter(f,btn){
-  filter=f;
+/* =========================
+   FILTER
+========================= */
+function setFilter(status, btn) {
+  currentFilter = status;
   document.querySelectorAll(".filters button")
-    .forEach(b=>b.classList.remove("active"));
+    .forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
-  render();
+  renderOrders();
 }
 
-function render(){
-  const box=document.getElementById("ordersList");
-  box.innerHTML="";
+/* =========================
+   RENDER
+========================= */
+function renderOrders() {
+  const div = document.getElementById("orders");
+  div.innerHTML = "";
 
-  const list = filter==="ALL"
-    ? orders
-    : orders.filter(o=>o.status===filter);
+  const list = currentFilter === "ALL"
+    ? allOrders
+    : allOrders.filter(o => o.status === currentFilter);
 
-  if(!list.length){
-    box.innerHTML="<p>No orders found</p>";
+  if (!list.length) {
+    div.innerHTML = "<p>No orders found</p>";
     return;
   }
 
-  list.forEach(o=>{
-    box.innerHTML+=`
-      <div class="order-card">
-        <div class="order-header">
-          <b>Order #${o.id}</b>
-          <div class="order-actions">
-            <select class="status-select"
-              onchange="updateStatus(${o.id},this.value)">
-              ${["placed","shipped","delivered","cancelled"]
-                .map(s=>`<option ${o.status===s?"selected":""}>${s}</option>`).join("")}
-            </select>
-            <button class="delete-btn" onclick="deleteOrder(${o.id})">
-              Delete
-            </button>
-          </div>
-        </div>
+  list.forEach(o => {
+    const total = Number(o.total_amount || 0);
+    const deliveredDate = o.delivered_at
+      ? new Date(o.delivered_at).toLocaleDateString("en-IN")
+      : "";
 
-        <div class="items">
-          ${o.items.map(i=>`
-            <div class="item">
-              <span>${i.name} × ${i.quantity}</span>
-              <span>₹${i.price*i.quantity}</span>
-            </div>
-          `).join("")}
-        </div>
+    const box = document.createElement("div");
+    box.className = "order";
 
-        <div class="total">Total: ₹${o.total_amount}</div>
+    box.innerHTML = `
+      <b>Order #${o.id}</b><br>
+      Customer: ${o.customer_name}<br>
+      <b>Total: ₹${total.toLocaleString("en-IN")}</b>
+
+      <div class="status ${o.status}">Status: ${o.status}</div>
+      ${deliveredDate ? `<div>Delivered on: ${deliveredDate}</div>` : ""}
+
+      <div class="items">
+        ${o.items.map(i =>
+          `${i.name} × ${i.quantity} (₹${i.price})`
+        ).join("<br>")}
+      </div>
+
+      <div class="actions">
+        ${o.status === "PLACED" ? `
+          <button class="ship" onclick="updateStatus(this,${o.id},'SHIPPED')">Ship</button>
+          <button class="cancel" onclick="updateStatus(this,${o.id},'CANCELLED')">Cancel</button>
+        ` : ""}
+
+        ${o.status === "SHIPPED" ? `
+          <button class="deliver" onclick="updateStatus(this,${o.id},'DELIVERED')">Deliver</button>
+        ` : ""}
+
+        <button class="delete" onclick="deleteOrder(${o.id})">Delete</button>
       </div>
     `;
+
+    div.appendChild(box);
   });
 }
 
-async function loadOrders(){
-  const res = await authFetch(API+"/admin/orders");
-  const data = await res.json();
-  orders = Array.isArray(data)?data:data.orders||[];
-  render();
-}
-
-async function updateStatus(id,status){
-  await authFetch(`${API}/admin/orders/${id}/status`,{
-    method:"PUT",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({status})
+/* =========================
+   UPDATE STATUS
+========================= */
+async function updateStatus(btn, id, status) {
+  btn.disabled = true;
+  await fetch(`${API}/admin/orders/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status })
   });
   loadOrders();
 }
 
-async function deleteOrder(id){
-  if(!confirm("Delete order?")) return;
-  await authFetch(`${API}/admin/orders/${id}`,{method:"DELETE"});
+/* =========================
+   DELETE ORDER
+========================= */
+async function deleteOrder(id) {
+  if (!confirm("Delete this order permanently?")) return;
+  await fetch(`${API}/admin/orders/${id}`, { method: "DELETE" });
   loadOrders();
 }
 

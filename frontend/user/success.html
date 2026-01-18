@@ -8,77 +8,100 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0
+}
 
 body{
   font-family:Poppins,sans-serif;
   background:radial-gradient(circle at top,#0f172a,#020617);
   color:#f8fafc;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
-/* ================= CONTAINER ================= */
+/* ===============================
+   CONTAINER
+================================ */
 .container{
+  width:100%;
   max-width:720px;
-  margin:60px auto;
+  margin:40px 18px;
   background:rgba(255,255,255,.07);
   backdrop-filter:blur(20px);
   border-radius:26px;
   padding:28px;
   border:1px solid rgba(255,255,255,.12);
-  box-shadow:0 40px 80px rgba(0,0,0,.85);
+  box-shadow:0 25px 60px rgba(0,0,0,.45)
 }
 
-/* ================= SUCCESS ================= */
+/* ===============================
+   SUCCESS HEADER
+================================ */
 .success{
   text-align:center;
-  margin-bottom:24px;
+  margin-bottom:26px
 }
 
 .success h1{
   color:#22c55e;
   margin-bottom:8px;
   font-size:24px;
+  font-weight:600
 }
 
 .order-id{
   margin-top:10px;
   color:#94a3b8;
-  font-size:14px;
+  font-size:14px
 }
 
-/* ================= ITEMS ================= */
+/* ===============================
+   ITEMS
+================================ */
+#orderItems{
+  margin-top:16px
+}
+
 .item{
   background:rgba(255,255,255,.08);
   padding:16px;
   border-radius:18px;
   margin-top:14px;
   border:1px solid rgba(255,255,255,.12);
-}
-
-.item b{
-  font-size:15px;
-  color:#f8fafc;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px
 }
 
 .item div{
   font-size:14px;
-  color:#cbd5f5;
+  color:#e5e7eb
 }
 
-/* ================= TOTAL ================= */
+/* ===============================
+   TOTAL
+================================ */
 .total{
   text-align:right;
   font-size:18px;
   font-weight:600;
   margin-top:26px;
-  color:#22c55e;
+  color:#22c55e
 }
 
-/* ================= ACTIONS ================= */
+/* ===============================
+   ACTION BUTTONS
+================================ */
 .actions{
   margin-top:34px;
   display:flex;
-  gap:16px;
+  gap:16px
 }
 
 .actions a{
@@ -88,36 +111,69 @@ body{
   border-radius:16px;
   text-decoration:none;
   font-weight:600;
-  transition:.25s;
+  transition:.25s
 }
 
-/* BUTTONS */
+.actions a:hover{
+  transform:translateY(-2px);
+  opacity:.95
+}
+
 .home{
   background:linear-gradient(135deg,#38bdf8,#2563eb);
-  color:#fff;
-  box-shadow:0 18px 40px rgba(56,189,248,.4);
-}
-.home:hover{
-  transform:translateY(-2px);
-  box-shadow:0 26px 60px rgba(56,189,248,.55);
+  color:#fff
 }
 
 .orders{
   background:rgba(255,255,255,.12);
   color:#f8fafc;
-  border:1px solid rgba(255,255,255,.2);
-}
-.orders:hover{
-  background:rgba(255,255,255,.22);
+  border:1px solid rgba(255,255,255,.2)
 }
 
-/* ================= MOBILE ================= */
+/* ===============================
+   RESPONSIVE DESIGN
+================================ */
+
+/* Mobile */
 @media(max-width:600px){
-  .container{
-    margin:30px 14px;
+  body{
+    align-items:flex-start
   }
-  .actions{
+
+  .container{
+    margin:24px 14px;
+    padding:22px
+  }
+
+  .success h1{
+    font-size:20px
+  }
+
+  .item{
     flex-direction:column;
+    align-items:flex-start
+  }
+
+  .total{
+    font-size:16px
+  }
+
+  .actions{
+    flex-direction:column
+  }
+}
+
+/* Tablet */
+@media(min-width:601px) and (max-width:900px){
+  .container{
+    margin:30px 22px
+  }
+}
+
+/* Large screens */
+@media(min-width:1200px){
+  .container{
+    max-width:760px
   }
 }
 </style>
@@ -125,7 +181,7 @@ body{
 
 <body>
 
-<div class="container">
+<div class="container" id="app">
   <div class="success">
     <h1>✅ Order Placed Successfully</h1>
     <div class="order-id">
@@ -141,48 +197,54 @@ body{
 
   <div class="actions">
     <a href="../index.html" class="home">Continue Shopping</a>
-    <a href="./orders.html" class="orders">View Orders</a>
+    <a href="orders.html" class="orders">View Orders</a>
   </div>
 </div>
 
 <script>
-const API = "https://shopx-production-b1ad.up.railway.app/api";
-const token = localStorage.getItem("token");
+const checkoutBtn = document.getElementById("placeOrder");
 
-if (!token) location.href = "./login.html";
-
-const money = n => "₹" + Number(n || 0).toLocaleString("en-IN");
-
-fetch(`${API}/orders/latest`, {
-  headers: {
-    Authorization: "Bearer " + token
+checkoutBtn.addEventListener("click", async () => {
+  const cart = JSON.parse(localStorage.getItem("checkout_cart")) || [];
+  if (!cart.length) {
+    alert("Your cart is empty");
+    return;
   }
-})
-.then(res => {
-  if (!res.ok) throw new Error("Failed to load order");
-  return res.json();
-})
-.then(order => {
-  document.getElementById("orderId").textContent = order.id;
-  document.getElementById("orderTotal").textContent = money(order.total_amount);
 
-  const itemsEl = document.getElementById("orderItems");
-  itemsEl.innerHTML = "";
+  const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
-  (order.items || []).forEach(item => {
-    itemsEl.innerHTML += `
-      <div class="item">
-        <div>
-          <b>${item.name}</b><br>
-          ${money(item.price)} × ${item.quantity}
-        </div>
-      </div>
-    `;
-  });
-})
-.catch(err => {
-  console.error(err);
-  alert("Unable to load order details");
+  try {
+    const res = await fetch("http://localhost:5000/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        items: cart,
+        total
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert(data.error || "Order failed");
+      return;
+    }
+
+    localStorage.setItem("last_order", JSON.stringify({
+      id: data.orderId,
+      total: total,
+      items: cart
+    }));
+
+    localStorage.removeItem("checkout_cart");
+    location.href = "success.html";
+
+  } catch (err) {
+    console.error(err);
+    alert("Server error. Please try again.");
+  }
 });
 </script>
 

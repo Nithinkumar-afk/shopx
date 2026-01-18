@@ -8,74 +8,73 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --glass:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.12);
+  --primary:#4da3ff;
+  --primary2:#2b6df6;
+}
 
 body{
   font-family:Poppins,sans-serif;
-  background:radial-gradient(circle at top,#0f172a,#020617);
-  color:#f8fafc;
+  background:radial-gradient(circle at top,#0b0b0b,#000);
+  color:white;
+  min-height:100vh;
 }
 
-/* HEADER */
+/* ================= HEADER ================= */
 header{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:16px 28px;
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(16px);
   position:sticky;
   top:0;
-  z-index:100;
-  background:rgba(2,6,23,.75);
-  backdrop-filter:blur(18px);
-  padding:14px 18px;
-  display:flex;
-  gap:14px;
-  align-items:center;
-  border-bottom:1px solid rgba(255,255,255,.12);
+  z-index:50;
 }
 
 header button{
-  background:rgba(255,255,255,.08);
-  border:none;
+  background:var(--glass);
+  border:1px solid var(--border);
   border-radius:14px;
   padding:8px 14px;
   font-size:18px;
-  color:#fff;
+  color:white;
   cursor:pointer;
 }
 
 .logo{
   font-size:22px;
-  font-weight:700;
+  font-weight:600;
 }
-.logo span:first-child{color:#38bdf8}
-.logo span:last-child{color:#f8fafc}
+.logo span:first-child{color:var(--primary)}
 
-/* CONTAINER */
+/* ================= ORDERS ================= */
 #orders{
   max-width:900px;
   margin:auto;
-  padding:22px 16px;
+  padding:28px 22px;
 }
 
-/* ORDER CARD */
+/* ================= ORDER CARD ================= */
 .order{
-  background:rgba(255,255,255,.07);
-  backdrop-filter:blur(20px);
+  background:#0f0f0f;
+  border:1px solid var(--border);
   border-radius:22px;
   padding:20px;
   margin-bottom:22px;
-  border:1px solid rgba(255,255,255,.12);
-  box-shadow:0 30px 70px rgba(0,0,0,.85);
-  animation:fadeUp .35s ease;
-}
-
-@keyframes fadeUp{
-  from{opacity:0;transform:translateY(14px)}
-  to{opacity:1;transform:none}
 }
 
 .order-head{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin-bottom:8px;
+  gap:12px;
+  margin-bottom:10px;
 }
 
 .order-id{
@@ -83,66 +82,145 @@ header button{
   color:#cbd5f5;
 }
 
-/* STATUS */
+/* ================= STATUS ================= */
 .status{
   font-size:11px;
   font-weight:600;
   padding:6px 14px;
   border-radius:999px;
   text-transform:uppercase;
+  white-space:nowrap;
 }
 
-.status.PLACED{background:#ffedd5;color:#c2410c;}
-.status.SHIPPED{background:#e0f2fe;color:#0369a1;}
-.status.DELIVERED{background:#dcfce7;color:#15803d;}
-.status.CANCELLED{background:#fee2e2;color:#b91c1c;}
+.status.Placed{background:#ffedd5;color:#c2410c}
+.status.Shipped{background:#dbeafe;color:#1d4ed8}
+.status.Delivered{background:#dcfce7;color:#166534}
+.status.Cancelled{background:#fee2e2;color:#991b1b}
 
-/* ITEMS */
+/* ================= ITEM ================= */
 .item{
   display:flex;
   gap:14px;
   padding:14px;
   margin-top:12px;
   border-radius:18px;
-  background:rgba(255,255,255,.06);
-}
-
-.item-icon{
-  width:76px;
-  height:76px;
-  border-radius:16px;
-  background:#020617;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:34px;
+  background:var(--glass);
+  border:1px solid var(--border);
 }
 
 .item-info h4{
   font-size:14px;
+  font-weight:500;
 }
 
 .item-info p{
-  margin-top:4px;
   font-size:13px;
   color:#94a3b8;
 }
 
-/* TOTAL */
+.meta{
+  margin-top:10px;
+  font-size:12px;
+  color:#94a3b8;
+}
+
 .total{
   text-align:right;
   margin-top:16px;
   font-weight:600;
-  font-size:15px;
   color:#22c55e;
 }
 
-/* EMPTY */
+/* ================= BUTTON ================= */
+.cancel-btn{
+  margin-top:14px;
+  padding:12px;
+  width:100%;
+  border-radius:14px;
+  border:none;
+  background:#ef4444;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  transition:.25s;
+}
+.cancel-btn:hover{background:#dc2626}
+
+/* ================= EMPTY ================= */
 .empty{
   text-align:center;
-  color:#94a3b8;
+  color:#aaa;
   margin-top:80px;
   font-size:15px;
+}
+
+/* =====================================================
+   RESPONSIVE — MATCHES INDEX BREAKPOINTS
+===================================================== */
+
+/* Tablet */
+@media (max-width:768px){
+  header{
+    padding:14px 16px;
+  }
+
+  #orders{
+    padding:20px 16px;
+  }
+
+  .order-head{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:6px;
+  }
+}
+
+/* Mobile */
+@media (max-width:480px){
+  header{
+    padding:12px 14px;
+  }
+
+  .logo{
+    font-size:18px;
+  }
+
+  #orders{
+    padding:14px 12px;
+  }
+
+  .order{
+    padding:16px;
+    border-radius:18px;
+  }
+
+  .item{
+    padding:12px;
+  }
+
+  .status{
+    font-size:10px;
+    padding:5px 12px;
+  }
+
+  .item-info h4{
+    font-size:13px;
+  }
+
+  .item-info p{
+    font-size:12px;
+  }
+
+  .total{
+    font-size:14px;
+  }
+}
+
+/* Large screens */
+@media (min-width:1200px){
+  #orders{
+    max-width:920px;
+  }
 }
 </style>
 </head>
@@ -157,84 +235,80 @@ header button{
 <div id="orders"></div>
 
 <script>
-/* ================= CONFIG ================= */
-const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
-const API = BASE_URL + "/api";
-
-/* ✅ TOKEN FIX */
-const token =
-  localStorage.getItem("userToken") ||
-  localStorage.getItem("token");
-
-if (!token) location.href = "/user/login.html";
-
-/* ================= ELEMENTS ================= */
+const API = "http://localhost:5000/api";
 const ordersDiv = document.getElementById("orders");
 const money = n => "₹" + Number(n || 0).toLocaleString("en-IN");
 
-/* ================= STATUS NORMALIZER ================= */
-function normalizeStatus(s=""){
-  s = s.toLowerCase();
-  if(s.includes("place")) return "PLACED";
-  if(s.includes("ship")) return "SHIPPED";
-  if(s.includes("deliver")) return "DELIVERED";
-  if(s.includes("cancel")) return "CANCELLED";
-  return "PLACED";
+const statusMap = {
+  PLACED: "Placed",
+  SHIPPED: "Shipped",
+  DELIVERED: "Delivered",
+  CANCELLED: "Cancelled"
+};
+
+function cancelOrder(id){
+  if(!confirm("Cancel this order?")) return;
+
+  fetch(`${API}/orders/${id}/cancel`, { method:"PUT" })
+    .then(res => res.json())
+    .then(() => loadOrders());
 }
 
-/* ================= LOAD ORDERS ================= */
-async function loadOrders(){
-  try{
-    const res = await fetch(API + "/orders",{
-      headers:{ Authorization:"Bearer "+token }
+function loadOrders(){
+  fetch(API + "/orders")
+    .then(res => res.json())
+    .then(list => {
+      ordersDiv.innerHTML = "";
+
+      if (!list.length) {
+        ordersDiv.innerHTML = "<p class='empty'>No orders found</p>";
+        return;
+      }
+
+      list.forEach(o => {
+        const uiStatus = statusMap[o.status] || o.status;
+
+        const items = o.items.map(i => `
+          <div class="item">
+            <div class="item-info">
+              <h4>${i.name}</h4>
+              <p>${money(i.price)} × ${i.quantity}</p>
+            </div>
+          </div>
+        `).join("");
+
+        const cancelBtn =
+          o.status === "PLACED"
+            ? `<button class="cancel-btn" onclick="cancelOrder(${o.id})">
+                 Cancel Order
+               </button>`
+            : "";
+
+        const deliveredInfo =
+          o.delivered_at
+            ? `<div class="meta">📦 Delivered on
+                ${new Date(o.delivered_at).toLocaleDateString("en-IN")}
+               </div>`
+            : "";
+
+        ordersDiv.innerHTML += `
+          <div class="order">
+            <div class="order-head">
+              <div class="order-id">Order #${o.id}</div>
+              <div class="status ${uiStatus}">${uiStatus}</div>
+            </div>
+
+            ${items}
+            ${deliveredInfo}
+            <div class="total">Total: ${money(o.total_amount)}</div>
+            ${cancelBtn}
+          </div>
+        `;
+      });
+    })
+    .catch(()=>{
+      ordersDiv.innerHTML="<p class='empty'>Failed to load orders</p>";
     });
-
-    if(res.status === 401){
-      localStorage.clear();
-      location.href = "/user/login.html";
-      return;
-    }
-
-    const list = await res.json();
-
-    if(!Array.isArray(list) || !list.length){
-      ordersDiv.innerHTML = "<p class='empty'>No orders found</p>";
-      return;
-    }
-
-    ordersDiv.innerHTML="";
-    list.forEach(renderOrder);
-
-  }catch(err){
-    console.error(err);
-    ordersDiv.innerHTML="<p class='empty'>Failed to load orders</p>";
-  }
-}
-
-/* ================= RENDER ================= */
-function renderOrder(order){
-  const status = normalizeStatus(order.status);
-
-  const itemsHTML = (order.items || []).map(i=>`
-    <div class="item">
-      <div class="item-icon">📦</div>
-      <div class="item-info">
-        <h4>${i.name}</h4>
-        <p>${money(i.price)} × ${i.quantity}</p>
-      </div>
-    </div>
-  `).join("");
-
-  ordersDiv.innerHTML += `
-    <div class="order">
-      <div class="order-head">
-        <div class="order-id">Order #${order.id}</div>
-        <div class="status ${status}">${status}</div>
-      </div>
-      ${itemsHTML}
-      <div class="total">Total: ${money(order.total_amount)}</div>
-    </div>
-  `;
 }
 
 loadOrders();

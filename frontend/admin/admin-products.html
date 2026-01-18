@@ -8,88 +8,201 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
+:root{
+  --bg:#000;
+  --card:#0b0b0b;
+  --border:#222;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --accent:#22c55e;
+  --danger:#ef4444;
+  --primary:#2563eb;
+}
+
 *{box-sizing:border-box}
+
 body{
   margin:0;
-  font-family:'Poppins',sans-serif;
-  background:radial-gradient(circle at top,#0b0b0b,#000);
-  color:#e5e7eb;
+  font-family:Poppins,sans-serif;
+  background:var(--bg);
+  color:var(--text);
 }
+
+/* ================= HEADER ================= */
 header{
-  padding:18px 22px;
+  padding:16px 22px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  background:rgba(20,20,20,.85);
-  backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(255,255,255,.08);
+  background:#0b0b0b;
+  border-bottom:1px solid var(--border);
+  gap:14px;
 }
-header h2{margin:0;font-size:18px}
+
+header h2{
+  margin:0;
+  font-size:18px;
+  font-weight:600;
+}
+
+header div{
+  display:flex;
+  gap:10px;
+}
+
 header button{
-  padding:10px 18px;
-  border-radius:14px;
+  padding:10px 16px;
+  border-radius:12px;
   border:none;
-  background:#2563eb;
+  background:var(--primary);
   color:#fff;
   font-weight:600;
   cursor:pointer;
+  white-space:nowrap;
 }
+
+/* ================= FORM ================= */
 .form{
-  margin:18px;
-  padding:18px;
+  margin:20px auto;
+  padding:20px;
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:14px;
-  background:rgba(255,255,255,.05);
-  border-radius:22px;
+  gap:12px;
+  background:var(--card);
+  border-radius:18px;
+  border:1px solid var(--border);
+  max-width:1100px;
 }
+
 input,textarea{
-  padding:13px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.12);
+  padding:12px;
+  border-radius:12px;
+  border:1px solid var(--border);
   background:#000;
   color:#fff;
+  font-family:Poppins;
 }
-textarea{grid-column:1/-1}
+
+textarea{
+  resize:vertical;
+}
+
 .form button{
-  grid-column:1/-1;
-  padding:15px;
-  border-radius:16px;
+  padding:14px;
   border:none;
-  background:#22c55e;
-  color:#fff;
+  border-radius:14px;
+  background:var(--accent);
+  color:#000;
   font-weight:600;
   cursor:pointer;
 }
+
+/* ================= PRODUCTS GRID ================= */
 .products{
-  padding:18px;
+  padding:20px;
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
-  gap:18px;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:20px;
+  max-width:1300px;
+  margin:auto;
 }
+
+/* ================= PRODUCT CARD ================= */
 .card{
-  background:rgba(255,255,255,.06);
-  border-radius:22px;
+  background:var(--card);
+  border-radius:18px;
   padding:14px;
+  border:1px solid var(--border);
+  min-height:320px;
   display:flex;
   flex-direction:column;
-  gap:8px;
 }
+
 .card img{
   width:100%;
-  height:150px;
+  height:160px;
   object-fit:cover;
-  border-radius:16px;
+  border-radius:14px;
   background:#111;
 }
+
+.card small{
+  color:var(--muted);
+  margin-top:8px;
+}
+
+.card strong{
+  margin-top:6px;
+  font-weight:600;
+}
+
+.card p{
+  margin:6px 0 10px;
+}
+
 .card button{
   margin-top:auto;
-  padding:10px;
-  border:none;
-  border-radius:14px;
-  background:#ef4444;
+  background:var(--danger);
   color:#fff;
+  border:none;
+  padding:10px;
+  border-radius:12px;
   cursor:pointer;
+}
+
+/* ================= MOBILE ================= */
+@media (max-width:600px){
+  header{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  header h2{
+    font-size:16px;
+  }
+
+  header div{
+    width:100%;
+  }
+
+  header button{
+    flex:1;
+  }
+
+  .form{
+    margin:14px;
+    padding:16px;
+  }
+
+  .products{
+    padding:14px;
+    gap:14px;
+  }
+
+  .card img{
+    height:140px;
+  }
+
+  .card{
+    min-height:auto;
+  }
+}
+
+/* ================= TABLET ================= */
+@media (min-width:601px) and (max-width:1024px){
+  header h2{
+    font-size:17px;
+  }
+
+  .form{
+    margin:20px;
+  }
+}
+
+/* ================= LARGE SCREENS ================= */
+@media (min-width:1400px){
+  .products{
+    max-width:1500px;
+  }
 }
 </style>
 </head>
@@ -97,202 +210,97 @@ textarea{grid-column:1/-1}
 <body>
 
 <header>
-  <h2>JD Product Management</h2>
-  <!-- ✅ SAME FOLDER -->
-  <button onclick="location.href='admin-dashboard.html'">Dashboard</button>
+  <h2>JD Admin – Product Management</h2>
+  <div>
+    <button onclick="location.href='admin-dashboard.html'">Dashboard</button>
+    <button onclick="location.href='../index.html'">Store</button>
+  </div>
 </header>
 
+<!-- ADD PRODUCT -->
 <div class="form">
-  <input id="name" placeholder="Product name">
-  <input id="price" type="number" placeholder="Price">
-  <input id="category" placeholder="Category">
-  <input id="img1" placeholder="Image URL (required)">
-  <input id="img2" placeholder="Image URL (optional)">
-  <input id="img3" placeholder="Image URL (optional)">
-  <textarea id="desc" rows="3" placeholder="Description"></textarea>
-  <button id="addBtn">Add Product</button>
+  <input id="name" placeholder="Product name *">
+  <input id="price" type="number" placeholder="Price *">
+  <input id="image" type="file" accept="image/*">
+  <textarea id="desc" rows="3" placeholder="Description (optional)"></textarea>
+  <button onclick="addProduct()">Add Product</button>
 </div>
 
-<div class="products" id="list"></div>
+<!-- PRODUCT LIST -->
+<div class="products" id="list">Loading products...</div>
 
 <script>
-"use strict";
+const API = "http://localhost:5000/api/products";
+const BASE = "http://localhost:5000";
+const FALLBACK = "https://via.placeholder.com/400x250?text=No+Image";
 
-/* ================= CONFIG ================= */
-const BASE_URL = "https://shopx-production-b1ad.up.railway.app";
-const API = BASE_URL + "/api";
-
-const PUBLIC_PRODUCTS_API = API + "/products";
-const ADMIN_PRODUCTS_API = API + "/admin/products";
-const LOGIN_PAGE = "admin-login.html"; // ✅ same folder
-
-const FALLBACK_IMAGE =
-  "https://via.placeholder.com/600x400?text=No+Image";
-
-/* ================= AUTH HELPERS ================= */
-function getToken() {
-  return localStorage.getItem("adminToken");
-}
-
-function forceLogout() {
-  localStorage.removeItem("adminToken");
-  location.replace(LOGIN_PAGE);
-}
-
-/* ================= AUTH GUARD ================= */
-if (!getToken()) {
-  forceLogout();
-}
-
-/* ================= AUTH FETCH ================= */
-async function authFetch(url, options = {}) {
-  const token = getToken();
-  if (!token) {
-    forceLogout();
-    throw new Error("No token");
-  }
-
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      Authorization: "Bearer " + token,
-      ...(options.headers || {})
-    }
-  });
-
-  if (res.status === 401 || res.status === 403) {
-    forceLogout();
-    throw new Error("Unauthorized");
-  }
-
-  return res;
-}
-
-/* ================= ELEMENTS ================= */
 const list = document.getElementById("list");
-const addBtn = document.getElementById("addBtn");
+const nameEl = document.getElementById("name");
+const priceEl = document.getElementById("price");
+const imageEl = document.getElementById("image");
+const descEl = document.getElementById("desc");
 
-const nameInput = document.getElementById("name");
-const priceInput = document.getElementById("price");
-const categoryInput = document.getElementById("category");
-const img1Input = document.getElementById("img1");
-const img2Input = document.getElementById("img2");
-const img3Input = document.getElementById("img3");
-const descInput = document.getElementById("desc");
+/* LOAD PRODUCTS */
+function loadProducts(){
+  fetch(API)
+    .then(r => r.json())
+    .then(data => {
+      list.innerHTML = "";
 
-/* ================= LOAD PRODUCTS ================= */
-async function loadProducts() {
-  list.innerHTML = "";
+      if(!data.length){
+        list.innerHTML = "<p>No products found</p>";
+        return;
+      }
 
-  try {
-    const res = await fetch(PUBLIC_PRODUCTS_API);
-    const products = await res.json();
-
-    if (!Array.isArray(products)) return;
-
-    products.forEach(p => {
-      const productId = p.id || p._id;
-      const imgSrc = p.images?.[0] || FALLBACK_IMAGE;
-
-      const card = document.createElement("div");
-      card.className = "card";
-
-      card.innerHTML = `
-        <img src="${imgSrc}" onerror="this.src='${FALLBACK_IMAGE}'">
-        <strong>${p.name}</strong>
-        <span>₹${p.price}</span>
-        <small>${p.category}</small>
-        <button>Delete</button>
-      `;
-
-      card.querySelector("button").onclick =
-        () => deleteProduct(productId);
-
-      list.appendChild(card);
+      data.forEach(p => {
+        const imgSrc = p.image ? BASE + p.image : FALLBACK;
+        list.innerHTML += `
+          <div class="card">
+            <img src="${imgSrc}" onerror="this.src='${FALLBACK}'">
+            <small>ID: ${p.id}</small>
+            <strong>${p.name}</strong>
+            <p>₹${Number(p.price).toFixed(2)}</p>
+            <button onclick="deleteProduct(${p.id})">Delete</button>
+          </div>
+        `;
+      });
+    })
+    .catch(() => {
+      list.innerHTML = "<p style='color:red'>Failed to load products</p>";
     });
-
-  } catch (err) {
-    console.error("Load products error:", err);
-    list.innerHTML =
-      "<p style='color:#f87171'>Failed to load products</p>";
-  }
 }
 
-/* ================= ADD PRODUCT ================= */
-addBtn.onclick = async () => {
-  const images = [
-    img1Input.value.trim(),
-    img2Input.value.trim(),
-    img3Input.value.trim()
-  ].filter(Boolean);
-
-  if (!images.length) {
-    alert("At least ONE image URL is required");
+/* ADD PRODUCT */
+function addProduct(){
+  if(!nameEl.value || !priceEl.value){
+    alert("Name and price required");
     return;
   }
 
-  const payload = {
-    name: nameInput.value.trim(),
-    price: Number(priceInput.value),
-    category: categoryInput.value.trim(),
-    description: descInput.value.trim(),
-    images
-  };
+  const form = new FormData();
+  form.append("name", nameEl.value);
+  form.append("price", priceEl.value);
+  form.append("description", descEl.value);
+  if(imageEl.files[0]) form.append("image", imageEl.files[0]);
 
-  if (!payload.name || !payload.category || isNaN(payload.price)) {
-    alert("Name, price & category are required");
-    return;
-  }
-
-  try {
-    const res = await authFetch(ADMIN_PRODUCTS_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    await res.json();
-    clearForm();
+  fetch(API,{
+    method:"POST",
+    body:form
+  }).then(() => {
+    nameEl.value = "";
+    priceEl.value = "";
+    descEl.value = "";
+    imageEl.value = "";
     loadProducts();
-
-  } catch (err) {
-    console.error("Add product error:", err);
-    alert("Add product failed");
-  }
-};
-
-/* ================= DELETE PRODUCT ================= */
-async function deleteProduct(id) {
-  if (!id) return alert("Invalid product ID");
-  if (!confirm("Delete product?")) return;
-
-  try {
-    await authFetch(`${ADMIN_PRODUCTS_API}/${id}`, {
-      method: "DELETE"
-    });
-
-    loadProducts();
-
-  } catch (err) {
-    console.error("Delete error:", err);
-    alert("Delete failed");
-  }
+  });
 }
 
-/* ================= CLEAR FORM ================= */
-function clearForm() {
-  [
-    nameInput,
-    priceInput,
-    categoryInput,
-    img1Input,
-    img2Input,
-    img3Input,
-    descInput
-  ].forEach(i => i.value = "");
+/* DELETE */
+function deleteProduct(id){
+  if(!confirm("Delete this product?")) return;
+  fetch(`${API}/${id}`,{ method:"DELETE" }).then(loadProducts);
 }
 
-/* ================= INIT ================= */
 loadProducts();
 </script>
 

@@ -1,4 +1,3 @@
-<!-- frontend/admin/admin-dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,85 +8,168 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --glass:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.14);
+  --primary:#4da3ff;
+  --primary2:#2563eb;
+}
+
 body{
   font-family:Poppins,sans-serif;
-  background:black;
-  color:white;
+  background:radial-gradient(circle at top,#0b0b0b,#000);
+  color:#fff;
   min-height:100vh;
 }
+
+/* ================= HEADER ================= */
 header{
-  position:sticky;top:0;z-index:10;
-  display:flex;justify-content:space-between;align-items:center;
-  padding:18px 22px;
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(18px);
-  border-bottom:1px solid rgba(255,255,255,.15);
+  padding:16px 24px;
+  background:var(--glass);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(16px);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  position:sticky;
+  top:0;
+  z-index:50;
 }
-.brand{display:flex;align-items:center;gap:12px}
-.brand .logo{
-  width:42px;height:42px;border-radius:14px;
-  background:linear-gradient(135deg,#4fb6e8,#2563eb);
-  display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:18px;
-}
-header h2{font-size:18px;font-weight:600}
-header button{
-  background:#ef4444;border:none;color:white;
-  padding:10px 18px;border-radius:14px;
-  cursor:pointer;font-weight:600;
-}
-header button:hover{background:#dc2626}
 
-.container{max-width:1200px;margin:auto;padding:26px 20px}
+.header-left{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
 
+.logo{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+}
+
+header h2{
+  font-size:20px;
+  font-weight:600;
+}
+
+header a{
+  color:#fff;
+  text-decoration:none;
+  font-size:14px;
+  opacity:.9;
+}
+
+/* ================= CONTAINER ================= */
+.container{
+  max-width:1200px;
+  margin:auto;
+  padding:28px 22px;
+}
+
+/* ================= STATS CARDS ================= */
 .cards{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
   gap:20px;
 }
+
 .card{
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(18px);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:20px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:22px;
   padding:22px;
 }
-.card h3{font-size:14px;font-weight:500;color:#cbd5e1}
-.card p{margin-top:12px;font-size:28px;font-weight:600}
 
+.card h3{
+  font-size:13px;
+  color:#cbd5e1;
+  font-weight:500;
+}
+
+.card p{
+  font-size:28px;
+  margin-top:10px;
+  font-weight:600;
+}
+
+/* ================= LINKS ================= */
 .links{
   margin-top:34px;
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
   gap:18px;
 }
+
 .links a{
   text-decoration:none;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
+  color:#fff;
+  background:var(--glass);
+  border:1px solid var(--border);
+  padding:18px;
   border-radius:18px;
-  padding:18px 20px;
-  color:white;
-  font-weight:500;
-  display:flex;
-  justify-content:space-between;
+  transition:.25s;
 }
 
-.section{margin-top:40px}
-.section h3{margin-bottom:16px;font-size:18px}
-
-.order{
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.15);
-  border-radius:16px;
-  padding:16px;
-  margin-bottom:14px;
+.links a:hover{
+  border-color:var(--primary);
+  background:rgba(77,163,255,.12);
 }
-.order small{
-  display:block;
-  margin-top:6px;
-  color:#cbd5e1;
+
+/* =====================================================
+   RESPONSIVE — SAME SYSTEM AS STORE UI
+===================================================== */
+
+/* Tablet */
+@media (max-width:768px){
+  header{
+    padding:14px 16px;
+  }
+
+  .container{
+    padding:22px 16px;
+  }
+
+  header h2{
+    font-size:18px;
+  }
+}
+
+/* Mobile */
+@media (max-width:480px){
+  header{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+  }
+
+  .logo{
+    width:38px;
+    height:38px;
+    border-radius:12px;
+  }
+
+  header h2{
+    font-size:17px;
+  }
+
+  .card p{
+    font-size:24px;
+  }
+}
+
+/* Large screens */
+@media (min-width:1200px){
+  .container{
+    max-width:1280px;
+  }
 }
 </style>
 </head>
@@ -95,113 +177,85 @@ header button:hover{background:#dc2626}
 <body>
 
 <header>
-  <div class="brand">
+  <div class="header-left">
     <div class="logo">JD</div>
-    <h2>JD Admin Dashboard</h2>
+    <h2>Admin Dashboard</h2>
   </div>
-  <button onclick="logout()">Logout</button>
+
+  <a href="../index.html">Go to Store →</a>
 </header>
 
 <div class="container">
 
   <div class="cards">
-    <div class="card"><h3>Total Products</h3><p id="totalProducts">—</p></div>
-    <div class="card"><h3>Total Orders</h3><p id="totalOrders">—</p></div>
-    <div class="card"><h3>Total Users</h3><p id="totalUsers">—</p></div>
-    <div class="card"><h3>Total Revenue</h3><p id="totalRevenue">—</p></div>
+    <div class="card">
+      <h3>Total Products</h3>
+      <p id="totalProducts">—</p>
+    </div>
+
+    <div class="card">
+      <h3>Total Orders</h3>
+      <p id="totalOrders">—</p>
+    </div>
+
+    <div class="card">
+      <h3>Total Revenue (Delivered)</h3>
+      <p id="totalRevenue">₹0</p>
+    </div>
+
+    <div class="card">
+      <h3>Total Users</h3>
+      <p id="totalUsers">—</p>
+    </div>
   </div>
 
   <div class="links">
-    <a href="admin-products.html">📦 Manage Products →</a>
-    <a href="admin-orders.html">🧾 View Orders →</a>
-    <a href="admin-users.html">👥 Users →</a>
-  </div>
-
-  <div class="section">
-    <h3>Recent Orders</h3>
-    <div id="recentOrders">Loading...</div>
+    <a href="admin-products.html">📦 Manage Products</a>
+    <a href="admin-orders.html">📑 Manage Orders</a>
+    <a href="admin-users.html">👥 Manage Users</a>
+    <a href="../index.html">🛒 View Store</a>
   </div>
 
 </div>
 
 <script>
-"use strict";
+const BASE = "http://localhost:5000";
 
-const API_BASE = "https://shopx-production-b1ad.up.railway.app";
+const formatMoney = n =>
+  "₹" + Number(n || 0).toLocaleString("en-IN");
 
-/* AUTH GUARD */
-const token = localStorage.getItem("adminToken");
-if (!token) location.replace("admin-login.html");
-
-/* AUTH FETCH */
-async function authFetch(endpoint){
-  const res = await fetch(API_BASE + endpoint,{
-    headers:{
-      Authorization:"Bearer " + token,
-      "Content-Type":"application/json"
-    }
-  });
-
-  if(res.status === 401 || res.status === 403){
-    forceLogout();
-    throw new Error("Unauthorized");
-  }
-  return res.json();
-}
-
-/* TIME AGO */
-function timeAgo(dateString){
-  const now = new Date();
-  const date = new Date(dateString);
-  const seconds = Math.floor((now - date) / 1000);
-
-  if(seconds < 60) return "Just now";
-  if(seconds < 3600) return Math.floor(seconds/60) + " min ago";
-  if(seconds < 86400) return Math.floor(seconds/3600) + " hrs ago";
-  if(seconds < 172800) return "Yesterday";
-
-  return date.toLocaleDateString();
-}
-
-/* LOAD DASHBOARD */
-(async ()=>{
+async function loadDashboard(){
   try{
-    const stats = await authFetch("/api/admin/stats");
-    totalProducts.innerText = stats.products;
-    totalOrders.innerText = stats.orders;
-    totalUsers.innerText = stats.users;
-    totalRevenue.innerText = "₹" + stats.revenue;
+    const [statsRes, usersRes] = await Promise.all([
+      fetch(BASE + "/api/admin/stats"),
+      fetch(BASE + "/api/admin/users")
+    ]);
 
-    const orders = await authFetch("/api/admin/recent-orders");
-    const recentOrders = document.getElementById("recentOrders");
+    const stats = await statsRes.json();
+    const users = await usersRes.json();
 
-    if(!orders || orders.length === 0){
-      recentOrders.innerHTML = "<p>No recent orders</p>";
-      return;
-    }
+    document.getElementById("totalProducts").innerText =
+      Number(stats.products || 0);
 
-    recentOrders.innerHTML = orders.map(o=>`
-      <div class="order">
-        <strong>${o.name || "Guest"}</strong>
-        <small>₹${o.total} • ${timeAgo(o.created_at)}</small>
-      </div>
-    `).join("");
+    document.getElementById("totalOrders").innerText =
+      Number(stats.orders || 0);
+
+    document.getElementById("totalRevenue").innerText =
+      formatMoney(stats.revenue);
+
+    document.getElementById("totalUsers").innerText =
+      Array.isArray(users) ? users.length : 0;
 
   }catch(err){
     console.error(err);
-    document.getElementById("recentOrders").innerHTML =
-      "<p style='color:#f87171'>Failed to load orders</p>";
+    document.getElementById("totalProducts").innerText = "0";
+    document.getElementById("totalOrders").innerText = "0";
+    document.getElementById("totalRevenue").innerText = "₹0";
+    document.getElementById("totalUsers").innerText = "0";
   }
-})();
+}
 
-/* LOGOUT */
-function logout(){
-  forceLogout();
-}
-function forceLogout(){
-  localStorage.removeItem("adminToken");
-  location.replace("admin-login.html");
-}
+loadDashboard();
 </script>
 
 </body>

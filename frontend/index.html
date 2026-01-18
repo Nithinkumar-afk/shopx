@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JD Store</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  --glass:rgba(255,255,255,.06);
+  --border:rgba(255,255,255,.12);
+  --primary:#4da3ff;
+  --primary2:#2b6df6;
+}
+
+body{
+  font-family:Poppins,sans-serif;
+  background:radial-gradient(circle at top,#0b0b0b,#000);
+  color:#fff;
+  min-height:100vh;
+}
+
+/* ================= HEADER ================= */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 28px;
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(14px);
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+
+.logo{
+  font-size:22px;
+  font-weight:600;
+  cursor:pointer;
+}
+.logo span:first-child{color:var(--primary)}
+
+#search{
+  width:40%;
+  max-width:420px;
+  padding:12px 18px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:var(--glass);
+  color:white;
+  outline:none;
+}
+
+.header-right{
+  display:flex;
+  gap:14px;
+  align-items:center;
+}
+
+/* ================= PROFILE ================= */
+.profile-wrapper{position:relative}
+
+.profile-btn{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  padding:8px 14px;
+  border-radius:999px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  cursor:pointer;
+}
+
+.avatar{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:600;
+}
+
+.profile-menu{
+  position:absolute;
+  top:55px;
+  right:0;
+  min-width:180px;
+  background:#0f0f0f;
+  border:1px solid var(--border);
+  border-radius:14px;
+  display:none;
+  flex-direction:column;
+  overflow:hidden;
+  z-index:100;
+}
+
+.profile-menu button{
+  padding:12px 16px;
+  background:none;
+  border:none;
+  color:white;
+  text-align:left;
+  cursor:pointer;
+}
+
+.profile-menu button:hover{
+  background:rgba(255,255,255,.06);
+}
+
+.profile-menu .logout{color:#ff6b6b}
+
+/* ================= CART ================= */
+.cart{
+  padding:10px 18px;
+  border-radius:999px;
+  border:none;
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  color:white;
+  cursor:pointer;
+}
+
+/* ================= BODY ================= */
+.container{
+  padding:26px;
+}
+
+.products{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:22px;
+}
+
+/* ================= PRODUCT CARD ================= */
+.product{
+  background:#0f0f0f;
+  border:1px solid var(--border);
+  border-radius:22px;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.img-box{
+  width:100%;
+  height:220px;
+  border-radius:14px;
+  overflow:hidden;
+  background:#000;
+  cursor:pointer;
+}
+
+.img-box img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transition:transform .3s ease;
+}
+
+.product:hover .img-box img{
+  transform:scale(1.05);
+}
+
+.product h3{
+  font-size:16px;
+  font-weight:500;
+  cursor:pointer;
+}
+
+.product p{
+  font-size:14px;
+  opacity:.85;
+}
+
+.cart-btn{
+  margin-top:auto;
+  padding:12px;
+  border-radius:12px;
+  border:none;
+  background:linear-gradient(135deg,var(--primary),var(--primary2));
+  color:white;
+  cursor:pointer;
+}
+
+.empty{
+  text-align:center;
+  color:#aaa;
+  padding:60px;
+  grid-column:1/-1;
+}
+
+/* ================= TOAST ================= */
+.toast{
+  position:fixed;
+  bottom:30px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#111;
+  padding:12px 22px;
+  border-radius:999px;
+  opacity:0;
+  transition:.3s;
+}
+.toast.show{opacity:1}
+
+/* ================= PRODUCT MODAL ================= */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:200;
+}
+
+.modal{
+  background:#0f0f0f;
+  border:1px solid var(--border);
+  border-radius:22px;
+  max-width:420px;
+  width:90%;
+  padding:20px;
+  animation:pop .35s ease;
+  position:relative;
+}
+
+@keyframes pop{
+  from{transform:scale(.85);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+
+.modal img{
+  width:100%;
+  height:240px;
+  object-fit:cover;
+  border-radius:14px;
+}
+
+.modal h2{margin:12px 0 6px}
+.modal p{opacity:.85}
+
+.modal .close{
+  position:absolute;
+  top:14px;
+  right:18px;
+  font-size:20px;
+  cursor:pointer;
+}
+
+/* =====================================================
+   RESPONSIVE DESIGN – PRODUCTION LEVEL
+===================================================== */
+
+@media (max-width:1024px){
+  #search{width:45%}
+  .container{padding:22px}
+}
+
+@media (max-width:768px){
+  header{flex-wrap:wrap;gap:14px}
+  #search{order:3;width:100%;max-width:100%}
+  .profile-btn span{display:none}
+  .products{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+}
+
+@media (max-width:480px){
+  header{padding:12px 14px}
+  .logo{font-size:18px}
+  .avatar{width:32px;height:32px}
+  .cart{padding:8px 14px;font-size:14px}
+  .container{padding:14px}
+  .products{grid-template-columns:1fr}
+  .img-box{height:190px}
+  .modal img{height:200px}
+}
+
+@media (max-width:360px){
+  .logo{font-size:16px}
+  .img-box{height:170px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo" onclick="location.href='index.html'">
+    <span>J</span><span>D</span>
+  </div>
+
+  <input id="search" placeholder="Search products">
+
+  <div class="header-right">
+    <div class="profile-wrapper">
+      <div class="profile-btn" onclick="toggleProfileMenu()">
+        <div class="avatar" id="avatar">G</div>
+        <span id="profileName">Guest</span>
+      </div>
+
+      <div class="profile-menu" id="profileMenu">
+        <button onclick="location.href='user/orders.html'">📦 My Orders</button>
+        <button onclick="location.href='user/profile.html'">👤 Profile</button>
+        <button class="logout" onclick="logout()">🚪 Logout</button>
+      </div>
+    </div>
+
+    <button class="cart" onclick="location.href='user/cart.html'">
+      Cart (<span id="cartCount">0</span>)
+    </button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="products" id="products"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <span class="close" onclick="closeModal()">✕</span>
+    <img id="modalImg">
+    <h2 id="modalName"></h2>
+    <p id="modalPrice"></p>
+  </div>
+</div>
+
+<script>
+const BASE_URL="http://localhost:5000";
+const API=BASE_URL+"/api/products";
+const FALLBACK="https://via.placeholder.com/300x200?text=No+Image";
+
+let productsData=[];
+let cart=JSON.parse(localStorage.getItem("cart"))||[];
+
+const products=document.getElementById("products");
+const cartCount=document.getElementById("cartCount");
+const search=document.getElementById("search");
+const toast=document.getElementById("toast");
+const profileMenu=document.getElementById("profileMenu");
+const avatarEl=document.getElementById("avatar");
+const profileNameEl=document.getElementById("profileName");
+
+cartCount.textContent=cart.length;
+
+const user=JSON.parse(localStorage.getItem("user"));
+if(user?.name){
+  profileNameEl.textContent=user.name;
+  avatarEl.textContent=user.name[0].toUpperCase();
+}
+
+const modal=document.getElementById("modal");
+const modalImg=document.getElementById("modalImg");
+const modalName=document.getElementById("modalName");
+const modalPrice=document.getElementById("modalPrice");
+
+function openModal(id){
+  const p=productsData.find(p=>p.id===id);
+  if(!p)return;
+  modalImg.src=p.image;
+  modalName.textContent=p.name;
+  modalPrice.textContent="₹"+p.price;
+  modal.style.display="flex";
+}
+
+function closeModal(){modal.style.display="none"}
+modal.onclick=e=>{if(e.target===modal)closeModal()}
+
+const normalize=v=>(v||"").toLowerCase().trim();
+
+function showToast(msg){
+  toast.textContent=msg;
+  toast.classList.add("show");
+  setTimeout(()=>toast.classList.remove("show"),2000);
+}
+
+function toggleProfileMenu(){
+  profileMenu.style.display=
+    profileMenu.style.display==="flex"?"none":"flex";
+}
+
+function logout(){
+  localStorage.clear();
+  showToast("Logged out");
+  setTimeout(()=>location.href="index.html",700);
+}
+
+fetch(API)
+.then(r=>r.json())
+.then(data=>{
+  productsData=data.map(p=>({
+    id:p.id,
+    name:p.name,
+    price:+p.price,
+    image:p.image?(p.image.startsWith("http")?p.image:BASE_URL+p.image):FALLBACK
+  }));
+  renderProducts();
+});
+
+function renderProducts(){
+  const q=normalize(search.value);
+  products.innerHTML="";
+  productsData.filter(p=>normalize(p.name).includes(q)).forEach(p=>{
+    products.insertAdjacentHTML("beforeend",`
+      <div class="product">
+        <div class="img-box" onclick="openModal(${p.id})">
+          <img src="${p.image}">
+        </div>
+        <h3 onclick="openModal(${p.id})">${p.name}</h3>
+        <p>₹${p.price}</p>
+        <button class="cart-btn" onclick="addToCart(${p.id})">Add to Cart</button>
+      </div>
+    `);
+  });
+}
+
+function addToCart(id){
+  if(cart.some(i=>i.id===id))return showToast("Already in cart");
+  const p=productsData.find(p=>p.id===id);
+  cart.push({...p,quantity:1});
+  localStorage.setItem("cart",JSON.stringify(cart));
+  cartCount.textContent=cart.length;
+  showToast("Added to cart 🛒");
+}
+
+search.oninput=renderProducts;
+</script>
+
+</body>
+</html>
