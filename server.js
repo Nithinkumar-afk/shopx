@@ -39,19 +39,27 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ================================
-// DATABASE (RAILWAY READY)
+// DATABASE (RAILWAY FIXED)
 // ================================
 const db = mysql.createPool({
-  host: process.env.MYSQL_HOST,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
-  port: process.env.MYSQL_PORT,
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
+  port: process.env.MYSQLPORT,
   waitForConnections: true,
   connectionLimit: 10,
 });
 
-console.log("✅ MySQL Pool Ready");
+// TEST DB CONNECTION
+db.getConnection()
+  .then(conn => {
+    console.log("✅ MySQL Connected");
+    conn.release();
+  })
+  .catch(err => {
+    console.error("❌ MySQL Connection Failed:", err.message);
+  });
 
 // ================================
 // HELPER – USER ID (HEADER BASED)
