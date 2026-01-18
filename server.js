@@ -12,7 +12,7 @@ const mysql = require("mysql2/promise");
 // APP
 // ================================
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // ================================
 // MIDDLEWARE
@@ -39,13 +39,14 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ================================
-// DATABASE
+// DATABASE (RAILWAY READY)
 // ================================
 const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "ecommerce_db",
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: process.env.MYSQL_PORT,
   waitForConnections: true,
   connectionLimit: 10,
 });
@@ -172,7 +173,7 @@ app.post("/api/profile/address", async (req, res) => {
 });
 
 // ================================
-// PLACE ORDER (PROFILE REQUIRED)
+// PLACE ORDER
 // ================================
 app.post("/api/orders", async (req, res) => {
   const userId = getUserId(req);
@@ -183,7 +184,6 @@ app.post("/api/orders", async (req, res) => {
   if (!items.length)
     return res.status(400).json({ error: "No items" });
 
-  // 🔐 CHECK PROFILE COMPLETENESS
   const [rows] = await db.query(
     `SELECT u.name,u.phone,a.address_line
      FROM users u
@@ -255,30 +255,7 @@ app.get("/api/orders", async (_, res) => {
 });
 
 // ================================
-// USER – CANCEL ORDER
-// ================================
-app.put("/api/orders/:id/cancel", async (req, res) => {
-  const [rows] = await db.query(
-    "SELECT status FROM orders WHERE id=?",
-    [req.params.id]
-  );
-
-  if (!rows.length)
-    return res.status(404).json({ error: "Order not found" });
-
-  if (rows[0].status !== "PLACED")
-    return res.status(400).json({ error: "Cannot cancel now" });
-
-  await db.query(
-    "UPDATE orders SET status='CANCELLED' WHERE id=?",
-    [req.params.id]
-  );
-
-  res.json({ success: true });
-});
-
-// ================================
-// ADMIN – UPDATE ORDER STATUS
+// ADMIN
 // ================================
 app.put("/api/admin/orders/:id", async (req, res) => {
   const { status } = req.body;
@@ -292,9 +269,6 @@ app.put("/api/admin/orders/:id", async (req, res) => {
   res.json({ success: true });
 });
 
-// ================================
-// ADMIN – DELETE ORDER
-// ================================
 app.delete("/api/admin/orders/:id", async (req, res) => {
   await db.query("DELETE FROM order_items WHERE order_id=?", [req.params.id]);
   await db.query("DELETE FROM orders WHERE id=?", [req.params.id]);
@@ -302,7 +276,7 @@ app.delete("/api/admin/orders/:id", async (req, res) => {
 });
 
 // ================================
-// ADMIN USERS
+// ADMIN USERS & STATS
 // ================================
 app.get("/api/admin/users", async (_, res) => {
   const [rows] = await db.query(
@@ -314,9 +288,6 @@ app.get("/api/admin/users", async (_, res) => {
   res.json(rows);
 });
 
-// ================================
-// ADMIN DASHBOARD STATS
-// ================================
 app.get("/api/admin/stats", async (_, res) => {
   const [[products]] = await db.query("SELECT COUNT(*) AS count FROM products");
   const [[orders]] = await db.query("SELECT COUNT(*) AS count FROM orders");
@@ -334,9 +305,8 @@ app.get("/api/admin/stats", async (_, res) => {
 });
 
 // ================================
-// START
+// START SERVER
 // ================================
 app.listen(PORT, () => {
-  console.log(`🚀 Backend running → http://localhost:${PORT}`);
+  console.log(`🚀 Backend running on port ${PORT}`);
 });
-
