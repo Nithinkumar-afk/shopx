@@ -12,12 +12,17 @@ const mysql = require("mysql2/promise");
 // APP
 // ================================
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
 // ================================
 // MIDDLEWARE
 // ================================
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","x-api-key","x-user-id"]
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,6 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 // ================================
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
+
 app.use("/uploads", express.static(UPLOAD_DIR));
 
 // ================================
@@ -34,149 +40,107 @@ app.use("/uploads", express.static(UPLOAD_DIR));
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOAD_DIR),
   filename: (_, file, cb) =>
-    cb(null, Date.now() + "-" + file.originalname),
+    cb(null, Date.now() + "-" + file.originalname)
 });
-const upload = multer({ storage });
+
+const upload = multer({
+  storage,
+  fileFilter: (_, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only images allowed"));
+    }
+    cb(null, true);
+  }
+});
 
 // ================================
-// DATABASE (RAILWAY FIXED)
+// DATABASE
 // ================================
-const db = mysql.createPool({
+const pool = mysql.createPool({
   host: process.env.MYSQLHOST,
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
   database: process.env.MYSQLDATABASE,
   port: process.env.MYSQLPORT,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 10
 });
 
-// TEST DB CONNECTION
-db.getConnection()
-  .then(conn => {
+(async () => {
+  try {
+    const c = await pool.getConnection();
     console.log("✅ MySQL Connected");
-    conn.release();
-  })
-  .catch(err => {
-    console.error("❌ MySQL Connection Failed:", err.message);
-  });
+    c.release();
+  } catch (e) {
+    console.error("❌ MySQL Error:", e.message);
+  }
+})();
 
 // ================================
-// HELPER – USER ID (HEADER BASED)
+// HELPERS
 // ================================
-function getUserId(req) {
-  const id = req.headers["x-user-id"];
-  return id ? Number(id) : null;
-}
+const getUserId = req =>
+  Number(req.headers["x-user-id"]) || null;
+
+const adminAuth = (req, res, next) => {
+  if (req.headers["x-api-key"] !== process.env.ADMIN_API_KEY) {
+    return res.status(401).json({ error: "Unauthorized admin" });
+  }
+  next();
+};
 
 // ================================
-// TEST
+// ROOT
 // ================================
 app.get("/", (_, res) => {
   res.send("JD Infotech Backend Running 🚀");
 });
 
 // ================================
-// USER INIT (NO LOGIN)
+// USER INIT
 // ================================
 app.post("/api/user/init", async (_, res) => {
-  const [r] = await db.query(
-    "INSERT INTO users (name) VALUES ('Guest User')"
-  );
-  res.json({ userId: r.insertId });
+  try {
+    const [r] = await pool.query(
+      "INSERT INTO users (name) VALUES ('Guest User')"
+    );
+    res.json({ userId: r.insertId });
+  } catch {
+    res.status(500).json({ error: "User init failed" });
+  }
 });
 
 // ================================
 // PRODUCTS
 // ================================
 app.get("/api/products", async (_, res) => {
-  const [rows] = await db.query(
+  const [rows] = await pool.query(
     "SELECT * FROM products ORDER BY id DESC"
   );
   res.json(rows);
 });
 
-app.post("/api/products", upload.single("image"), async (req, res) => {
-  const { name, price, description } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : "";
+app.post("/api/products",
+  adminAuth,
+  upload.single("image"),
+  async (req, res) => {
+    const { name, price, description } = req.body;
+    const image = req.file ? `/uploads/${req.file.filename}` : "";
 
-  await db.query(
-    "INSERT INTO products (name,price,image,description) VALUES (?,?,?,?)",
-    [name, price, image, description || ""]
-  );
-
-  res.json({ success: true });
-});
-
-app.delete("/api/products/:id", async (req, res) => {
-  await db.query("DELETE FROM products WHERE id=?", [req.params.id]);
-  res.json({ success: true });
-});
-
-// ================================
-// PROFILE
-// ================================
-app.get("/api/profile", async (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.json({});
-
-  const [rows] = await db.query(
-    `SELECT u.id,u.name,u.phone,u.alt_phone,u.image,a.address_line
-     FROM users u
-     LEFT JOIN addresses a ON u.id=a.user_id
-     WHERE u.id=?`,
-    [userId]
-  );
-
-  res.json(rows[0] || {});
-});
-
-app.post("/api/profile", upload.single("image"), async (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.sendStatus(401);
-
-  const { name, phone, altPhone } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : null;
-
-  await db.query(
-    `UPDATE users SET
-     name=COALESCE(NULLIF(?,''),name),
-     phone=COALESCE(NULLIF(?,''),phone),
-     alt_phone=COALESCE(NULLIF(?,''),alt_phone),
-     image=COALESCE(?,image)
-     WHERE id=?`,
-    [name, phone, altPhone, image, userId]
-  );
-
-  res.json({ success: true });
-});
-
-// ================================
-// ADDRESS
-// ================================
-app.post("/api/profile/address", async (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.sendStatus(401);
-
-  const { address_line } = req.body;
-
-  const [rows] = await db.query(
-    "SELECT id FROM addresses WHERE user_id=?",
-    [userId]
-  );
-
-  if (rows.length) {
-    await db.query(
-      "UPDATE addresses SET address_line=? WHERE user_id=?",
-      [address_line, userId]
+    await pool.query(
+      "INSERT INTO products (name, price, image, description) VALUES (?,?,?,?)",
+      [name, price, image, description || ""]
     );
-  } else {
-    await db.query(
-      "INSERT INTO addresses (user_id,address_line) VALUES (?,?)",
-      [userId, address_line]
-    );
+
+    res.json({ success: true });
   }
+);
 
+app.delete("/api/products/:id", adminAuth, async (req, res) => {
+  await pool.query(
+    "DELETE FROM products WHERE id=?",
+    [req.params.id]
+  );
   res.json({ success: true });
 });
 
@@ -185,65 +149,54 @@ app.post("/api/profile/address", async (req, res) => {
 // ================================
 app.post("/api/orders", async (req, res) => {
   const userId = getUserId(req);
-  if (!userId)
-    return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) return res.sendStatus(401);
 
-  const { items = [], total_amount } = req.body;
-  if (!items.length)
-    return res.status(400).json({ error: "No items" });
+  const { items, total_amount } = req.body;
+  if (!items?.length) return res.status(400).json({ error: "No items" });
 
-  const [rows] = await db.query(
-    `SELECT u.name,u.phone,a.address_line
+  const [[u]] = await pool.query(
+    `SELECT u.name, u.phone, a.address_line
      FROM users u
      LEFT JOIN addresses a ON u.id=a.user_id
      WHERE u.id=?`,
     [userId]
   );
 
-  const p = rows[0];
-  if (!p || !p.name || !p.phone || !p.address_line) {
-    return res.status(400).json({
-      error: "Complete profile before placing order",
-    });
+  if (!u?.name || !u?.phone || !u?.address_line) {
+    return res.status(400).json({ error: "Complete profile" });
   }
 
-  const total = Number(total_amount) || 0;
-
-  const [order] = await db.query(
+  const [order] = await pool.query(
     `INSERT INTO orders
-     (customer_name,total_amount,status,created_at)
-     VALUES (?,?,?,NOW())`,
-    [p.name, total, "PLACED"]
+     (user_id, customer_name, total_amount, status, created_at)
+     VALUES (?,?,?,?,NOW())`,
+    [userId, u.name, total_amount, "PLACED"]
   );
 
-  const values = items.map(i => [
-    order.insertId,
-    i.name,
-    i.qty,
-    i.price,
-  ]);
-
-  await db.query(
-    "INSERT INTO order_items (order_id,name,quantity,price) VALUES ?",
-    [values]
-  );
+  for (const i of items) {
+    await pool.query(
+      `INSERT INTO order_items
+       (order_id, name, quantity, price)
+       VALUES (?,?,?,?)`,
+      [order.insertId, i.name, i.qty, i.price]
+    );
+  }
 
   res.json({ success: true, orderId: order.insertId });
 });
 
 // ================================
-// GET ORDERS
+// ADMIN ORDERS
 // ================================
-app.get("/api/orders", async (_, res) => {
-  const [orders] = await db.query(
+app.get("/api/admin/orders", adminAuth, async (_, res) => {
+  const [orders] = await pool.query(
     "SELECT * FROM orders ORDER BY id DESC"
   );
 
   if (!orders.length) return res.json([]);
 
   const ids = orders.map(o => o.id);
-
-  const [items] = await db.query(
+  const [items] = await pool.query(
     "SELECT * FROM order_items WHERE order_id IN (?)",
     [ids]
   );
@@ -254,62 +207,57 @@ app.get("/api/orders", async (_, res) => {
     map[i.order_id].push(i);
   });
 
-  orders.forEach(o => {
-    o.items = map[o.id] || [];
-    o.total_amount = Number(o.total_amount) || 0;
-  });
-
+  orders.forEach(o => o.items = map[o.id] || []);
   res.json(orders);
 });
 
 // ================================
-// ADMIN
+// UPDATE ORDER STATUS
 // ================================
-app.put("/api/admin/orders/:id", async (req, res) => {
-  const { status } = req.body;
-  const deliveredAt = status === "DELIVERED" ? new Date() : null;
-
-  await db.query(
-    "UPDATE orders SET status=?, delivered_at=? WHERE id=?",
-    [status, deliveredAt, req.params.id]
+app.put("/api/admin/orders/:id", adminAuth, async (req, res) => {
+  await pool.query(
+    "UPDATE orders SET status=? WHERE id=?",
+    [req.body.status, req.params.id]
   );
-
-  res.json({ success: true });
-});
-
-app.delete("/api/admin/orders/:id", async (req, res) => {
-  await db.query("DELETE FROM order_items WHERE order_id=?", [req.params.id]);
-  await db.query("DELETE FROM orders WHERE id=?", [req.params.id]);
   res.json({ success: true });
 });
 
 // ================================
-// ADMIN USERS & STATS
+// DELETE ORDER
 // ================================
-app.get("/api/admin/users", async (_, res) => {
-  const [rows] = await db.query(
-    `SELECT u.id,u.name,u.phone,u.alt_phone,u.image,a.address_line
-     FROM users u
-     LEFT JOIN addresses a ON u.id=a.user_id
-     ORDER BY u.id DESC`
+app.delete("/api/admin/orders/:id", adminAuth, async (req, res) => {
+  await pool.query(
+    "DELETE FROM order_items WHERE order_id=?",
+    [req.params.id]
   );
-  res.json(rows);
+  await pool.query(
+    "DELETE FROM orders WHERE id=?",
+    [req.params.id]
+  );
+  res.json({ success: true });
 });
 
-app.get("/api/admin/stats", async (_, res) => {
-  const [[products]] = await db.query("SELECT COUNT(*) AS count FROM products");
-  const [[orders]] = await db.query("SELECT COUNT(*) AS count FROM orders");
-  const [[revenue]] = await db.query(
-    "SELECT COALESCE(SUM(total_amount),0) AS total FROM orders WHERE status='DELIVERED'"
-  );
-  const [[users]] = await db.query("SELECT COUNT(*) AS count FROM users");
+// ================================
+// ADMIN STATS
+// ================================
+app.get("/api/admin/stats", adminAuth, async (_, res) => {
+  const [[p]] = await pool.query("SELECT COUNT(*) c FROM products");
+  const [[o]] = await pool.query("SELECT COUNT(*) c FROM orders");
+  const [[r]] = await pool.query("SELECT SUM(total_amount) s FROM orders");
 
   res.json({
-    products: Number(products.count),
-    orders: Number(orders.count),
-    revenue: Number(revenue.total),
-    users: Number(users.count),
+    products: p.c,
+    orders: o.c,
+    revenue: r.s || 0
   });
+});
+
+// ================================
+// ADMIN USERS
+// ================================
+app.get("/api/admin/users", adminAuth, async (_, res) => {
+  const [u] = await pool.query("SELECT * FROM users");
+  res.json(u);
 });
 
 // ================================
