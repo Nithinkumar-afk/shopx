@@ -17,26 +17,25 @@ const PORT = process.env.PORT || 8080;
 // ================================
 // MIDDLEWARE
 // ================================
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "x-user-id", "x-api-key"],
-  })
-);
+app.use(cors({
+  origin: "*",
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type", "x-api-key", "x-user-id"]
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ================================
-// UPLOADS (⚠️ Railway storage is TEMPORARY)
+// UPLOADS
 // ================================
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
+
 app.use("/uploads", express.static(UPLOAD_DIR));
 
 // ================================
-// MULTER (IMAGE UPLOAD)
+// MULTER
 // ================================
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOAD_DIR),
@@ -48,14 +47,14 @@ const upload = multer({
   storage,
   fileFilter: (_, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
-      return cb(new Error("Only image files allowed"));
+      return cb(new Error("Only images allowed"));
     }
     cb(null, true);
   },
 });
 
 // ================================
-// DATABASE (MYSQL POOL - RAILWAY)
+// DATABASE (POOL)
 // ================================
 const pool = mysql.createPool({
   host: process.env.MYSQLHOST,
@@ -65,19 +64,18 @@ const pool = mysql.createPool({
   port: process.env.MYSQLPORT,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
 });
 
 // ================================
-// TEST DB CONNECTION
+// TEST DB
 // ================================
 (async () => {
   try {
-    const conn = await pool.getConnection();
-    console.log("✅ MySQL Pool Ready");
-    conn.release();
-  } catch (err) {
-    console.error("❌ MySQL Connection Error:", err.message);
+    const c = await pool.getConnection();
+    console.log("✅ MySQL Connected");
+    c.release();
+  } catch (e) {
+    console.error("❌ MySQL Error:", e.message);
   }
 })();
 
@@ -90,7 +88,7 @@ function getUserId(req) {
 }
 
 // ================================
-// ADMIN AUTH
+// ADMIN AUTH (FIXED)
 // ================================
 function adminAuth(req, res, next) {
   if (req.headers["x-api-key"] !== process.env.ADMIN_API_KEY) {
@@ -107,17 +105,15 @@ app.get("/", (_, res) => {
 });
 
 // ================================
-// USER INIT (GUEST USER)
+// USER INIT
 // ================================
 app.post("/api/user/init", async (_, res) => {
   try {
-    const [result] = await pool.query(
-      "INSERT INTO users (name) VALUES (?)",
-      ["Guest User"]
+    const [r] = await pool.query(
+      "INSERT INTO users (name) VALUES ('Guest User')"
     );
-    res.json({ userId: result.insertId });
-  } catch (err) {
-    console.error("USER INIT ERROR:", err.message);
+    res.json({ userId: r.insertId });
+  } catch (e) {
     res.status(500).json({ error: "User init failed" });
   }
 });
@@ -127,10 +123,9 @@ app.post("/api/user/init", async (_, res) => {
 // ================================
 app.get("/api/products", async (_, res) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM products");
+    const [rows] = await pool.query("SELECT * FROM products ORDER BY id DESC");
     res.json(rows);
-  } catch (err) {
-    console.error("PRODUCT API ERROR:", err.message);
+  } catch {
     res.status(500).json({ error: "Failed to load products" });
   }
 });
@@ -150,12 +145,21 @@ app.post(
       );
 
       res.json({ success: true });
-    } catch (err) {
-      console.error("ADD PRODUCT ERROR:", err.message);
-      res.status(500).json({ error: "Failed to add product" });
+    } catch {
+      res.status(500).json({ error: "Add product failed" });
     }
   }
 );
+
+// ✅ DELETE PRODUCT (FIXED)
+app.delete("/api/products/:id", adminAuth, async (req, res) => {
+  try {
+    await pool.query("DELETE FROM products WHERE id=?", [req.params.id]);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
 
 // ================================
 // PLACE ORDER
@@ -165,79 +169,66 @@ app.post("/api/orders", async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.sendStatus(401);
 
-    const { items = [], total_amount } = req.body;
-    if (!items.length) {
-      return res.status(400).json({ error: "No items in order" });
-    }
+    const { items, total_amount } = req.body;
+    if (!items?.length) return res.status(400).json({ error: "No items" });
 
-    const [[profile]] = await pool.query(
+    const [[u]] = await pool.query(
       `SELECT u.name, u.phone, a.address_line
        FROM users u
        LEFT JOIN addresses a ON u.id = a.user_id
-       WHERE u.id = ?`,
+       WHERE u.id=?`,
       [userId]
     );
 
-    if (!profile?.name || !profile?.phone || !profile?.address_line) {
-      return res.status(400).json({
-        error: "Complete profile before placing order",
-      });
+    if (!u?.name || !u?.phone || !u?.address_line) {
+      return res.status(400).json({ error: "Complete profile" });
     }
 
     const [order] = await pool.query(
-      `INSERT INTO orders
-       (user_id, customer_name, total_amount, status, created_at)
-       VALUES (?,?,?,?,NOW())`,
-      [userId, profile.name, Number(total_amount), "PLACED"]
+      "INSERT INTO orders (user_id, customer_name, total_amount, status, created_at) VALUES (?,?,?,?,NOW())",
+      [userId, u.name, total_amount, "PLACED"]
     );
 
-    for (const item of items) {
+    for (const i of items) {
       await pool.query(
-        `INSERT INTO order_items (order_id, name, quantity, price)
-         VALUES (?,?,?,?)`,
-        [order.insertId, item.name, item.qty, item.price]
+        "INSERT INTO order_items (order_id, name, quantity, price) VALUES (?,?,?,?)",
+        [order.insertId, i.name, i.qty, i.price]
       );
     }
 
     res.json({ success: true, orderId: order.insertId });
-  } catch (err) {
-    console.error("ORDER ERROR:", err.message);
+
+  } catch {
     res.status(500).json({ error: "Order failed" });
   }
 });
 
 // ================================
-// ADMIN – VIEW ORDERS
+// ADMIN ORDERS
 // ================================
 app.get("/api/admin/orders", adminAuth, async (_, res) => {
   try {
-    const [orders] = await pool.query(
-      "SELECT * FROM orders ORDER BY id DESC"
-    );
+    const [orders] = await pool.query("SELECT * FROM orders ORDER BY id DESC");
+    const ids = orders.map(o => o.id);
 
-    if (!orders.length) return res.json([]);
+    if (!ids.length) return res.json([]);
 
-    const orderIds = orders.map(o => o.id);
     const [items] = await pool.query(
       "SELECT * FROM order_items WHERE order_id IN (?)",
-      [orderIds]
+      [ids]
     );
 
-    const itemMap = {};
+    const map = {};
     items.forEach(i => {
-      if (!itemMap[i.order_id]) itemMap[i.order_id] = [];
-      itemMap[i.order_id].push(i);
+      if (!map[i.order_id]) map[i.order_id] = [];
+      map[i.order_id].push(i);
     });
 
-    orders.forEach(o => {
-      o.items = itemMap[o.id] || [];
-      o.total_amount = Number(o.total_amount) || 0;
-    });
-
+    orders.forEach(o => o.items = map[o.id] || []);
     res.json(orders);
-  } catch (err) {
-    console.error("ADMIN ORDERS ERROR:", err.message);
-    res.status(500).json({ error: "Failed to load orders" });
+
+  } catch {
+    res.status(500).json({ error: "Load orders failed" });
   }
 });
 
