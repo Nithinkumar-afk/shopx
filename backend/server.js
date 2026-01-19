@@ -17,19 +17,26 @@ const PORT = process.env.PORT || 8080;
 // ================================
 // MIDDLEWARE
 // ================================
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "x-user-id", "x-api-key"],
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ================================
-// UPLOADS
+// UPLOADS (⚠️ Railway storage is TEMPORARY)
 // ================================
 const UPLOAD_DIR = path.join(__dirname, "uploads");
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 app.use("/uploads", express.static(UPLOAD_DIR));
 
 // ================================
-// MULTER
+// MULTER (IMAGE UPLOAD)
 // ================================
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOAD_DIR),
@@ -41,14 +48,14 @@ const upload = multer({
   storage,
   fileFilter: (_, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
-      return cb(new Error("Only images allowed"));
+      return cb(new Error("Only image files allowed"));
     }
     cb(null, true);
   },
 });
 
 // ================================
-// DATABASE (POOL)
+// DATABASE (MYSQL POOL - RAILWAY)
 // ================================
 const pool = mysql.createPool({
   host: process.env.MYSQLHOST,
@@ -58,18 +65,19 @@ const pool = mysql.createPool({
   port: process.env.MYSQLPORT,
   waitForConnections: true,
   connectionLimit: 10,
+  queueLimit: 0,
 });
 
 // ================================
-// TEST DB
+// TEST DB CONNECTION
 // ================================
 (async () => {
   try {
-    const c = await pool.getConnection();
+    const conn = await pool.getConnection();
     console.log("✅ MySQL Pool Ready");
-    c.release();
-  } catch (e) {
-    console.error("❌ MySQL Error:", e.message);
+    conn.release();
+  } catch (err) {
+    console.error("❌ MySQL Connection Error:", err.message);
   }
 })();
 
@@ -99,15 +107,15 @@ app.get("/", (_, res) => {
 });
 
 // ================================
-// USER INIT
+// USER INIT (GUEST USER)
 // ================================
 app.post("/api/user/init", async (_, res) => {
   try {
-    const [r] = await pool.query(
+    const [result] = await pool.query(
       "INSERT INTO users (name) VALUES (?)",
       ["Guest User"]
     );
-    res.json({ userId: r.insertId });
+    res.json({ userId: result.insertId });
   } catch (err) {
     console.error("USER INIT ERROR:", err.message);
     res.status(500).json({ error: "User init failed" });
@@ -115,15 +123,15 @@ app.post("/api/user/init", async (_, res) => {
 });
 
 // ================================
-// PRODUCTS (UPDATED ✅)
+// PRODUCTS
 // ================================
-app.get("/api/products", async (req, res) => {
+app.get("/api/products", async (_, res) => {
   try {
     const [rows] = await pool.query("SELECT * FROM products");
     res.json(rows);
   } catch (err) {
-    console.error("PRODUCT API ERROR:", err);
-    res.status(500).json({ error: err.message });
+    console.error("PRODUCT API ERROR:", err.message);
+    res.status(500).json({ error: "Failed to load products" });
   }
 });
 
@@ -159,10 +167,10 @@ app.post("/api/orders", async (req, res) => {
 
     const { items = [], total_amount } = req.body;
     if (!items.length) {
-      return res.status(400).json({ error: "No items" });
+      return res.status(400).json({ error: "No items in order" });
     }
 
-    const [[p]] = await pool.query(
+    const [[profile]] = await pool.query(
       `SELECT u.name, u.phone, a.address_line
        FROM users u
        LEFT JOIN addresses a ON u.id = a.user_id
@@ -170,7 +178,7 @@ app.post("/api/orders", async (req, res) => {
       [userId]
     );
 
-    if (!p?.name || !p?.phone || !p?.address_line) {
+    if (!profile?.name || !profile?.phone || !profile?.address_line) {
       return res.status(400).json({
         error: "Complete profile before placing order",
       });
@@ -180,14 +188,14 @@ app.post("/api/orders", async (req, res) => {
       `INSERT INTO orders
        (user_id, customer_name, total_amount, status, created_at)
        VALUES (?,?,?,?,NOW())`,
-      [userId, p.name, Number(total_amount), "PLACED"]
+      [userId, profile.name, Number(total_amount), "PLACED"]
     );
 
-    for (const i of items) {
+    for (const item of items) {
       await pool.query(
         `INSERT INTO order_items (order_id, name, quantity, price)
          VALUES (?,?,?,?)`,
-        [order.insertId, i.name, i.qty, i.price]
+        [order.insertId, item.name, item.qty, item.price]
       );
     }
 
@@ -199,7 +207,7 @@ app.post("/api/orders", async (req, res) => {
 });
 
 // ================================
-// ADMIN – ORDERS
+// ADMIN – VIEW ORDERS
 // ================================
 app.get("/api/admin/orders", adminAuth, async (_, res) => {
   try {
@@ -209,20 +217,20 @@ app.get("/api/admin/orders", adminAuth, async (_, res) => {
 
     if (!orders.length) return res.json([]);
 
-    const ids = orders.map(o => o.id);
+    const orderIds = orders.map(o => o.id);
     const [items] = await pool.query(
       "SELECT * FROM order_items WHERE order_id IN (?)",
-      [ids]
+      [orderIds]
     );
 
-    const map = {};
+    const itemMap = {};
     items.forEach(i => {
-      if (!map[i.order_id]) map[i.order_id] = [];
-      map[i.order_id].push(i);
+      if (!itemMap[i.order_id]) itemMap[i.order_id] = [];
+      itemMap[i.order_id].push(i);
     });
 
     orders.forEach(o => {
-      o.items = map[o.id] || [];
+      o.items = itemMap[o.id] || [];
       o.total_amount = Number(o.total_amount) || 0;
     });
 

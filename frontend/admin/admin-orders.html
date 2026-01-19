@@ -149,10 +149,13 @@ let currentFilter = "ALL";
 async function loadOrders() {
   try {
     const res = await fetch(ADMIN_API, {
-      headers: { "x-api-key": ADMIN_KEY }
+      headers: {
+        "x-api-key": ADMIN_KEY
+      }
     });
 
     if (!res.ok) throw new Error("Unauthorized");
+
     allOrders = await res.json();
     renderOrders();
 
@@ -220,15 +223,15 @@ function renderOrders() {
   });
 }
 
-/* ================= UPDATE STATUS (ADDED) ================= */
+/* ================= UPDATE STATUS ================= */
 async function updateStatus(id, status) {
   if (!confirm(`Mark order as ${status}?`)) return;
 
-  await fetch(`${BASE}/api/admin/orders/${id}`, {
+  await fetch(`${ADMIN_API}/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": "JD_ADMIN_2026"
+      "x-api-key": ADMIN_KEY
     },
     body: JSON.stringify({ status })
   });
@@ -240,9 +243,11 @@ async function updateStatus(id, status) {
 async function deleteOrder(id) {
   if (!confirm("Delete this order permanently?")) return;
 
-  await fetch(`${BASE}/api/admin/orders/${id}`, {
+  await fetch(`${ADMIN_API}/${id}`, {
     method: "DELETE",
-    headers: { "x-api-key": ADMIN_KEY }
+    headers: {
+      "x-api-key": ADMIN_KEY
+    }
   });
 
   loadOrders();

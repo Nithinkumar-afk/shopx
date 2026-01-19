@@ -198,21 +198,12 @@ const ADMIN_USERS_API = BASE_URL + "/api/admin/users";
 const FALLBACK_IMG =
   "https://via.placeholder.com/80?text=User";
 
-/* ================= ADMIN AUTH ================= */
-let adminKey = localStorage.getItem("adminKey");
-
-if (!adminKey) {
-  adminKey = prompt("Enter Admin Key");
-  if (!adminKey) location.href = "../index.html";
-  localStorage.setItem("adminKey", adminKey);
-}
-
-/* ================= ADMIN FETCH ================= */
+/* ================= ADMIN FETCH (UPDATED) ================= */
 function adminFetch(url, options = {}) {
   return fetch(url, {
     ...options,
     headers: {
-      "x-admin-key": adminKey,
+      "x-api-key": "JD_ADMIN_2026",
       ...(options.headers || {})
     }
   });
@@ -277,7 +268,6 @@ async function loadUsers() {
 /* ================= INIT ================= */
 loadUsers();
 </script>
-
 
 </body>
 </html>
