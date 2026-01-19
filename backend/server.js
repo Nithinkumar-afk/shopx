@@ -48,9 +48,9 @@ const upload = multer({
 });
 
 // ================================
-// DATABASE
+// DATABASE (POOL)
 // ================================
-const db = mysql.createPool({
+const pool = mysql.createPool({
   host: process.env.MYSQLHOST,
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
@@ -65,7 +65,7 @@ const db = mysql.createPool({
 // ================================
 (async () => {
   try {
-    const c = await db.getConnection();
+    const c = await pool.getConnection();
     console.log("✅ MySQL Pool Ready");
     c.release();
   } catch (e) {
@@ -103,7 +103,7 @@ app.get("/", (_, res) => {
 // ================================
 app.post("/api/user/init", async (_, res) => {
   try {
-    const [r] = await db.query(
+    const [r] = await pool.query(
       "INSERT INTO users (name) VALUES (?)",
       ["Guest User"]
     );
@@ -115,17 +115,15 @@ app.post("/api/user/init", async (_, res) => {
 });
 
 // ================================
-// PRODUCTS (FIXED ✅)
+// PRODUCTS (UPDATED ✅)
 // ================================
-app.get("/api/products", async (_, res) => {
+app.get("/api/products", async (req, res) => {
   try {
-    const [products] = await db.query(
-      "SELECT * FROM products ORDER BY id DESC"
-    );
-    res.json(products);
+    const [rows] = await pool.query("SELECT * FROM products");
+    res.json(rows);
   } catch (err) {
-    console.error("PRODUCT FETCH ERROR:", err.message);
-    res.status(500).json({ error: "Failed to load products" });
+    console.error("PRODUCT API ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -138,7 +136,7 @@ app.post(
       const { name, price, description } = req.body;
       const image = req.file ? `/uploads/${req.file.filename}` : "";
 
-      await db.query(
+      await pool.query(
         "INSERT INTO products (name, price, image, description) VALUES (?,?,?,?)",
         [name, price, image, description || ""]
       );
@@ -164,7 +162,7 @@ app.post("/api/orders", async (req, res) => {
       return res.status(400).json({ error: "No items" });
     }
 
-    const [[p]] = await db.query(
+    const [[p]] = await pool.query(
       `SELECT u.name, u.phone, a.address_line
        FROM users u
        LEFT JOIN addresses a ON u.id = a.user_id
@@ -178,7 +176,7 @@ app.post("/api/orders", async (req, res) => {
       });
     }
 
-    const [order] = await db.query(
+    const [order] = await pool.query(
       `INSERT INTO orders
        (user_id, customer_name, total_amount, status, created_at)
        VALUES (?,?,?,?,NOW())`,
@@ -186,7 +184,7 @@ app.post("/api/orders", async (req, res) => {
     );
 
     for (const i of items) {
-      await db.query(
+      await pool.query(
         `INSERT INTO order_items (order_id, name, quantity, price)
          VALUES (?,?,?,?)`,
         [order.insertId, i.name, i.qty, i.price]
@@ -205,14 +203,14 @@ app.post("/api/orders", async (req, res) => {
 // ================================
 app.get("/api/admin/orders", adminAuth, async (_, res) => {
   try {
-    const [orders] = await db.query(
+    const [orders] = await pool.query(
       "SELECT * FROM orders ORDER BY id DESC"
     );
 
     if (!orders.length) return res.json([]);
 
     const ids = orders.map(o => o.id);
-    const [items] = await db.query(
+    const [items] = await pool.query(
       "SELECT * FROM order_items WHERE order_id IN (?)",
       [ids]
     );
