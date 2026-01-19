@@ -17,13 +17,7 @@ const PORT = process.env.PORT || 8080;
 // ================================
 // MIDDLEWARE
 // ================================
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "x-api-key", "x-user-id"]
-}));
-
-app.options("*", cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -37,14 +31,12 @@ app.use("/uploads", express.static(UPLOAD_DIR));
 // ================================
 // MULTER
 // ================================
-const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, UPLOAD_DIR),
-  filename: (_, file, cb) =>
-    cb(null, Date.now() + "-" + file.originalname)
-});
-
 const upload = multer({
-  storage,
+  storage: multer.diskStorage({
+    destination: (_, __, cb) => cb(null, UPLOAD_DIR),
+    filename: (_, file, cb) =>
+      cb(null, Date.now() + "-" + file.originalname)
+  }),
   fileFilter: (_, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
       return cb(new Error("Only images allowed"));
@@ -54,30 +46,34 @@ const upload = multer({
 });
 
 // ================================
-// DATABASE (FIXED)
+// DATABASE (RAILWAY SAFE)
 // ================================
-const pool = mysql.createPool({
-  host: process.env.MYSQLHOST || process.env.DB_HOST,
-  user: process.env.MYSQLUSER || process.env.DB_USER,
-  password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD,
-  database: "railway", // 🔥 FORCE correct DB
-  port: process.env.MYSQLPORT || process.env.DB_PORT,
-  waitForConnections: true,
-  connectionLimit: 10
-});
+const pool = mysql.createPool(
+  process.env.DATABASE_URL
+    ? process.env.DATABASE_URL
+    : {
+        host: process.env.MYSQLHOST,
+        user: process.env.MYSQLUSER,
+        password: process.env.MYSQLPASSWORD,
+        database: process.env.MYSQLDATABASE || "railway",
+        port: process.env.MYSQLPORT,
+        waitForConnections: true,
+        connectionLimit: 10
+      }
+);
 
 // ================================
-// DB TEST (IMPORTANT)
+// DB TEST
 // ================================
 (async () => {
   try {
     const conn = await pool.getConnection();
-    const [[db]] = await conn.query("SELECT DATABASE() AS db");
+    const [[r]] = await conn.query("SELECT DATABASE() AS db");
     console.log("✅ MySQL Connected");
-    console.log("📦 Using Database:", db.db);
+    console.log("📦 Using DB:", r.db);
     conn.release();
-  } catch (e) {
-    console.error("❌ MySQL Error:", e.message);
+  } catch (err) {
+    console.error("❌ MySQL connection failed:", err.message);
   }
 })();
 
@@ -101,7 +97,7 @@ app.get("/", (_, res) => {
 });
 
 // ================================
-// DB DEBUG (TEMPORARY – REMOVE LATER)
+// DB DEBUG (REMOVE LATER)
 // ================================
 app.get("/__dbtest", async (_, res) => {
   const [tables] = await pool.query("SHOW TABLES");
@@ -117,8 +113,9 @@ app.post("/api/user/init", async (_, res) => {
       "INSERT INTO users (name) VALUES ('Guest User')"
     );
     res.json({ userId: r.insertId });
-  } catch {
-    res.status(500).json({ error: "User init failed" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -131,12 +128,14 @@ app.get("/api/products", async (_, res) => {
       "SELECT * FROM products ORDER BY id DESC"
     );
     res.json(rows);
-  } catch {
-    res.status(500).json({ error: "Load products failed" });
+  } catch (err) {
+    console.error("❌ products:", err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.post("/api/products",
+app.post(
+  "/api/products",
   adminAuth,
   upload.single("image"),
   async (req, res) => {
@@ -150,8 +149,9 @@ app.post("/api/products",
       );
 
       res.json({ success: true });
-    } catch {
-      res.status(500).json({ error: "Add product failed" });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ error: err.message });
     }
   }
 );
@@ -160,13 +160,14 @@ app.delete("/api/products/:id", adminAuth, async (req, res) => {
   try {
     await pool.query("DELETE FROM products WHERE id=?", [req.params.id]);
     res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Delete product failed" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
 // ================================
-// PLACE ORDER
+// ORDERS
 // ================================
 app.post("/api/orders", async (req, res) => {
   try {
@@ -206,13 +207,14 @@ app.post("/api/orders", async (req, res) => {
     }
 
     res.json({ success: true, orderId: order.insertId });
-  } catch {
-    res.status(500).json({ error: "Order failed" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
 // ================================
-// ADMIN ROUTES (UNCHANGED)
+// ADMIN
 // ================================
 app.get("/api/admin/orders", adminAuth, async (_, res) => {
   try {
@@ -220,9 +222,9 @@ app.get("/api/admin/orders", adminAuth, async (_, res) => {
       "SELECT * FROM orders ORDER BY id DESC"
     );
 
-    if (!orders.length) return res.json([]);
-
     const ids = orders.map(o => o.id);
+    if (!ids.length) return res.json([]);
+
     const [items] = await pool.query(
       "SELECT * FROM order_items WHERE order_id IN (?)",
       [ids]
@@ -234,59 +236,11 @@ app.get("/api/admin/orders", adminAuth, async (_, res) => {
       map[i.order_id].push(i);
     });
 
-    orders.forEach(o => o.items = map[o.id] || []);
+    orders.forEach(o => (o.items = map[o.id] || []));
     res.json(orders);
-  } catch {
-    res.status(500).json({ error: "Load orders failed" });
-  }
-});
-
-app.put("/api/admin/orders/:id", adminAuth, async (req, res) => {
-  try {
-    await pool.query(
-      "UPDATE orders SET status=? WHERE id=?",
-      [req.body.status, req.params.id]
-    );
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Update failed" });
-  }
-});
-
-app.delete("/api/admin/orders/:id", adminAuth, async (req, res) => {
-  try {
-    await pool.query("DELETE FROM order_items WHERE order_id=?", [req.params.id]);
-    await pool.query("DELETE FROM orders WHERE id=?", [req.params.id]);
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: "Delete failed" });
-  }
-});
-
-app.get("/api/admin/stats", adminAuth, async (_, res) => {
-  try {
-    const [[p]] = await pool.query("SELECT COUNT(*) AS c FROM products");
-    const [[o]] = await pool.query("SELECT COUNT(*) AS c FROM orders");
-    const [[r]] = await pool.query("SELECT SUM(total_amount) AS s FROM orders");
-
-    res.json({
-      products: p.c || 0,
-      orders: o.c || 0,
-      revenue: r.s || 0
-    });
-  } catch {
-    res.status(500).json({ error: "Stats failed" });
-  }
-});
-
-app.get("/api/admin/users", adminAuth, async (_, res) => {
-  try {
-    const [u] = await pool.query(
-      "SELECT id, name, phone FROM users ORDER BY id DESC"
-    );
-    res.json(u);
-  } catch {
-    res.status(500).json({ error: "Users load failed" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
