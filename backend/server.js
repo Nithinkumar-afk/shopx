@@ -99,7 +99,7 @@ app.get("/", (_, res) => {
 });
 
 // ================================
-// USER INIT (SAFE)
+// USER INIT
 // ================================
 app.post("/api/user/init", async (_, res) => {
   try {
@@ -115,15 +115,17 @@ app.post("/api/user/init", async (_, res) => {
 });
 
 // ================================
-// PRODUCTS (REPLACED AS REQUESTED)
+// PRODUCTS (FIXED ✅)
 // ================================
-app.get("/api/products", async (req, res) => {
+app.get("/api/products", async (_, res) => {
   try {
-    const [rows] = await db.query("SHOW TABLES");
-    res.json(rows);
+    const [products] = await db.query(
+      "SELECT * FROM products ORDER BY id DESC"
+    );
+    res.json(products);
   } catch (err) {
-    console.error("DB ERROR:", err);
-    res.status(500).json({ error: err.message });
+    console.error("PRODUCT FETCH ERROR:", err.message);
+    res.status(500).json({ error: "Failed to load products" });
   }
 });
 
@@ -137,7 +139,7 @@ app.post(
       const image = req.file ? `/uploads/${req.file.filename}` : "";
 
       await db.query(
-        "INSERT INTO products (name,price,image,description) VALUES (?,?,?,?)",
+        "INSERT INTO products (name, price, image, description) VALUES (?,?,?,?)",
         [name, price, image, description || ""]
       );
 
@@ -163,10 +165,10 @@ app.post("/api/orders", async (req, res) => {
     }
 
     const [[p]] = await db.query(
-      `SELECT u.name,u.phone,a.address_line
+      `SELECT u.name, u.phone, a.address_line
        FROM users u
-       LEFT JOIN addresses a ON u.id=a.user_id
-       WHERE u.id=?`,
+       LEFT JOIN addresses a ON u.id = a.user_id
+       WHERE u.id = ?`,
       [userId]
     );
 
@@ -178,14 +180,14 @@ app.post("/api/orders", async (req, res) => {
 
     const [order] = await db.query(
       `INSERT INTO orders
-       (user_id,customer_name,total_amount,status,created_at)
+       (user_id, customer_name, total_amount, status, created_at)
        VALUES (?,?,?,?,NOW())`,
       [userId, p.name, Number(total_amount), "PLACED"]
     );
 
     for (const i of items) {
       await db.query(
-        `INSERT INTO order_items (order_id,name,quantity,price)
+        `INSERT INTO order_items (order_id, name, quantity, price)
          VALUES (?,?,?,?)`,
         [order.insertId, i.name, i.qty, i.price]
       );
