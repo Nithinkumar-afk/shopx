@@ -115,17 +115,15 @@ app.post("/api/user/init", async (_, res) => {
 });
 
 // ================================
-// PRODUCTS
+// PRODUCTS (REPLACED AS REQUESTED)
 // ================================
-app.get("/api/products", async (_, res) => {
+app.get("/api/products", async (req, res) => {
   try {
-    const [rows] = await db.query(
-      "SELECT * FROM products ORDER BY id DESC"
-    );
+    const [rows] = await db.query("SHOW TABLES");
     res.json(rows);
   } catch (err) {
-    console.error("PRODUCTS ERROR:", err.message);
-    res.status(500).json({ error: "Failed to load products" });
+    console.error("DB ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
