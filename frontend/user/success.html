@@ -8,11 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0
-}
+*{box-sizing:border-box;margin:0;padding:0}
 
 body{
   font-family:Poppins,sans-serif;
@@ -24,9 +20,6 @@ body{
   justify-content:center;
 }
 
-/* ===============================
-   CONTAINER
-================================ */
 .container{
   width:100%;
   max-width:720px;
@@ -39,33 +32,12 @@ body{
   box-shadow:0 25px 60px rgba(0,0,0,.45)
 }
 
-/* ===============================
-   SUCCESS HEADER
-================================ */
-.success{
-  text-align:center;
-  margin-bottom:26px
-}
+.success{text-align:center;margin-bottom:26px}
+.success h1{color:#22c55e;margin-bottom:8px;font-size:24px}
 
-.success h1{
-  color:#22c55e;
-  margin-bottom:8px;
-  font-size:24px;
-  font-weight:600
-}
+.order-id{margin-top:10px;color:#94a3b8;font-size:14px}
 
-.order-id{
-  margin-top:10px;
-  color:#94a3b8;
-  font-size:14px
-}
-
-/* ===============================
-   ITEMS
-================================ */
-#orderItems{
-  margin-top:16px
-}
+#orderItems{margin-top:16px}
 
 .item{
   background:rgba(255,255,255,.08);
@@ -75,18 +47,9 @@ body{
   border:1px solid rgba(255,255,255,.12);
   display:flex;
   justify-content:space-between;
-  align-items:center;
   gap:12px
 }
 
-.item div{
-  font-size:14px;
-  color:#e5e7eb
-}
-
-/* ===============================
-   TOTAL
-================================ */
 .total{
   text-align:right;
   font-size:18px;
@@ -95,9 +58,6 @@ body{
   color:#22c55e
 }
 
-/* ===============================
-   ACTION BUTTONS
-================================ */
 .actions{
   margin-top:34px;
   display:flex;
@@ -111,12 +71,6 @@ body{
   border-radius:16px;
   text-decoration:none;
   font-weight:600;
-  transition:.25s
-}
-
-.actions a:hover{
-  transform:translateY(-2px);
-  opacity:.95
 }
 
 .home{
@@ -130,58 +84,16 @@ body{
   border:1px solid rgba(255,255,255,.2)
 }
 
-/* ===============================
-   RESPONSIVE DESIGN
-================================ */
-
-/* Mobile */
 @media(max-width:600px){
-  body{
-    align-items:flex-start
-  }
-
-  .container{
-    margin:24px 14px;
-    padding:22px
-  }
-
-  .success h1{
-    font-size:20px
-  }
-
-  .item{
-    flex-direction:column;
-    align-items:flex-start
-  }
-
-  .total{
-    font-size:16px
-  }
-
-  .actions{
-    flex-direction:column
-  }
-}
-
-/* Tablet */
-@media(min-width:601px) and (max-width:900px){
-  .container{
-    margin:30px 22px
-  }
-}
-
-/* Large screens */
-@media(min-width:1200px){
-  .container{
-    max-width:760px
-  }
+  .item{flex-direction:column}
+  .actions{flex-direction:column}
 }
 </style>
 </head>
 
 <body>
 
-<div class="container" id="app">
+<div class="container">
   <div class="success">
     <h1>✅ Order Placed Successfully</h1>
     <div class="order-id">
@@ -192,7 +104,7 @@ body{
   <div id="orderItems"></div>
 
   <div class="total">
-    Total Paid: <span id="orderTotal"></span>
+    Total Paid: ₹<span id="orderTotal"></span>
   </div>
 
   <div class="actions">
@@ -202,50 +114,54 @@ body{
 </div>
 
 <script>
-const checkoutBtn = document.getElementById("placeOrder");
+"use strict";
 
-checkoutBtn.addEventListener("click", async () => {
-  const cart = JSON.parse(localStorage.getItem("checkout_cart")) || [];
-  if (!cart.length) {
-    alert("Your cart is empty");
-    return;
-  }
+/* ===============================
+   LOAD LAST ORDER
+================================ */
+const lastOrderRaw = localStorage.getItem("last_order");
 
-  const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+if (!lastOrderRaw) {
+  alert("No recent order found");
+  window.location.href = "../index.html";
+}
 
-  try {
-    const res = await fetch("http://localhost:5000/api/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        items: cart,
-        total
-      })
-    });
+const lastOrder = JSON.parse(lastOrderRaw);
 
-    const data = await res.json();
+/* ===============================
+   ELEMENTS
+================================ */
+const orderIdEl = document.getElementById("orderId");
+const orderTotalEl = document.getElementById("orderTotal");
+const itemsBox = document.getElementById("orderItems");
 
-    if (!data.success) {
-      alert(data.error || "Order failed");
-      return;
-    }
+/* ===============================
+   RENDER ORDER
+================================ */
+orderIdEl.textContent = lastOrder.id;
+orderTotalEl.textContent = `₹${Number(lastOrder.total).toFixed(2)}`;
 
-    localStorage.setItem("last_order", JSON.stringify({
-      id: data.orderId,
-      total: total,
-      items: cart
-    }));
+itemsBox.innerHTML = "";
 
-    localStorage.removeItem("checkout_cart");
-    location.href = "success.html";
+lastOrder.items.forEach(item => {
+  const qty = Number(item.qty) || 1;
+  const price = Number(item.price) || 0;
+  const itemTotal = price * qty;
 
-  } catch (err) {
-    console.error(err);
-    alert("Server error. Please try again.");
-  }
+  itemsBox.innerHTML += `
+    <div class="item">
+      <div>${item.name} × ${qty}</div>
+      <div>₹${itemTotal.toFixed(2)}</div>
+    </div>
+  `;
 });
+
+/* ===============================
+   CLEANUP (OPTIONAL)
+================================ */
+setTimeout(() => {
+  localStorage.removeItem("last_order");
+}, 10000);
 </script>
 
 </body>

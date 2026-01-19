@@ -12,7 +12,7 @@ const mysql = require("mysql2/promise");
 // APP
 // ================================
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 8080;
 
 // ================================
 // MIDDLEWARE
@@ -29,31 +29,52 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 app.use("/uploads", express.static(UPLOAD_DIR));
 
 // ================================
-// MULTER
+// MULTER (IMAGE ONLY)
 // ================================
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOAD_DIR),
   filename: (_, file, cb) =>
     cb(null, Date.now() + "-" + file.originalname),
 });
-const upload = multer({ storage });
+
+const upload = multer({
+  storage,
+  fileFilter: (_, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only images allowed"));
+    }
+    cb(null, true);
+  },
+});
 
 // ================================
-// DATABASE
+// DATABASE (RAILWAY SAFE)
 // ================================
 const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "ecommerce_db",
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
+  port: process.env.MYSQLPORT,
   waitForConnections: true,
   connectionLimit: 10,
 });
 
-console.log("✅ MySQL Pool Ready");
+// ================================
+// TEST DB
+// ================================
+(async () => {
+  try {
+    const c = await db.getConnection();
+    console.log("✅ MySQL Connected");
+    c.release();
+  } catch (e) {
+    console.error("❌ MySQL Error:", e.message);
+  }
+})();
 
 // ================================
-// HELPER – USER ID (HEADER BASED)
+// HELPERS
 // ================================
 function getUserId(req) {
   const id = req.headers["x-user-id"];
@@ -61,14 +82,25 @@ function getUserId(req) {
 }
 
 // ================================
-// TEST
+// ADMIN AUTH
+// ================================
+function adminAuth(req, res, next) {
+  const key = req.headers["x-api-key"];
+  if (!key || key !== process.env.ADMIN_API_KEY) {
+    return res.status(401).json({ error: "Unauthorized admin" });
+  }
+  next();
+}
+
+// ================================
+// ROOT
 // ================================
 app.get("/", (_, res) => {
   res.send("JD Infotech Backend Running 🚀");
 });
 
 // ================================
-// USER INIT (NO LOGIN)
+// USER INIT
 // ================================
 app.post("/api/user/init", async (_, res) => {
   const [r] = await db.query(
@@ -87,7 +119,7 @@ app.get("/api/products", async (_, res) => {
   res.json(rows);
 });
 
-app.post("/api/products", upload.single("image"), async (req, res) => {
+app.post("/api/products", adminAuth, upload.single("image"), async (req, res) => {
   const { name, price, description } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : "";
 
@@ -99,7 +131,7 @@ app.post("/api/products", upload.single("image"), async (req, res) => {
   res.json({ success: true });
 });
 
-app.delete("/api/products/:id", async (req, res) => {
+app.delete("/api/products/:id", adminAuth, async (req, res) => {
   await db.query("DELETE FROM products WHERE id=?", [req.params.id]);
   res.json({ success: true });
 });
@@ -150,6 +182,9 @@ app.post("/api/profile/address", async (req, res) => {
   if (!userId) return res.sendStatus(401);
 
   const { address_line } = req.body;
+  if (!address_line) {
+    return res.status(400).json({ error: "Address required" });
+  }
 
   const [rows] = await db.query(
     "SELECT id FROM addresses WHERE user_id=?",
@@ -172,19 +207,16 @@ app.post("/api/profile/address", async (req, res) => {
 });
 
 // ================================
-// PLACE ORDER (PROFILE REQUIRED)
+// PLACE ORDER
 // ================================
 app.post("/api/orders", async (req, res) => {
   const userId = getUserId(req);
-  if (!userId)
-    return res.status(401).json({ error: "Unauthorized" });
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
   const { items = [], total_amount } = req.body;
-  if (!items.length)
-    return res.status(400).json({ error: "No items" });
+  if (!items.length) return res.status(400).json({ error: "No items" });
 
-  // 🔐 CHECK PROFILE COMPLETENESS
-  const [rows] = await db.query(
+  const [[p]] = await db.query(
     `SELECT u.name,u.phone,a.address_line
      FROM users u
      LEFT JOIN addresses a ON u.id=a.user_id
@@ -192,41 +224,34 @@ app.post("/api/orders", async (req, res) => {
     [userId]
   );
 
-  const p = rows[0];
-  if (!p || !p.name || !p.phone || !p.address_line) {
+  if (!p?.name || !p?.phone || !p?.address_line) {
     return res.status(400).json({
       error: "Complete profile before placing order",
     });
   }
 
-  const total = Number(total_amount) || 0;
-
   const [order] = await db.query(
     `INSERT INTO orders
-     (customer_name,total_amount,status,created_at)
-     VALUES (?,?,?,NOW())`,
-    [p.name, total, "PLACED"]
+     (user_id,customer_name,total_amount,status,created_at)
+     VALUES (?,?,?,?,NOW())`,
+    [userId, p.name, Number(total_amount) || 0, "PLACED"]
   );
 
-  const values = items.map(i => [
-    order.insertId,
-    i.name,
-    i.qty,
-    i.price,
-  ]);
-
-  await db.query(
-    "INSERT INTO order_items (order_id,name,quantity,price) VALUES ?",
-    [values]
-  );
+  for (const i of items) {
+    await db.query(
+      `INSERT INTO order_items (order_id,name,quantity,price)
+       VALUES (?,?,?,?)`,
+      [order.insertId, i.name, i.qty, i.price]
+    );
+  }
 
   res.json({ success: true, orderId: order.insertId });
 });
 
 // ================================
-// GET ORDERS
+// ADMIN – ORDERS
 // ================================
-app.get("/api/orders", async (_, res) => {
+app.get("/api/admin/orders", adminAuth, async (_, res) => {
   const [orders] = await db.query(
     "SELECT * FROM orders ORDER BY id DESC"
   );
@@ -234,7 +259,6 @@ app.get("/api/orders", async (_, res) => {
   if (!orders.length) return res.json([]);
 
   const ids = orders.map(o => o.id);
-
   const [items] = await db.query(
     "SELECT * FROM order_items WHERE order_id IN (?)",
     [ids]
@@ -255,56 +279,9 @@ app.get("/api/orders", async (_, res) => {
 });
 
 // ================================
-// USER – CANCEL ORDER
+// ADMIN – USERS
 // ================================
-app.put("/api/orders/:id/cancel", async (req, res) => {
-  const [rows] = await db.query(
-    "SELECT status FROM orders WHERE id=?",
-    [req.params.id]
-  );
-
-  if (!rows.length)
-    return res.status(404).json({ error: "Order not found" });
-
-  if (rows[0].status !== "PLACED")
-    return res.status(400).json({ error: "Cannot cancel now" });
-
-  await db.query(
-    "UPDATE orders SET status='CANCELLED' WHERE id=?",
-    [req.params.id]
-  );
-
-  res.json({ success: true });
-});
-
-// ================================
-// ADMIN – UPDATE ORDER STATUS
-// ================================
-app.put("/api/admin/orders/:id", async (req, res) => {
-  const { status } = req.body;
-  const deliveredAt = status === "DELIVERED" ? new Date() : null;
-
-  await db.query(
-    "UPDATE orders SET status=?, delivered_at=? WHERE id=?",
-    [status, deliveredAt, req.params.id]
-  );
-
-  res.json({ success: true });
-});
-
-// ================================
-// ADMIN – DELETE ORDER
-// ================================
-app.delete("/api/admin/orders/:id", async (req, res) => {
-  await db.query("DELETE FROM order_items WHERE order_id=?", [req.params.id]);
-  await db.query("DELETE FROM orders WHERE id=?", [req.params.id]);
-  res.json({ success: true });
-});
-
-// ================================
-// ADMIN USERS
-// ================================
-app.get("/api/admin/users", async (_, res) => {
+app.get("/api/admin/users", adminAuth, async (_, res) => {
   const [rows] = await db.query(
     `SELECT u.id,u.name,u.phone,u.alt_phone,u.image,a.address_line
      FROM users u
@@ -315,9 +292,9 @@ app.get("/api/admin/users", async (_, res) => {
 });
 
 // ================================
-// ADMIN DASHBOARD STATS
+// ADMIN – STATS
 // ================================
-app.get("/api/admin/stats", async (_, res) => {
+app.get("/api/admin/stats", adminAuth, async (_, res) => {
   const [[products]] = await db.query("SELECT COUNT(*) AS count FROM products");
   const [[orders]] = await db.query("SELECT COUNT(*) AS count FROM orders");
   const [[revenue]] = await db.query(
@@ -334,9 +311,8 @@ app.get("/api/admin/stats", async (_, res) => {
 });
 
 // ================================
-// START
+// START SERVER
 // ================================
 app.listen(PORT, () => {
-  console.log(`🚀 Backend running → http://localhost:${PORT}`);
+  console.log(`🚀 Backend running on port ${PORT}`);
 });
-

@@ -209,86 +209,74 @@ header h2{
 <script>
 "use strict";
 
-/* ================= BACKEND (NOT USED HERE) ================= */
-const BASE_URL = "https://shopx-production-406f.up.railway.app";
-
-/* ================= STATE ================= */
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 const cartBox = document.getElementById("cartBox");
 
-/* ================= RENDER CART ================= */
-function renderCart() {
-  cartBox.innerHTML = "";
+function renderCart(){
+  cartBox.innerHTML="";
 
-  if (cart.length === 0) {
-    cartBox.innerHTML = `
+  if(cart.length===0){
+    cartBox.innerHTML=`
       <div class="empty">
         <h3>Your cart is empty</h3>
       </div>`;
     return;
   }
 
-  let total = 0;
+  let total=0;
 
-  cart.forEach((p, i) => {
-    p.qty = Number(p.qty) || 1;
+  cart.forEach((p,i)=>{
+    p.qty = p.qty || 1;
     total += p.price * p.qty;
 
-    cartBox.insertAdjacentHTML("beforeend", `
+    cartBox.insertAdjacentHTML("beforeend",`
       <div class="cart-item">
-        <img src="${p.image || "https://via.placeholder.com/300"}">
+        <img src="${p.image || 'https://via.placeholder.com/300'}">
         <div class="item-info">
           <h4>${p.name}</h4>
           <p>₹${p.price}</p>
           <div class="qty-controls">
-            <button onclick="updateQty(${i}, -1)">−</button>
+            <button onclick="updateQty(${i},-1)">−</button>
             <span>${p.qty}</span>
-            <button onclick="updateQty(${i}, 1)">+</button>
+            <button onclick="updateQty(${i},1)">+</button>
           </div>
         </div>
-        <button class="btn btn-danger" onclick="removeItem(${i})">
-          Remove
-        </button>
+        <button class="btn btn-danger" onclick="removeItem(${i})">Remove</button>
       </div>
     `);
   });
 
-  cartBox.insertAdjacentHTML("beforeend", `
+  cartBox.insertAdjacentHTML("beforeend",`
     <div class="cart-summary">
       <strong>Total: ₹${total}</strong>
-      <button class="btn btn-primary" onclick="checkout()">
-        Checkout
-      </button>
+      <button class="btn btn-primary" onclick="checkout()">Checkout</button>
     </div>
   `);
 }
 
-/* ================= ACTIONS ================= */
-function updateQty(index, delta) {
-  cart[index].qty += delta;
-  if (cart[index].qty < 1) cart[index].qty = 1;
-  saveCart();
+function updateQty(i,d){
+  cart[i].qty+=d;
+  if(cart[i].qty<1) cart[i].qty=1;
+  save();
 }
 
-function removeItem(index) {
-  cart.splice(index, 1);
-  saveCart();
+function removeItem(i){
+  cart.splice(i,1);
+  save();
 }
 
-function saveCart() {
-  localStorage.setItem("cart", JSON.stringify(cart));
+function save(){
+  localStorage.setItem("cart",JSON.stringify(cart));
   renderCart();
 }
 
-function checkout() {
+function checkout(){
   localStorage.setItem("checkout_cart", JSON.stringify(cart));
-  window.location.href = "checkout.html";
+  location.href = "checkout.html";
 }
 
-/* ================= INIT ================= */
 renderCart();
 </script>
-
 
 </body>
 </html>

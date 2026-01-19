@@ -235,22 +235,10 @@ header button{
 <div id="orders"></div>
 
 <script>
-"use strict";
-
-/* ================= BACKEND ================= */
-const BASE_URL = "https://shopx-production-406f.up.railway.app";
-
-/* ================= USER ================= */
-const userId = localStorage.getItem("userId");
-if (!userId) {
-  window.location.href = "../index.html";
-}
-
-/* ================= ELEMENTS ================= */
+const API = "http://localhost:5000/api";
 const ordersDiv = document.getElementById("orders");
 const money = n => "₹" + Number(n || 0).toLocaleString("en-IN");
 
-/* ================= STATUS MAP ================= */
 const statusMap = {
   PLACED: "Placed",
   SHIPPED: "Shipped",
@@ -258,60 +246,71 @@ const statusMap = {
   CANCELLED: "Cancelled"
 };
 
-/* ================= LOAD ORDERS ================= */
-async function loadOrders() {
-  try {
-    const res = await fetch(`${BASE_URL}/api/orders`, {
-      headers: { "x-user-id": userId }
-    });
+function cancelOrder(id){
+  if(!confirm("Cancel this order?")) return;
 
-    const list = await res.json();
-    ordersDiv.innerHTML = "";
-
-    if (!list.length) {
-      ordersDiv.innerHTML = "<p class='empty'>No orders found</p>";
-      return;
-    }
-
-    list.forEach(o => {
-      const uiStatus = statusMap[o.status] || o.status;
-
-      const itemsHtml = o.items.map(i => `
-        <div class="item">
-          <div class="item-info">
-            <h4>${i.name}</h4>
-            <p>${money(i.price)} × ${i.quantity}</p>
-          </div>
-        </div>
-      `).join("");
-
-      const deliveredInfo = o.delivered_at
-        ? `<div class="meta">📦 Delivered on 
-             ${new Date(o.delivered_at).toLocaleDateString("en-IN")}
-           </div>`
-        : "";
-
-      ordersDiv.innerHTML += `
-        <div class="order">
-          <div class="order-head">
-            <div class="order-id">Order #${o.id}</div>
-            <div class="status ${uiStatus}">${uiStatus}</div>
-          </div>
-
-          ${itemsHtml}
-          ${deliveredInfo}
-          <div class="total">Total: ${money(o.total_amount)}</div>
-        </div>
-      `;
-    });
-
-  } catch (err) {
-    ordersDiv.innerHTML =
-      "<p class='empty'>Failed to load orders</p>";
-  }
+  fetch(`${API}/orders/${id}/cancel`, { method:"PUT" })
+    .then(res => res.json())
+    .then(() => loadOrders());
 }
 
-/* ================= INIT ================= */
+function loadOrders(){
+  fetch(API + "/orders")
+    .then(res => res.json())
+    .then(list => {
+      ordersDiv.innerHTML = "";
+
+      if (!list.length) {
+        ordersDiv.innerHTML = "<p class='empty'>No orders found</p>";
+        return;
+      }
+
+      list.forEach(o => {
+        const uiStatus = statusMap[o.status] || o.status;
+
+        const items = o.items.map(i => `
+          <div class="item">
+            <div class="item-info">
+              <h4>${i.name}</h4>
+              <p>${money(i.price)} × ${i.quantity}</p>
+            </div>
+          </div>
+        `).join("");
+
+        const cancelBtn =
+          o.status === "PLACED"
+            ? `<button class="cancel-btn" onclick="cancelOrder(${o.id})">
+                 Cancel Order
+               </button>`
+            : "";
+
+        const deliveredInfo =
+          o.delivered_at
+            ? `<div class="meta">📦 Delivered on
+                ${new Date(o.delivered_at).toLocaleDateString("en-IN")}
+               </div>`
+            : "";
+
+        ordersDiv.innerHTML += `
+          <div class="order">
+            <div class="order-head">
+              <div class="order-id">Order #${o.id}</div>
+              <div class="status ${uiStatus}">${uiStatus}</div>
+            </div>
+
+            ${items}
+            ${deliveredInfo}
+            <div class="total">Total: ${money(o.total_amount)}</div>
+            ${cancelBtn}
+          </div>
+        `;
+      });
+    })
+    .catch(()=>{
+      ordersDiv.innerHTML="<p class='empty'>Failed to load orders</p>";
+    });
+}
+
 loadOrders();
 </script>
 

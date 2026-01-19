@@ -190,72 +190,49 @@ header a{
 </div>
 
 <script>
-"use strict";
-
-/* ================= ADMIN CONFIG ================= */
-const BASE_URL = "https://shopx-production-406f.up.railway.app";
-const ADMIN_USERS_API = BASE_URL + "/api/admin/users";
-const FALLBACK_IMG =
-  "https://via.placeholder.com/80?text=User";
-
-/* ================= ADMIN AUTH ================= */
-let adminKey = localStorage.getItem("adminKey");
-
-if (!adminKey) {
-  adminKey = prompt("Enter Admin Key");
-  if (!adminKey) location.href = "../index.html";
-  localStorage.setItem("adminKey", adminKey);
-}
-
-/* ================= ADMIN FETCH ================= */
-function adminFetch(url, options = {}) {
-  return fetch(url, {
-    ...options,
-    headers: {
-      "x-admin-key": adminKey,
-      ...(options.headers || {})
-    }
-  });
-}
-
-/* ================= ELEMENT ================= */
+/* ================================
+   CONFIG
+================================ */
+const API = "http://localhost:5000";
 const usersList = document.getElementById("usersList");
 
-/* ================= XSS SAFE ================= */
-function esc(str) {
+/* ================================
+   XSS SAFE ESCAPE
+================================ */
+function esc(str){
   return String(str || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
 }
 
-/* ================= LOAD USERS ================= */
-async function loadUsers() {
-  try {
-    const res = await adminFetch(ADMIN_USERS_API);
-    if (!res.ok) throw new Error("Unauthorized");
-
+/* ================================
+   LOAD USERS
+================================ */
+async function loadUsers(){
+  try{
+    const res = await fetch(API + "/api/admin/users");
     const users = await res.json();
+
     usersList.innerHTML = "";
 
-    if (!Array.isArray(users) || users.length === 0) {
+    if(!Array.isArray(users) || users.length === 0){
       usersList.innerHTML = `
         <div style="opacity:.6;margin-top:12px">
           No users have visited yet.
-        </div>`;
+        </div>
+      `;
       return;
     }
 
     users.forEach(u => {
-      const imgSrc = u.image
-        ? BASE_URL + u.image
-        : FALLBACK_IMG;
-
       usersList.innerHTML += `
         <div class="user-card">
           <div class="user-img">
-            <img src="${imgSrc}"
-                 onerror="this.src='${FALLBACK_IMG}'">
+            <img 
+              src="${u.image ? API + u.image : 'https://via.placeholder.com/80?text=User'}"
+              alt="User"
+            >
           </div>
           <div class="user-info">
             <p><strong>${esc(u.name) || "Guest User"}</strong></p>
@@ -267,17 +244,17 @@ async function loadUsers() {
       `;
     });
 
-  } catch (err) {
-    console.error(err);
+  }catch(error){
     usersList.innerHTML =
       "<p style='color:#f87171'>Failed to load users</p>";
   }
 }
 
-/* ================= INIT ================= */
+/* ================================
+   INIT
+================================ */
 loadUsers();
 </script>
-
 
 </body>
 </html>

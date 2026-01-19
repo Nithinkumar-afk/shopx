@@ -123,22 +123,53 @@ header a{
   background:rgba(77,163,255,.12);
 }
 
-/* ================= RESPONSIVE ================= */
+/* =====================================================
+   RESPONSIVE — SAME SYSTEM AS STORE UI
+===================================================== */
+
+/* Tablet */
 @media (max-width:768px){
-  header{padding:14px 16px}
-  .container{padding:22px 16px}
-  header h2{font-size:18px}
+  header{
+    padding:14px 16px;
+  }
+
+  .container{
+    padding:22px 16px;
+  }
+
+  header h2{
+    font-size:18px;
+  }
 }
 
+/* Mobile */
 @media (max-width:480px){
-  header{flex-direction:column;align-items:flex-start;gap:10px}
-  .logo{width:38px;height:38px;border-radius:12px}
-  header h2{font-size:17px}
-  .card p{font-size:24px}
+  header{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+  }
+
+  .logo{
+    width:38px;
+    height:38px;
+    border-radius:12px;
+  }
+
+  header h2{
+    font-size:17px;
+  }
+
+  .card p{
+    font-size:24px;
+  }
 }
 
+/* Large screens */
 @media (min-width:1200px){
-  .container{max-width:1280px}
+  .container{
+    max-width:1280px;
+  }
 }
 </style>
 </head>
@@ -150,6 +181,7 @@ header a{
     <div class="logo">JD</div>
     <h2>Admin Dashboard</h2>
   </div>
+
   <a href="../index.html">Go to Store →</a>
 </header>
 
@@ -187,53 +219,39 @@ header a{
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-const BASE = "http://localhost:5000"; // change to Railway URL when live
-const ADMIN_KEY = "JD_ADMIN_2026";
+const BASE = "http://localhost:5000";
 
-/* ================= HELPERS ================= */
 const formatMoney = n =>
   "₹" + Number(n || 0).toLocaleString("en-IN");
 
-/* ================= LOAD DASHBOARD ================= */
-async function loadDashboard() {
-  try {
+async function loadDashboard(){
+  try{
     const [statsRes, usersRes] = await Promise.all([
-      fetch(BASE + "/api/admin/stats", {
-        headers: { "x-api-key": ADMIN_KEY }
-      }),
-      fetch(BASE + "/api/admin/users", {
-        headers: { "x-api-key": ADMIN_KEY }
-      })
+      fetch(BASE + "/api/admin/stats"),
+      fetch(BASE + "/api/admin/users")
     ]);
-
-    if (!statsRes.ok || !usersRes.ok) {
-      throw new Error("Unauthorized");
-    }
 
     const stats = await statsRes.json();
     const users = await usersRes.json();
 
-    document.getElementById("totalProducts").textContent =
+    document.getElementById("totalProducts").innerText =
       Number(stats.products || 0);
 
-    document.getElementById("totalOrders").textContent =
+    document.getElementById("totalOrders").innerText =
       Number(stats.orders || 0);
 
-    document.getElementById("totalRevenue").textContent =
+    document.getElementById("totalRevenue").innerText =
       formatMoney(stats.revenue);
 
-    document.getElementById("totalUsers").textContent =
+    document.getElementById("totalUsers").innerText =
       Array.isArray(users) ? users.length : 0;
 
-  } catch (err) {
+  }catch(err){
     console.error(err);
-    alert("Admin access denied or server error");
-
-    document.getElementById("totalProducts").textContent = "0";
-    document.getElementById("totalOrders").textContent = "0";
-    document.getElementById("totalRevenue").textContent = "₹0";
-    document.getElementById("totalUsers").textContent = "0";
+    document.getElementById("totalProducts").innerText = "0";
+    document.getElementById("totalOrders").innerText = "0";
+    document.getElementById("totalRevenue").innerText = "₹0";
+    document.getElementById("totalUsers").innerText = "0";
   }
 }
 

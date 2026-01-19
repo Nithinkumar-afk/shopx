@@ -199,24 +199,17 @@ input{
 </div>
 
 <script>
-"use strict";
+const API = "http://localhost:5000";
 
-/* ================= BACKEND ================= */
-const BASE_URL = "https://shopx-production-406f.up.railway.app";
-
-/* ================= USER AUTH ================= */
+/* USER */
 const userId = localStorage.getItem("userId");
-if (!userId) {
-  window.location.href = "../index.html";
-}
+if(!userId) location.href = "../index.html";
 
-/* ================= CART ================= */
+/* CART */
 const cart = JSON.parse(localStorage.getItem("checkout_cart")) || [];
-if (cart.length === 0) {
-  window.location.href = "cart.html";
-}
+if(!cart.length) location.href = "cart.html";
 
-/* ================= ELEMENTS ================= */
+/* ELEMENTS */
 const nameEl = document.getElementById("name");
 const phoneEl = document.getElementById("phone");
 const addressList = document.getElementById("addressList");
@@ -227,117 +220,70 @@ const summaryEl = document.getElementById("summary");
 let total = 0;
 let profileOK = false;
 
-/* ================= LOAD PROFILE ================= */
-async function loadProfile() {
-  try {
-    const res = await fetch(`${BASE_URL}/api/profile`, {
-      headers: {
-        "x-user-id": userId
-      }
-    });
+/* LOAD PROFILE */
+(async function(){
+  const res = await fetch(API + "/api/profile", {
+    headers:{ "x-user-id": userId }
+  });
+  const p = await res.json();
 
-    if (!res.ok) throw new Error("Profile fetch failed");
+  nameEl.value = p.name || "";
+  phoneEl.value = p.phone || "";
 
-    const p = await res.json();
-
-    nameEl.value = p.name || "";
-    phoneEl.value = p.phone || "";
-
-    if (p.name && p.phone && p.address_line) {
-      profileOK = true;
-      notice.hidden = true;
-
-      addressList.innerHTML = `
-        <div class="address-card">
-          <input type="radio" checked />
-          <div>${p.address_line}</div>
-        </div>
-      `;
-
-      orderBtn.disabled = false;
-    } else {
-      profileOK = false;
-      notice.hidden = false;
-      addressList.innerHTML = `<p>Please update your profile before checkout</p>`;
-      orderBtn.disabled = true;
-    }
-
-  } catch (err) {
-    console.error(err);
-    alert("Unable to load profile. Please login again.");
-    window.location.href = "../index.html";
+  if(p.name && p.phone && p.address_line){
+    profileOK = true;
+    addressList.innerHTML = `
+      <div class="address-card">
+        <input type="radio" checked>
+        <div>${p.address_line}</div>
+      </div>`;
+    orderBtn.disabled = false;
+  } else {
+    notice.hidden = false;
+    addressList.innerHTML = `<p>Update profile before checkout</p>`;
   }
-}
+})();
 
-loadProfile();
-
-/* ================= ORDER SUMMARY ================= */
-summaryEl.innerHTML = "";
-total = 0;
-
-cart.forEach(item => {
-  const qty = Number(item.qty) || 1;
-  const price = Number(item.price) || 0;
-  const itemTotal = price * qty;
-
-  total += itemTotal;
-
+/* SUMMARY */
+cart.forEach(i=>{
+  total += i.price * i.qty;
   summaryEl.innerHTML += `
     <div class="summary-item">
-      <span>${item.name} × ${qty}</span>
-      <span>₹${itemTotal}</span>
-    </div>
-  `;
+      <span>${i.name} × ${i.qty}</span>
+      <span>₹${i.price * i.qty}</span>
+    </div>`;
 });
-
 summaryEl.innerHTML += `
   <div class="summary-total">
-    <strong>Total</strong>
-    <strong>₹${total}</strong>
-  </div>
-`;
+    <span>Total</span>
+    <span>₹${total}</span>
+  </div>`;
 
-/* ================= PLACE ORDER ================= */
-orderBtn.addEventListener("click", async () => {
-  if (!profileOK) {
-    alert("Please complete your profile before ordering");
+/* PLACE ORDER */
+orderBtn.onclick = async () => {
+  if(!profileOK) return;
+
+  const res = await fetch(API + "/api/orders", {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "x-user-id": userId
+    },
+    body: JSON.stringify({
+      items: cart,
+      total_amount: total
+    })
+  });
+
+  const data = await res.json();
+  if(!data.success){
+    alert(data.error || "Order failed");
     return;
   }
 
-  orderBtn.disabled = true;
-  orderBtn.innerText = "Placing Order...";
-
-  try {
-    const res = await fetch(`${BASE_URL}/api/orders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-id": userId
-      },
-      body: JSON.stringify({
-        items: cart,
-        total_amount: total
-      })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || "Order failed");
-    }
-
-    localStorage.removeItem("checkout_cart");
-    localStorage.removeItem("cart");
-
-    window.location.href = "success.html";
-
-  } catch (err) {
-    console.error(err);
-    alert("Order failed. Please try again.");
-    orderBtn.disabled = false;
-    orderBtn.innerText = "Place Order";
-  }
-});
+  localStorage.removeItem("checkout_cart");
+  location.href = "success.html";
+};
 </script>
 
 </body>
