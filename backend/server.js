@@ -29,7 +29,7 @@ if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
 app.use("/uploads", express.static(UPLOAD_DIR));
 
 // ================================
-// MULTER (IMAGE ONLY)
+// MULTER
 // ================================
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, UPLOAD_DIR),
@@ -48,7 +48,7 @@ const upload = multer({
 });
 
 // ================================
-// DATABASE (RAILWAY SAFE)
+// DATABASE
 // ================================
 const db = mysql.createPool({
   host: process.env.MYSQLHOST,
@@ -66,7 +66,7 @@ const db = mysql.createPool({
 (async () => {
   try {
     const c = await db.getConnection();
-    console.log("✅ MySQL Connected");
+    console.log("✅ MySQL Pool Ready");
     c.release();
   } catch (e) {
     console.error("❌ MySQL Error:", e.message);
@@ -85,8 +85,7 @@ function getUserId(req) {
 // ADMIN AUTH
 // ================================
 function adminAuth(req, res, next) {
-  const key = req.headers["x-api-key"];
-  if (!key || key !== process.env.ADMIN_API_KEY) {
+  if (req.headers["x-api-key"] !== process.env.ADMIN_API_KEY) {
     return res.status(401).json({ error: "Unauthorized admin" });
   }
   next();
@@ -100,214 +99,140 @@ app.get("/", (_, res) => {
 });
 
 // ================================
-// USER INIT
+// USER INIT (SAFE)
 // ================================
 app.post("/api/user/init", async (_, res) => {
-  const [r] = await db.query(
-    "INSERT INTO users (name) VALUES ('Guest User')"
-  );
-  res.json({ userId: r.insertId });
+  try {
+    const [r] = await db.query(
+      "INSERT INTO users (name) VALUES (?)",
+      ["Guest User"]
+    );
+    res.json({ userId: r.insertId });
+  } catch (err) {
+    console.error("USER INIT ERROR:", err.message);
+    res.status(500).json({ error: "User init failed" });
+  }
 });
 
 // ================================
 // PRODUCTS
 // ================================
 app.get("/api/products", async (_, res) => {
-  const [rows] = await db.query(
-    "SELECT * FROM products ORDER BY id DESC"
-  );
-  res.json(rows);
-});
-
-app.post("/api/products", adminAuth, upload.single("image"), async (req, res) => {
-  const { name, price, description } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : "";
-
-  await db.query(
-    "INSERT INTO products (name,price,image,description) VALUES (?,?,?,?)",
-    [name, price, image, description || ""]
-  );
-
-  res.json({ success: true });
-});
-
-app.delete("/api/products/:id", adminAuth, async (req, res) => {
-  await db.query("DELETE FROM products WHERE id=?", [req.params.id]);
-  res.json({ success: true });
-});
-
-// ================================
-// PROFILE
-// ================================
-app.get("/api/profile", async (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.json({});
-
-  const [rows] = await db.query(
-    `SELECT u.id,u.name,u.phone,u.alt_phone,u.image,a.address_line
-     FROM users u
-     LEFT JOIN addresses a ON u.id=a.user_id
-     WHERE u.id=?`,
-    [userId]
-  );
-
-  res.json(rows[0] || {});
-});
-
-app.post("/api/profile", upload.single("image"), async (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.sendStatus(401);
-
-  const { name, phone, altPhone } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : null;
-
-  await db.query(
-    `UPDATE users SET
-     name=COALESCE(NULLIF(?,''),name),
-     phone=COALESCE(NULLIF(?,''),phone),
-     alt_phone=COALESCE(NULLIF(?,''),alt_phone),
-     image=COALESCE(?,image)
-     WHERE id=?`,
-    [name, phone, altPhone, image, userId]
-  );
-
-  res.json({ success: true });
-});
-
-// ================================
-// ADDRESS
-// ================================
-app.post("/api/profile/address", async (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.sendStatus(401);
-
-  const { address_line } = req.body;
-  if (!address_line) {
-    return res.status(400).json({ error: "Address required" });
-  }
-
-  const [rows] = await db.query(
-    "SELECT id FROM addresses WHERE user_id=?",
-    [userId]
-  );
-
-  if (rows.length) {
-    await db.query(
-      "UPDATE addresses SET address_line=? WHERE user_id=?",
-      [address_line, userId]
+  try {
+    const [rows] = await db.query(
+      "SELECT * FROM products ORDER BY id DESC"
     );
-  } else {
-    await db.query(
-      "INSERT INTO addresses (user_id,address_line) VALUES (?,?)",
-      [userId, address_line]
-    );
+    res.json(rows);
+  } catch (err) {
+    console.error("PRODUCTS ERROR:", err.message);
+    res.status(500).json({ error: "Failed to load products" });
   }
-
-  res.json({ success: true });
 });
+
+app.post(
+  "/api/products",
+  adminAuth,
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const { name, price, description } = req.body;
+      const image = req.file ? `/uploads/${req.file.filename}` : "";
+
+      await db.query(
+        "INSERT INTO products (name,price,image,description) VALUES (?,?,?,?)",
+        [name, price, image, description || ""]
+      );
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error("ADD PRODUCT ERROR:", err.message);
+      res.status(500).json({ error: "Failed to add product" });
+    }
+  }
+);
 
 // ================================
 // PLACE ORDER
 // ================================
 app.post("/api/orders", async (req, res) => {
-  const userId = getUserId(req);
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.sendStatus(401);
 
-  const { items = [], total_amount } = req.body;
-  if (!items.length) return res.status(400).json({ error: "No items" });
+    const { items = [], total_amount } = req.body;
+    if (!items.length) {
+      return res.status(400).json({ error: "No items" });
+    }
 
-  const [[p]] = await db.query(
-    `SELECT u.name,u.phone,a.address_line
-     FROM users u
-     LEFT JOIN addresses a ON u.id=a.user_id
-     WHERE u.id=?`,
-    [userId]
-  );
-
-  if (!p?.name || !p?.phone || !p?.address_line) {
-    return res.status(400).json({
-      error: "Complete profile before placing order",
-    });
-  }
-
-  const [order] = await db.query(
-    `INSERT INTO orders
-     (user_id,customer_name,total_amount,status,created_at)
-     VALUES (?,?,?,?,NOW())`,
-    [userId, p.name, Number(total_amount) || 0, "PLACED"]
-  );
-
-  for (const i of items) {
-    await db.query(
-      `INSERT INTO order_items (order_id,name,quantity,price)
-       VALUES (?,?,?,?)`,
-      [order.insertId, i.name, i.qty, i.price]
+    const [[p]] = await db.query(
+      `SELECT u.name,u.phone,a.address_line
+       FROM users u
+       LEFT JOIN addresses a ON u.id=a.user_id
+       WHERE u.id=?`,
+      [userId]
     );
-  }
 
-  res.json({ success: true, orderId: order.insertId });
+    if (!p?.name || !p?.phone || !p?.address_line) {
+      return res.status(400).json({
+        error: "Complete profile before placing order",
+      });
+    }
+
+    const [order] = await db.query(
+      `INSERT INTO orders
+       (user_id,customer_name,total_amount,status,created_at)
+       VALUES (?,?,?,?,NOW())`,
+      [userId, p.name, Number(total_amount), "PLACED"]
+    );
+
+    for (const i of items) {
+      await db.query(
+        `INSERT INTO order_items (order_id,name,quantity,price)
+         VALUES (?,?,?,?)`,
+        [order.insertId, i.name, i.qty, i.price]
+      );
+    }
+
+    res.json({ success: true, orderId: order.insertId });
+  } catch (err) {
+    console.error("ORDER ERROR:", err.message);
+    res.status(500).json({ error: "Order failed" });
+  }
 });
 
 // ================================
 // ADMIN – ORDERS
 // ================================
 app.get("/api/admin/orders", adminAuth, async (_, res) => {
-  const [orders] = await db.query(
-    "SELECT * FROM orders ORDER BY id DESC"
-  );
+  try {
+    const [orders] = await db.query(
+      "SELECT * FROM orders ORDER BY id DESC"
+    );
 
-  if (!orders.length) return res.json([]);
+    if (!orders.length) return res.json([]);
 
-  const ids = orders.map(o => o.id);
-  const [items] = await db.query(
-    "SELECT * FROM order_items WHERE order_id IN (?)",
-    [ids]
-  );
+    const ids = orders.map(o => o.id);
+    const [items] = await db.query(
+      "SELECT * FROM order_items WHERE order_id IN (?)",
+      [ids]
+    );
 
-  const map = {};
-  items.forEach(i => {
-    if (!map[i.order_id]) map[i.order_id] = [];
-    map[i.order_id].push(i);
-  });
+    const map = {};
+    items.forEach(i => {
+      if (!map[i.order_id]) map[i.order_id] = [];
+      map[i.order_id].push(i);
+    });
 
-  orders.forEach(o => {
-    o.items = map[o.id] || [];
-    o.total_amount = Number(o.total_amount) || 0;
-  });
+    orders.forEach(o => {
+      o.items = map[o.id] || [];
+      o.total_amount = Number(o.total_amount) || 0;
+    });
 
-  res.json(orders);
-});
-
-// ================================
-// ADMIN – USERS
-// ================================
-app.get("/api/admin/users", adminAuth, async (_, res) => {
-  const [rows] = await db.query(
-    `SELECT u.id,u.name,u.phone,u.alt_phone,u.image,a.address_line
-     FROM users u
-     LEFT JOIN addresses a ON u.id=a.user_id
-     ORDER BY u.id DESC`
-  );
-  res.json(rows);
-});
-
-// ================================
-// ADMIN – STATS
-// ================================
-app.get("/api/admin/stats", adminAuth, async (_, res) => {
-  const [[products]] = await db.query("SELECT COUNT(*) AS count FROM products");
-  const [[orders]] = await db.query("SELECT COUNT(*) AS count FROM orders");
-  const [[revenue]] = await db.query(
-    "SELECT COALESCE(SUM(total_amount),0) AS total FROM orders WHERE status='DELIVERED'"
-  );
-  const [[users]] = await db.query("SELECT COUNT(*) AS count FROM users");
-
-  res.json({
-    products: Number(products.count),
-    orders: Number(orders.count),
-    revenue: Number(revenue.total),
-    users: Number(users.count),
-  });
+    res.json(orders);
+  } catch (err) {
+    console.error("ADMIN ORDERS ERROR:", err.message);
+    res.status(500).json({ error: "Failed to load orders" });
+  }
 });
 
 // ================================
